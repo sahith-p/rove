@@ -50,8 +50,9 @@ export function createHttpWorker(config: Config): WorkerClient {
       /* non-JSON body */
     }
     if (!res.ok) {
-      const msg = (json as { error?: string } | null)?.error ?? (text || res.statusText);
-      throw new WorkerError(msg, res.status);
+      // Worker errors are { error: <code>, message: <for the merchant> } (tasks/integration.md, NI-C1).
+      const body = json as { error?: string; message?: string } | null;
+      throw new WorkerError(body?.message ?? body?.error ?? (text || res.statusText), res.status, body?.error);
     }
     return schema ? schema.parse(json) : (json as T);
   }

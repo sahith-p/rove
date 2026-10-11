@@ -28,7 +28,7 @@ function progressText(summary: string, phase: "executing" | "done"): string {
   if (w) return phase === "executing" ? `On it! Sending ${w[1]} to ${w[2]}. The card will update as it moves.` : `Done! ${w[1]} is on its way to ${w[2]}.`;
   const r = /^Refund (\S+)(?: to (.+))?$/.exec(summary);
   if (r) return phase === "executing" ? `On it! Refunding ${r[1]}${r[2] ? ` to ${r[2]}` : ""} now.` : `Done ✓ Refunded ${r[1]}${r[2] ? ` to ${r[2]}` : ""}.`;
-  const a = /auto-withdraw (on|off)/i.exec(summary);
+  const a = /auto-withdraw/i.test(summary) ? /\b(on|off)\b/i.exec(summary) : null;
   if (a) return a[1]!.toLowerCase() === "on" ? "Done ✓ Daily auto-withdraw is on, so your balance goes to your bank every night." : "Done ✓ Auto-withdraw is off. Your money stays put until you ask.";
   return phase === "executing" ? `On it! ${summary}.` : `Done ✓ ${summary}.`;
 }
@@ -134,6 +134,8 @@ export function createActions(deps: Deps): ActionsService {
           merchant,
           destinationLabel: label,
           sessionToken: deps.sessionToken(merchant.id, "withdrawal", w.id),
+          actionId: action.id,
+          confirmToken: deps.confirmToken(action.id, merchant.id),
         });
         const card = await outbox.cards.send(to, spec);
         await outbox.text(to, `This one needs a quick extra check: tap the card to confirm sending ${format(w.amount)}.`);
@@ -156,10 +158,13 @@ export function createActions(deps: Deps): ActionsService {
       switch (args.kind) {
         case "withdrawal":
           // Stays `executing` until withdrawal.updated reaches completed/failed → settle(), which edits the card.
-          // Acknowledge first: the pipeline's events can arrive before executeWithdrawal returns.
-          await refreshCard(await fresh(action.id, action), merchant);
-          await tell(merchant, progressText(summary, "executing"));
           await worker.executeWithdrawal(args.withdrawalId, action.id);
+          {
+            const now = await fresh(action.id, action);
+            if (now.status !== "executing") return now.status === "done" ? "done" : "failed"; // the pipeline's events got there first
+            await refreshCard(now, merchant);
+            await tell(merchant, progressText(summary, "executing"));
+          }
           return "executing";
         case "refund": {
           const res = await worker.refund({ actionId: action.id, paymentId: args.paymentId, amount: args.amount.amount });
@@ -183,11 +188,13 @@ export function createActions(deps: Deps): ActionsService {
           return "done";
       }
     } catch (err) {
-      const reason = err instanceof WorkerError ? err.message : "something went wrong on our side";
+      const reason = err instanceof WorkerError && err.status < 500 ? err.message : "Rove's payment service didn't answer";
       deps.log("actions: execute failed", action.id, err);
       await store.finishAction(action.id, "failed", { error: reason });
       await refreshCard(await fresh(action.id, action), merchant);
-      await tell(merchant, `Hmm, that didn't go through: ${reason}. Don't worry, no money moved.`);
+      // A withdrawal the worker rejected also arrives as withdrawal.updated failed, which tells the merchant: say it once.
+      const eventWillTell = args.kind === "withdrawal" && err instanceof WorkerError && err.code === "insufficient_funds";
+      if (!eventWillTell) await tell(merchant, `Hmm, that didn't go through: ${reason}. Don't worry, no money moved.`);
       return "failed";
     }
   }
@@ -216,7 +223,7 @@ export function createActions(deps: Deps): ActionsService {
     const merchant = await store.getMerchant(action.merchantId);
     if (!merchant) return { action, summary, outcome: "not_found" as const };
 
-    if ((via === "tapback" || via === "reply") && (await isStepUp(action))) {
+    if (via !== "web" && (await isStepUp(action))) {
       await tell(merchant, "This one needs a quick extra check, so tap the withdrawal card to confirm it there.");
       return { action, summary, outcome: "failed" as const };
     }

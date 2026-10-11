@@ -1,5 +1,5 @@
 // Agent configuration, read once from the environment (repo-root .env; see .env.example).
-// Offline mode: with no SUPABASE_URL the agent runs on the in-memory store + mock worker (seeded with fixtures),
+// Offline mode: with no DATABASE_URL (or AGENT_OFFLINE=1) the agent runs on the in-memory store + mock worker (seeded with fixtures),
 // so every flow works from the terminal and in evals before the database and worker exist.
 
 import { DEMO_CUSTOMER, DEMO_MERCHANT } from "@rove/shared/mocks";
@@ -14,7 +14,8 @@ export const config = {
   tokenSecret: env.TOKEN_SECRET ?? "change-me",
   workerUrl: env.WORKER_URL ?? "http://localhost:4001",
 
-  offline: !env.SUPABASE_URL,
+  /** No DATABASE_URL (or AGENT_OFFLINE=1): in-memory demo store + mock worker instead of Postgres + the real worker. */
+  offline: !env.DATABASE_URL || env.AGENT_OFFLINE === "1",
   mockCards: flag("USE_MOCK_CARDS", true),
   terminal: flag("USE_TERMINAL_PROVIDER"),
   terminalAs: (env.TERMINAL_AS === "customer" ? "customer" : "merchant") as "merchant" | "customer",
