@@ -1,0 +1,30 @@
+{
+  "id": "n08-remind-invoice",
+  "description": "remind the customer about an open invoice",
+  "as": "merchant",
+  "setup": {
+    "invoiceCustomer": {
+      "amount": "9.00"
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "can you nudge Maya about invoice $invoiceCode"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "remind_invoice"
+    ],
+    "sends": [
+      {
+        "kind": "text",
+        "contains": "reminder",
+        "to": "customer"
+      }
+    ]
+  }
+}

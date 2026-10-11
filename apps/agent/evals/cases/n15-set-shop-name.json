@@ -1,0 +1,26 @@
+{
+  "id": "n15-set-shop-name",
+  "description": "rename the shop",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "rename my shop to Ah Seng's Kitchen"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "set_shop_profile"
+    ],
+    "toolInput": [
+      {
+        "tool": "set_shop_profile",
+        "match": {
+          "name": "Ah Seng's Kitchen"
+        }
+      }
+    ]
+  }
+}

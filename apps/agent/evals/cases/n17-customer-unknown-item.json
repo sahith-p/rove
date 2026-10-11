@@ -1,0 +1,21 @@
+{
+  "id": "n17-customer-unknown-item",
+  "description": "pay a shop for an item it doesn't sell: no pay card",
+  "as": "customer",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "pay ahseng 2 nasi lemak"
+      }
+    }
+  ],
+  "expect": {
+    "noSends": [
+      "invoice"
+    ],
+    "replyMatches": [
+      "menu|don.?t|not|which|closest|did you mean|couldn.?t|sell"
+    ]
+  }
+}

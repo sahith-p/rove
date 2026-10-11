@@ -1,0 +1,32 @@
+{
+  "id": "n02-sales-yesterday-followup",
+  "description": "'what about yesterday?' after a sales question uses range yesterday",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "how much did I make today?"
+      }
+    },
+    {
+      "inbound": {
+        "type": "text",
+        "text": "what about yesterday?"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "get_sales"
+    ],
+    "toolInput": [
+      {
+        "tool": "get_sales",
+        "match": {
+          "range": "yesterday"
+        }
+      }
+    ]
+  }
+}

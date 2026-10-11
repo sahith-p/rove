@@ -12,6 +12,7 @@ type AgentRepo = Pick<
   | "addConfirmMessageIds"
   | "findOpenActionByMessageId"
   | "findActionByMessageId"
+  | "setActionMessageIds"
   | "findActionByRef"
   | "findOpenActionsForMerchant"
   | "claimAction"
@@ -76,6 +77,13 @@ export function agentRepo(pool: Pool): AgentRepo {
           order by created_at desc limit 1`,
         [messageId],
       ),
+
+    async setActionMessageIds(id, messageIds) {
+      await pool.query(
+        `update pending_actions set confirm_message_ids = array(select jsonb_array_elements_text($2::text::jsonb)) where id = $1`,
+        [id, JSON.stringify([...new Set(messageIds)])],
+      );
+    },
 
     findActionByMessageId: (messageId) =>
       action(

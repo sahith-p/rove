@@ -1,0 +1,39 @@
+{
+  "id": "n01-multiturn-adjust-qty",
+  "description": "follow-up 'make it 3' re-invoices with qty 3 (S$16.50)",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "invoice Maya 2 chicken rice"
+      }
+    },
+    {
+      "inbound": {
+        "type": "text",
+        "text": "actually make it 3"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "create_invoice"
+    ],
+    "toolInput": [
+      {
+        "tool": "create_invoice",
+        "match": {
+          "items": [
+            {
+              "qty": 3
+            }
+          ]
+        }
+      }
+    ],
+    "textMatches": [
+      "16\\.50"
+    ]
+  }
+}

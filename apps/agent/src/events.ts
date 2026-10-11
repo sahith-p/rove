@@ -127,6 +127,8 @@ export function createEventsHandler(deps: Deps, m: { actions: ActionsService; on
 
     const amount = format(e.amount);
     if (e.status === "completed" || (e.status === "onchain_settled" && current.destination.kind === "xrpl_wallet")) {
+      // Wallet withdrawals can report both onchain_settled and completed: announce the arrival once.
+      if (!(await store.claim(`withdrawal-done:${e.withdrawalId}`))) return;
       await safe("settle withdrawal action", () => m.actions.settle(e.withdrawalId, "done", { bankRef: e.bankRef }));
       const body =
         current.destination.kind === "xrpl_wallet"

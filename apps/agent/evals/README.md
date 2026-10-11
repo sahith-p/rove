@@ -5,7 +5,12 @@ recording outbox. It checks tool calls, replies, outbound sends and worker calls
 ```bash
 pnpm --filter agent evals                          # all cases
 pnpm --filter agent evals --only c03-code-fast-path  # one case (repeat --only for more)
+pnpm --filter agent evals --repeat 3 --concurrency 6 # each case 3×, 6 at a time; prints a per-case pass rate
 ```
+
+Every reply in every case also has to pass the global reply checks: no markdown, no leaked internal markup
+(`antml…`, `<thinking>`), no raw ids such as `inv_…` / `pay_…` (unless the case sets `"allowIds": true`), and at
+most 400 characters.
 
 Without `ANTHROPIC_API_KEY` (env or repo-root `.env`), only cases that never reach Claude run (`claudeCalled: false`
 or `needsClaude: false`: payment-code fast paths, onboarding steps, contact cards). The rest print SKIP.
@@ -19,6 +24,8 @@ The run exits non-zero if any case fails. Re-run after every prompt change.
   "description": "…",
   "as": "merchant" | "customer" | "stranger",        // demo merchant, demo customer (Maya), or +6590009999
   "needsClaude": false,                               // optional; default = !(expect.claudeCalled === false)
+  "now": "2026-10-12T16:30:00Z",                      // optional fixed clock (greetings, "today", expiry times)
+  "allowIds": true,                                   // optional; replies may show raw ids
   "setup": {
     "addBank": true,                                  // DBS ••••1234, verified, default
     "createCode": { "amount": "6.50", "expired": false }, // one-time code → $code

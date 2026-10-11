@@ -1,0 +1,24 @@
+{
+  "id": "n16-customer-code-in-sentence",
+  "description": "a code inside a sentence still gets the pay card",
+  "as": "customer",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "can you pay K7Q2MX for me"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "pay_code"
+    ],
+    "sends": [
+      {
+        "kind": "invoice",
+        "to": "customer"
+      }
+    ]
+  }
+}

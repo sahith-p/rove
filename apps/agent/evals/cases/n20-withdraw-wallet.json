@@ -1,0 +1,35 @@
+{
+  "id": "n20-withdraw-wallet",
+  "description": "withdraw to the merchant's own XRPL wallet within balance: proposes, asks 👍",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "withdraw 10 to my own wallet rPEPPER7kfTD9w2To4CQk6UCfuHM9c6GDY"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "propose_withdrawal"
+    ],
+    "toolInput": [
+      {
+        "tool": "propose_withdrawal",
+        "match": {
+          "to": "wallet"
+        }
+      }
+    ],
+    "replyMatches": [
+      "👍|confirm|YES"
+    ],
+    "workerCalls": [
+      {
+        "method": "executeWithdrawal",
+        "count": 0
+      }
+    ]
+  }
+}

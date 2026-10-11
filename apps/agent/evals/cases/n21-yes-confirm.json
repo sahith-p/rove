@@ -1,0 +1,33 @@
+{
+  "id": "n21-yes-confirm",
+  "description": "YES confirms the single open action exactly once",
+  "as": "merchant",
+  "setup": {
+    "addBank": true
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "withdraw S$10 to my bank"
+      }
+    },
+    {
+      "inbound": {
+        "type": "text",
+        "text": "YES"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "propose_withdrawal"
+    ],
+    "workerCalls": [
+      {
+        "method": "executeWithdrawal",
+        "count": 1
+      }
+    ]
+  }
+}

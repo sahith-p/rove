@@ -1,22 +1,10 @@
 // Store over @rove/db (Nithya, NI-B1): the real Postgres (Supabase via DATABASE_URL) shared with the worker and web.
-// Most methods map 1:1. Two lookups @rove/db doesn't have yet are covered by an in-process index this agent fills as it
-// goes (it is the only writer of pending actions):
-//   - findActionByMessageId (any status, so a late 👍 can say "expired"): falls back to findOpenActionByMessageId
-//   - findActionByRef (withdrawal id / payment id → its action): indexed at insertAction
-// After an agent restart those fall back to "open actions only" / "not found": a late 👍 is ignored instead of answered,
-// and a withdrawal/refund confirmed before the restart doesn't get its confirm card edited. Money is unaffected.
+// Every method maps onto a @rove/db helper; the few renames are noted inline.
 
 import { createDb, type Db } from "@rove/db";
-import type { PendingAction } from "@rove/shared";
 import type { OnboardingState, Store } from "../ports";
 
 export function createDbStore(db: Db = createDb()): Store {
-  const actionByMessage = new Map<string, string>(); // confirm message id → action id
-  const actionByRef = new Map<string, string>(); // withdrawal id / payment id → latest action id
-
-  const refOf = (a: PendingAction): string | null =>
-    a.args.kind === "withdrawal" ? a.args.withdrawalId : a.args.kind === "refund" ? a.args.paymentId : null;
-
   return {
     // merchants
     getMerchant: (id) => db.getMerchant(id),
@@ -52,12 +40,7 @@ export function createDbStore(db: Db = createDb()): Store {
       return invoice ? db.cancelInvoice(invoice.merchantId, code) : false;
     },
     invoicesDueForReminder: (createdBefore) => db.invoicesToRemind(new Date(createdBefore)),
-    async markInvoiceReminded(id) {
-      // @rove/db's setInvoiceReminded isn't a CAS; claim() makes the nudge exactly-once.
-      if (!(await db.claim(`remind:${id}`))) return false;
-      await db.setInvoiceReminded(id);
-      return true;
-    },
+    markInvoiceReminded: (id) => db.markInvoiceReminded(id), // CAS on reminded_at: one nudge per invoice
 
     // payments + ledger
     getPayment: (id) => db.getPayment(id),
@@ -76,22 +59,10 @@ export function createDbStore(db: Db = createDb()): Store {
     getWithdrawal: (id) => db.getWithdrawal(id),
 
     // pending actions
-    async insertAction(a) {
-      const action = await db.insertAction({ merchantId: a.merchantId, args: a.args, expiresAt: a.expiresAt });
-      const ref = refOf(action);
-      if (ref) actionByRef.set(ref, action.id);
-      return action;
-    },
+    insertAction: (a) => db.insertAction({ merchantId: a.merchantId, args: a.args, expiresAt: a.expiresAt }),
     getAction: (id) => db.getAction(id),
-    async setActionMessageIds(id, messageIds) {
-      for (const m of messageIds) actionByMessage.set(m, id);
-      await db.addConfirmMessageIds(id, messageIds);
-    },
-    async findActionByMessageId(messageId) {
-      const known = actionByMessage.get(messageId);
-      if (known) return db.getAction(known);
-      return db.findOpenActionByMessageId(messageId);
-    },
+    setActionMessageIds: (id, messageIds) => db.addConfirmMessageIds(id, messageIds),
+    findActionByMessageId: (messageId) => db.findActionByMessageId(messageId), // any status, so a late 👍 hears "expired"
     findOpenActionsForMerchant: (merchantId) => db.findOpenActionsForMerchant(merchantId),
     async claimAction(id) {
       return (await db.claimAction(id)) !== null;
@@ -100,10 +71,7 @@ export function createDbStore(db: Db = createDb()): Store {
       await db.setActionStatus(id, status, result);
     },
     expireActions: () => db.expireActions(),
-    async findActionByRef(ref) {
-      const id = actionByRef.get(ref);
-      return id ? db.getAction(id) : null;
-    },
+    findActionByRef: (ref) => db.findActionByRef(ref),
 
     // agent memory + onboarding
     appendAgentMessage: (m) => db.appendAgentMessage(m),

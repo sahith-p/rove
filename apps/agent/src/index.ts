@@ -22,6 +22,8 @@ const { startServer } = await import("./server");
 const { startReminders } = await import("./reminders");
 
 const log = (...args: unknown[]) => console.log("[agent]", ...args);
+// One bad message must never take the agent down (card handles live in memory).
+process.on("unhandledRejection", (err) => log("unhandled rejection (ignored)", err));
 const setup = await createSpectrum(config);
 const outbox =
   config.mockCards || !setup ? createConsoleOutbox({ log: (line) => console.log("[out]", line) }) : createRuntimeOutbox(setup, config, log);
@@ -36,5 +38,8 @@ if (!setup) {
   log("no Spectrum providers configured (SPECTRUM_PROJECT_ID / USE_TERMINAL_PROVIDER=1): internal HTTP only");
 } else {
   log("providers:", Object.entries(setup.providers).filter(([, on]) => on).map(([name]) => name).join(", "));
-  await runMessageLoop(setup, agent);
+  await runMessageLoop(setup, agent).catch((err) => {
+    log("message stream failed; exiting so the host restarts the agent", err);
+    process.exit(1);
+  });
 }

@@ -4,8 +4,9 @@
 //   → merchant.live: confetti + sticker + bank card → bank → done
 // Claude is only used as a fallback to parse messy menu text into {name, price} items.
 
+import { currencyLabel, exampleAmount, shopCountryForPhone, shopCurrencyForPhone } from "./currency";
 import Anthropic from "@anthropic-ai/sdk";
-import { AGENT_MODEL, format, money, type Merchant, type Recipient, type RoveEvent } from "@rove/shared";
+import { AGENT_MODEL, allCurrencies, format, money, type Currency, type Merchant, type Recipient, type RoveEvent } from "@rove/shared";
 import { WorkerError, type Deps, type OnboardingFlow, type OnboardingState } from "./ports";
 
 export const CATEGORY_OPTIONS = ["Hawker food", "Drinks", "Groceries", "Something else"] as const;
@@ -37,12 +38,15 @@ export function slugify(name: string): string {
   return slug.slice(0, 32);
 }
 
-const PRICE = String.raw`(?:s\$|\$|sgd\s*)?(\d+(?:\.\d{1,2})?)`;
-const NAME_THEN_PRICE = new RegExp(String.raw`^(.+?)\s*(?:[-:@=]|at|for)?\s*${PRICE}\s*(?:sgd|dollars?)?$`, "i");
+// Any registry symbol or code before the number ("S$5", "€4.50", "US$3", "sgd 5"), any code or unit word after it.
+const SYMBOLS = [...allCurrencies()].map((c) => c.symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length);
+const CODES = allCurrencies().map((c) => c.code.toLowerCase());
+const PRICE = String.raw`(?:${SYMBOLS.join("|")}|\$|(?:${CODES.join("|")})\s*)?(\d+(?:\.\d{1,2})?)`;
+const NAME_THEN_PRICE = new RegExp(String.raw`^(.+?)\s*(?:[-:@=]|at|for)?\s*${PRICE}\s*(?:${CODES.join("|")}|dollars?|euros?|bucks)?$`, "i");
 const PRICE_THEN_NAME = new RegExp(String.raw`^${PRICE}\s+(?:for\s+)?(.+)$`, "i");
 
 /** "chicken rice 5.50, barley 1.50 and add egg $1" → items with decimal-string prices. Unparseable segments are skipped. */
-export function parseMenu(text: string): { name: string; price: string }[] {
+export function parseMenu(text: string, currency: Currency = "SGD"): { name: string; price: string }[] {
   const items: { name: string; price: string }[] = [];
   const segments = text
     .split(/[,;\n]+|\s+and\s+|\s*&\s*/i)
@@ -59,10 +63,10 @@ export function parseMenu(text: string): { name: string; price: string }[] {
     }
     if (!name || !price) continue;
     name = name.replace(/\s+/g, " ").replace(/[-:@=]+$/, "").trim();
-    if (!name || name.length > 60 || /^\d/.test(name)) continue;
+    if (!name || name.length > 60 || /^\d/.test(name) || /[\d.]$/.test(name)) continue; // "kopi 1.805" ≠ "Kopi 1." at S$805
     let normalized: string;
     try {
-      normalized = money(price, "SGD").amount;
+      normalized = money(price, currency).amount;
     } catch {
       continue;
     }
@@ -133,7 +137,7 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
         name: merchant.name,
         phone: merchant.phone,
         channel: merchant.channel,
-        currency: "SGD",
+        currency: merchant.currency,
         category: merchant.category,
       });
     } catch (err) {
@@ -147,20 +151,23 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
 
   async function finish(s: OnboardingState): Promise<void> {
     await save(s, "done");
+    const merchant = await merchantOf(s);
+    const item = merchant ? (await store.listMenu(merchant.id))[0]?.name.toLowerCase() : undefined;
+    const qr = exampleAmount(merchant?.currency ?? "SGD", "6.50");
     await say(
       recipientOf(s),
-      "You're all set! Try 'invoice +65 9123 4567 2 chicken rice' or 'QR for 6.50'. And share a contact card with me anytime to save a regular.",
+      `You're all set! Try 'invoice <their number> 2 ${item ?? "coffees"}' or 'QR for ${qr}'. And share a contact card with me anytime to save a regular.`,
     );
   }
 
   async function addMenuText(s: OnboardingState, text: string): Promise<boolean> {
     const merchant = await merchantOf(s);
     if (!merchant) return false;
-    let items = parseMenu(text);
+    let items = parseMenu(text, merchant.currency);
     if (!items.length) items = await parseMenuWithClaude(text);
     if (!items.length) return false;
-    for (const item of items) await store.upsertMenuItem(merchant.id, { name: item.name, price: money(item.price, "SGD") });
-    const added = items.map((i) => `${i.name} ${format(money(i.price, "SGD"))}`).join(", ");
+    for (const item of items) await store.upsertMenuItem(merchant.id, { name: item.name, price: money(item.price, merchant.currency) });
+    const added = items.map((i) => `${i.name} ${format(money(i.price, merchant.currency))}`).join(", ");
     await say(recipientOf(s), `Added ${added} ✓ Anything else, or say 'done'?`);
     await setupCard(s, "update");
     await goLive(s);
@@ -256,9 +263,10 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
           const name = extractShopName(trimmed);
           if (!name) return void (await say(to, "Sorry, I didn't catch that. What's your shop called?"));
           const id = await uniqueSlug(slugify(name), s.phone);
-          await store.upsertDraftMerchant({ id, name, phone: s.phone, channel: s.channel, category: null });
+          const currency = shopCurrencyForPhone(s.phone);
+          await store.upsertDraftMerchant({ id, name, phone: s.phone, channel: s.channel, category: null, currency, country: shopCountryForPhone(s.phone, currency) });
           const next = await save(s, "category", { ...s.data, name, merchantId: id });
-          await say(to, `${name}, love it! Your shop code is ${id}; customers can text it to pay you.`);
+          await say(to, `${name}, love it! Your shop code is ${id}; customers can text it to pay you, and you'll get paid in ${currencyLabel(currency)}.`);
           await askCategory(next);
           return;
         }

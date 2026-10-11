@@ -1,0 +1,26 @@
+{
+  "id": "n14-add-contact-text",
+  "description": "save a contact by text",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "save Ben's number, it's +65 9876 5432"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "add_contact"
+    ],
+    "toolInput": [
+      {
+        "tool": "add_contact",
+        "match": {
+          "phone": "+6598765432"
+        }
+      }
+    ]
+  }
+}

@@ -31,8 +31,8 @@ export const config = {
   anthropicWorkspaceId: env.ANTHROPIC_WORKSPACE_ID ?? "",
   elevenLabs: { apiKey: env.ELEVENLABS_API_KEY ?? "", voiceId: env.ELEVENLABS_VOICE_ID ?? "" },
 
-  /** Demo cap on a single invoice / pay request (docs/specs/invoicing-and-qr.md §4). */
-  maxInvoiceSgd: "500.00",
+  /** Cap on one invoice / pay request, in the shop's own currency. */
+  maxInvoiceAmount: "500.00",
   /** Unpaid invoices get one nudge after this long. */
   reminderAfterMs: 24 * 3600 * 1000,
   /** The shop's local timezone: times shown in messages, what "today" means, the recap hour. */

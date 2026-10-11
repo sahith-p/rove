@@ -1,0 +1,26 @@
+{
+  "id": "n24-voice-filler",
+  "description": "voice transcript with filler words still answers sales",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "voice",
+        "transcript": "um so like, how much did I, uh, make today?"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "get_sales"
+    ],
+    "toolInput": [
+      {
+        "tool": "get_sales",
+        "match": {
+          "range": "today"
+        }
+      }
+    ]
+  }
+}

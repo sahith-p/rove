@@ -16,17 +16,22 @@ import { withdrawalsRepo } from "./repo/withdrawals";
 export interface MakeDbOptions extends InvoicesRepoOptions {}
 
 export function makeDb(pool: Pool, opts: MakeDbOptions = {}): Db {
+  const invoices = invoicesRepo(pool, opts);
+  const agent = agentRepo(pool);
   return {
     ...merchantsRepo(pool),
     ...menuRepo(pool),
     ...contactsRepo(pool),
-    ...invoicesRepo(pool, opts),
+    ...invoices,
     ...paymentsRepo(pool),
     ...ledgerRepo(pool),
     ...withdrawalsRepo(pool),
     ...refundsRepo(pool),
-    ...agentRepo(pool),
+    ...agent,
     ...ausdRepo(pool),
+    // Names the agent's Store uses (Saran/Sahith 15:40); same behavior as the originals.
+    invoicesDueForReminder: (createdBefore) => invoices.invoicesToRemind(new Date(createdBefore)),
+    finishAction: (id, status, result) => agent.setActionStatus(id, status, result),
     close: () => pool.end(),
   };
 }

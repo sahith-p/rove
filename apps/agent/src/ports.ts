@@ -13,6 +13,7 @@ import type {
   CardPresenter,
   Channel,
   Contact,
+  Currency,
   DaySummary,
   Invoice,
   InvoiceKind,
@@ -73,7 +74,7 @@ export interface Store {
   getMerchantByPhone(phone: string): Promise<Merchant | null>;
   /** shop code, then merchant phone, then fuzzy name. Several close names → all of them (agent asks). */
   findShop(query: string): Promise<Merchant[]>;
-  upsertDraftMerchant(m: { id: string; name: string; phone: string; channel: Channel; category: string | null }): Promise<Merchant>;
+  upsertDraftMerchant(m: { id: string; name: string; phone: string; channel: Channel; category: string | null; currency?: Currency; country?: string }): Promise<Merchant>;
   updateShop(id: string, patch: { name?: string; category?: string | null }): Promise<Merchant>;
   listLiveMerchants(): Promise<Merchant[]>; // [request]
 

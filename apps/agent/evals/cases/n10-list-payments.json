@@ -1,0 +1,21 @@
+{
+  "id": "n10-list-payments",
+  "description": "list recent payments",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "show me my last few payments"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "list_payments"
+    ],
+    "replyMatches": [
+      "12\\.50"
+    ]
+  }
+}
