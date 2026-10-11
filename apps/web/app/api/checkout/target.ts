@@ -106,10 +106,10 @@ export async function resolveTarget(db: Db, body: CheckoutBody, now = Date.now()
 
 /**
  * The currency the payer is charged in (§1a): what the page asked for, else the payer's phone country (+65 → SGD,
- * anything else → USD), else USD. BNB is always USD (USDT is a dollar).
+ * anything else → USD), else USD. The stablecoin lanes are always USD (USDT and AUSD are dollars).
  */
 export function payerCurrency(body: Pick<CheckoutBody, "method" | "payCurrency">, payer: Recipient | null): Currency {
-  if (body.method === "bnb") return "USD";
+  if (body.method !== "card") return "USD";
   if (body.payCurrency) return body.payCurrency;
   if (payer) return payer.phone.startsWith("+65") ? "SGD" : "USD";
   return "USD";

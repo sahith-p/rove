@@ -24,6 +24,7 @@ import {
 import type { WebDeps } from "../_lib/deps";
 import { HttpError } from "../_lib/http";
 import { describeStripeError, isStripeError } from "../stripe/stripe-errors";
+import { checkoutAusd } from "./ausd";
 import { checkoutBnb } from "./bnb";
 import { payerCurrency, resolveTarget, type CheckoutBody, type CheckoutTarget } from "./target";
 
@@ -44,7 +45,9 @@ const IN_FLIGHT: ReadonlySet<Stripe.PaymentIntent.Status> = new Set(["processing
 
 export async function runCheckout(deps: WebDeps, body: CheckoutBody, now = Date.now()): Promise<CheckoutResult> {
   const target = await resolveTarget(deps.db, body, now);
+  // The stablecoin lanes live in their own modules (always a USD charge); everything below is the Stripe card lane.
   if (body.method === "bnb") return validated(await checkoutBnb(deps, target));
+  if (body.method === "ausd") return validated(await checkoutAusd(deps, target));
 
   const stripe = deps.stripe;
   if (!stripe) throw new HttpError(503, "stripe_not_configured", "Card payments aren't set up yet. Please try again later.");
