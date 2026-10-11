@@ -25,7 +25,7 @@ Owner: **Nithya** · Code: `packages/xrpl`, `apps/worker` · Contract: `Settleme
 2. **`AccountSet SetFlag: 8` (asfDefaultRipple) on both issuers before any trust line.** Without it tokens can't move through the AMM.
 3. `TrustSet` from TREASURY, LP, REDEMPTION to both issuers.
 4. Mint: issuer → LP (10,000 RLUSD; 12,900 XSGD); issuer → TREASURY (5,000 RLUSD; 5,000 XSGD float for SGD payers, see payments-stripe.md §1a).
-5. `AMMCreate` from LP: 10,000 RLUSD / 12,900 XSGD, `TradingFee: 30`. xrpl.js `autofill` sets the special AMMCreate fee.
+5. `AMMCreate` from LP, `TradingFee: 30` (0.03%), then deepened with `AMMDeposit` to about 1,000,000 RLUSD / 1,281,000 XSGD so demo-sized payments barely move the price. EUR has its own RLUSD/EUR pool (corridors: docs/specs/corridors.md).
 6. Create demo merchant `ahseng` via `createMerchantAccount()`.
 7. Write `.env.seed`; print explorer links.
 
