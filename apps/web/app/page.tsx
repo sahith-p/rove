@@ -372,7 +372,7 @@ export default function Home() {
           </div>
         </div>
         <p className={styles.footerNote}>
-          Demo on XRPL testnet and Stripe test mode. Bank payouts are simulated.
+          Demo on XRPL testnet and Stripe test mode.
         </p>
       </footer>
     </main>

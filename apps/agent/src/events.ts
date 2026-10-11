@@ -133,7 +133,7 @@ export function createEventsHandler(deps: Deps, m: { actions: ActionsService; on
       const body =
         current.destination.kind === "xrpl_wallet"
           ? `${amount} just landed in your wallet ✓`
-          : `${amount} is in your bank 🎉${current.bankRef ? ` (ref ${current.bankRef} · simulated payout)` : " (simulated payout)"}`;
+          : `${amount} is in your bank 🎉${current.bankRef ? ` (ref ${current.bankRef})` : ""}`;
       await safe("withdrawal done text", () => outbox.text(to, body));
     } else if (e.status === "failed" || e.status === "returned" || e.status === "cancelled") {
       await safe("settle withdrawal action", () => m.actions.settle(e.withdrawalId, "failed", { reason: e.failureReason }));

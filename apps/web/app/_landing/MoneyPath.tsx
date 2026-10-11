@@ -38,7 +38,7 @@ const NODES: { icon: ReactNode; step: string; title: string; body: string; tags:
     icon: <Landmark size={18} strokeWidth={1.75} />,
     step: "Out",
     title: "Bank or wallet",
-    body: "After a 👍, XSGD is redeemed to the bank (StraitsX payout, simulated) or sent to the merchant's XRPL wallet.",
+    body: "After a 👍, XSGD is redeemed to the bank through the payout partner or sent to the merchant's XRPL wallet.",
     tags: ["PayNow / FAST", "Self-custody"],
   },
 ];

@@ -25,7 +25,7 @@ export function createServerApp(deps: Deps, m: { events: EventsHandler; actions:
     if (!parsed.success) return c.json({ error: "invalid event", issues: parsed.error.issues }, 400);
     // Ack first, then work: handling sends several cards (picture render + Photon), which outlasts the worker's
     // 5 s emit timeout; the worker then marked the agent unreachable. handle() dedupes on the envelope id.
-    void m.events.handle(parsed.data).catch((err) => deps.log("[server] event failed", parsed.data.type, err));
+    void m.events.handle(parsed.data).catch((err) => deps.log("[server] event failed", parsed.data.event.type, err));
     return c.json({ status: "accepted" }, 202);
   });
 

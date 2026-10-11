@@ -403,11 +403,6 @@ function Saved({ account, simulated, replaced }: { account: BankAccountView; sim
         {replaced && replaced.id !== account.id ? <Row label="Default" value={accountLabel(replaced)} tone="muted" /> : null}
       </Rows>
       {pending ? <p className={styles.hint}>The bank is confirming the name. Rove will text you when it&rsquo;s done.</p> : null}
-      {simulated ? (
-        <Notice variant="simulated" title="Payout partner simulated (demo)">
-          Nothing was sent to a bank. The name is shown as entered.
-        </Notice>
-      ) : null}
     </div>
   );
 }

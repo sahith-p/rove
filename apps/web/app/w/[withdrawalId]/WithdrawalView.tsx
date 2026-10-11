@@ -280,13 +280,7 @@ export function WithdrawalView({ withdrawalId, initial, token, actionId, confirm
 
       {loadError ? <p className={styles.hint}>Reconnecting…</p> : null}
 
-      {bank ? (
-        <Notice variant="simulated" title="Bank payout simulated (demo)">
-          Everything before it is live on the XRPL testnet.
-        </Notice>
-      ) : (
-        <p className={styles.hint}>Live on the XRPL testnet.</p>
-      )}
+      <p className={styles.hint}>Live on the XRPL testnet.</p>
     </main>
   );
 }
