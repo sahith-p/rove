@@ -1,0 +1,17 @@
+{
+  "name": "@rove/xrpl",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "seed": "tsx scripts/seed.ts",
+    "settle:demo": "tsx scripts/settle-demo.ts"
+  },
+  "dependencies": {
+    "@rove/shared": "workspace:*",
+    "xrpl": "^4.2.0"
+  },
+  "devDependencies": { "typescript": "^5.6.3", "tsx": "^4.19.2", "@types/node": "^22.10.0" }
+}

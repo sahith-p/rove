@@ -1,0 +1,13 @@
+{
+  "name": "@rove/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p tsconfig.json" },
+  "dependencies": {
+    "@rove/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": { "typescript": "^5.6.3", "@types/node": "^22.10.0" }
+}

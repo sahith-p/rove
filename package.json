@@ -1,0 +1,14 @@
+{
+  "name": "rove",
+  "private": true,
+  "packageManager": "pnpm@10.24.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter web --filter worker --filter agent dev",
+    "check": "pnpm -r --if-present typecheck && pnpm -r --if-present lint && pnpm -r --if-present test",
+    "seed": "pnpm --filter @rove/xrpl seed",
+    "typecheck": "pnpm -r --if-present typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

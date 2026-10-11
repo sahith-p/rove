@@ -1,0 +1,55 @@
+# Replace the handles with real GitHub usernames. Source of truth: docs/03-ownership.md
+
+*                                   @sahith @nithya @saran
+
+# Contracts: all three must approve
+/packages/shared/                   @sahith @nithya @saran
+/docs/02-contracts.md               @sahith @nithya @saran
+
+# Sahith: minimal web app + iMessage App cards + QR images + Privy
+/apps/web/app/pay/                  @sahith
+/apps/web/app/m/                    @sahith
+/apps/web/app/r/                    @sahith
+/apps/web/app/setup/                @sahith
+/apps/web/app/bank/                 @sahith
+/apps/web/app/shop/                 @sahith
+/apps/web/app/w/                    @sahith
+/apps/web/app/confirm/              @sahith
+/apps/web/app/layout.tsx            @sahith
+/apps/web/app/page.tsx              @sahith
+/apps/web/components/               @sahith
+/apps/web/lib/ui/                   @sahith
+/packages/imessage-apps/            @sahith
+/docs/specs/web-app.md              @sahith
+/docs/specs/imessage-apps.md        @sahith
+/docs/specs/design.md               @sahith
+/docs/07-demo.md                    @sahith
+/tasks/sahith.md                    @sahith
+
+# Nithya: money movement
+/apps/web/app/api/checkout/         @nithya
+/apps/web/app/api/stripe/           @nithya
+/apps/web/app/api/invoices/         @nithya
+/apps/web/app/api/shops/            @nithya
+/apps/web/app/api/payments/         @nithya
+/apps/web/app/api/me/               @nithya
+/apps/web/app/api/withdrawals/      @nithya
+/apps/web/app/api/_lib/             @nithya
+/apps/worker/                       @nithya
+/packages/db/                       @nithya
+/packages/xrpl/                     @nithya
+/docs/specs/withdrawals.md          @nithya
+/docs/specs/settlement-xrpl.md      @nithya
+/docs/specs/payments-stripe.md      @nithya
+/docs/specs/bnb-lane.md             @nithya @sahith
+/tasks/nithya.md                    @nithya
+
+# Saran: the agent
+/apps/agent/                        @saran
+/apps/web/app/api/actions/          @saran
+/docs/specs/agent.md                @saran
+/docs/specs/onboarding.md           @saran
+/docs/specs/channels.md             @saran
+/docs/specs/voice.md                @saran
+/docs/specs/invoicing-and-qr.md     @saran @nithya @sahith
+/tasks/saran.md                     @saran
