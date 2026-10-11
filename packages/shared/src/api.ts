@@ -143,6 +143,8 @@ export const MeRes = z.object({
     verified: z.boolean(),
   }),
   balance: z.object({ available: MoneyZ, held: MoneyZ, total: MoneyZ }),
+  /** Reconciler result: ledger available + held equals the XSGD balance on the merchant's XRPL account ("Ledger ✓ matches XRPL"). */
+  ledgerMatchesXrpl: z.boolean().optional(),
   menu: z.array(MenuItemViewZ),
   contacts: z.array(z.object({ id: z.string(), name: z.string(), phone: z.string() })),
   openInvoices: z.array(z.object({ code: z.string(), to: z.string().nullable(), total: MoneyZ, createdAt: z.string() })),

@@ -6,7 +6,8 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"app/api/**/*.test.ts\""
   },
   "dependencies": {
     "@privy-io/react-auth": "^2.0.0",
@@ -27,6 +28,7 @@
     "@types/node": "^22.10.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.6.3"
   }
 }

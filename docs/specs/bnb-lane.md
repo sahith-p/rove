@@ -1,6 +1,6 @@
 # Spec · BNB Chain wallet pay-in, XRPL settlement
 
-Status: **Core, second pay button** on `/pay` and `/m` pages. Built after Apple Pay works (gate G3b, 15:00). Covers YZi's BNB setup steps.
+Status: **Core, and the move**: the only rail with no card fees (payments-stripe.md §8). Second pay button on `/pay` and `/m`, built after Apple Pay works (gate G3b, 15:00); the pitch leads with it. Covers YZi's BNB setup steps.
 
 Owners: **Nithya** (deposit addresses in `/api/checkout`, watcher in `apps/worker/src/bnb`) + **Sahith** (Privy wallet button on the pay pages). Estimate: ~1.5 h backend + ~45 min UI. Tasks: NI-C6, SH-A4.
 

@@ -79,3 +79,23 @@ The worker also polls `authorized` payments every 3s, so a lost nudge costs only
 | Settle fails after Stripe succeeded | 2 retries with fresh quote → `failed` + automatic Stripe refund + `payment.failed` |
 | Invoice paid twice (race) | unique index `payments_one_per_invoice` rejects the second authorization → auto-refund it |
 | Duplicate webhook | `claim()` |
+
+## 8. Fees, and how we present them to judges
+
+**Who pays what.** Card rails cost about 3% somewhere no matter what. Stripe takes 2.9% + 30¢ out of every card charge before it reaches Rove, so a tourist's saved ~3% foreign transaction fee mostly moves to whoever pays Stripe. On hawker-sized tickets the fixed 30¢ dominates: about 6% of a US$9.72 sale and about 10% of a S$5.50 chicken rice.
+
+| Rail | Payer pays | Card fee | Who absorbs it |
+|---|---|---|---|
+| **Stablecoin wallet (BNB lane, Privy): the move** | market rate + 0.3% pool fee + cents of gas | **none** | — |
+| Apple Pay / card in the payer's own currency | market rate + 0.3% pool fee | 2.9% + 30¢ | demo: Rove (test mode). Production: the merchant, like any card terminal, on tourist sales they'd otherwise lose |
+
+- **The stablecoin wallet lane is the move.** It is the only rail where nobody pays card fees, so it's where Rove is cheaper for everyone. Apple Pay is the on-ramp for tourists who don't hold stablecoins yet.
+- **The payer always pays the market rate.** We never add a fee in place of their bank's foreign transaction fee. It would erase the payer's savings, and a 3% fee only covers Stripe on tickets above about US$300. As a US merchant of record it would also count as a card surcharge, which card-network rules cap and don't allow on debit cards.
+- The fee is not paid from an "agent wallet". The agent never moves money (CLAUDE.md); Stripe nets its fee out of the charge, and plain code records the cost.
+- **Later: top up once.** A tourist loads e.g. US$50 into a Rove balance with Apple Pay (one 30¢ fee, ~3.5% total) and pays many stalls from it by text or QR. This is the tourist's balance held by Rove (custodial, like merchant balances), not the agent's wallet. In production it is stored value and brings extra regulation.
+
+**Saying it to judges (keep it exact):**
+- "Pay in your own currency; the merchant gets theirs. Tourists pay the market rate, not a 3% foreign transaction fee or a 3–12% 'pay in your currency' (DCC) markup, and stalls that can't take foreign cards now can."
+- "With a stablecoin wallet there are no card fees at all: dollars in, one market-rate stablecoin swap on XRPL, Singapore dollars out."
+- If asked "who pays Stripe?": "In the demo we absorb it. In production the merchant pays a card-like fee on tourist sales they'd otherwise lose, and the stablecoin lane has no card fee."
+- Don't claim "everyone pays less": a travel card with no foreign transaction fee roughly ties with Rove on the card rail.

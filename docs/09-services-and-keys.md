@@ -13,7 +13,7 @@ Every external service Rove touches, who sets it up, and exactly which values go
 | [ ] | **Meta WhatsApp Business** (via Photon) | Saran | the agent on WhatsApp; **submit the `rove_invoice` template at 11:30** (docs/specs/channels.md) | developers.facebook.com → app → WhatsApp → API setup (test number OK), or a Photon cloud WhatsApp line if your plan has one | `SPECTRUM_WHATSAPP_BUSINESS_ACCESS_TOKEN`, `SPECTRUM_WHATSAPP_BUSINESS_PHONE_NUMBER_ID`, `SPECTRUM_WHATSAPP_BUSINESS_APP_SECRET` | free test number; template approval time varies |
 | [ ] | **Anthropic (Claude API)** | Saran | the merchant agent (`claude-opus-5-5`) | Claude Console (console.anthropic.com) → API keys | `ANTHROPIC_API_KEY` | pay-as-you-go; add credit first |
 | [ ] | **Stripe** (test mode) | Nithya | Apple Pay / card checkout, refunds | dashboard.stripe.com → toggle **Test mode** → Developers → API keys | `STRIPE_SECRET_KEY` (sk_test_…), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (pk_test_…), `STRIPE_WEBHOOK_SECRET` (whsec_…, from the webhook endpoint or `stripe listen`) | free in test mode |
-| [ ] | **Supabase** | Nithya | Postgres for every state machine | supabase.com → new project → Settings → API | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | free tier |
+| [ ] | **Supabase** | Nithya | Postgres for every state machine | supabase.com → new project → **Connect** → Transaction pooler URI (port 6543); run `packages/db/schema.sql` in the SQL editor | `DATABASE_URL` | free tier |
 | [ ] | **XRPL testnet** | Nithya | settlement, AMM, Credentials | no account; `pnpm seed` funds wallets from the faucet | `XRPL_WSS`, `XRPL_USD_ISSUER`, `XRPL_SGD_ISSUER`, `XRPL_TREASURY_SEED`, `XRPL_REDEMPTION_ADDRESS`, `XRPL_CREDENTIAL_ISSUER_SEED` (written to `.env.seed`) | free |
 | [ ] | **GitHub** | Sahith | repo (must be public at submission), PRs, CODEOWNERS | github.com → new repo → invite Nithya + Saran | — | free |
 | [ ] | **Generated secrets** | Nithya (internal), Sahith (tokens) | service-to-service auth, signed links, merchant key encryption | `openssl rand -hex 32` (three times) | `INTERNAL_SECRET`, `TOKEN_SECRET`, `WALLET_ENCRYPTION_KEY` | — |
@@ -70,10 +70,12 @@ Every external service Rove touches, who sets it up, and exactly which values go
 |---|---|---|---|---|
 | `PUBLIC_BASE_URL`, `TOKEN_SECRET` | ✓ | ✓ | ✓ | ✓ |
 | `INTERNAL_SECRET`, `WORKER_URL`, `AGENT_URL` | ✓ | ✓ | ✓ | ✓ |
-| `SUPABASE_*` | ✓ | ✓ | ✓ | ✓ |
+| `DATABASE_URL` | ✓ | ✓ | ✓ | ✓ |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | ✓ | ✓ | ✓ (refunds) | |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_PRIVY_APP_ID` | ✓ | ✓ | | |
-| `XRPL_*`, `WALLET_ENCRYPTION_KEY` | ✓ | ✓ (quote, verified badge) | ✓ | |
-| `BSC_*` | ✓ | ✓ (deposit addresses) | ✓ (watcher) | |
+| `XRPL_WSS`, `XRPL_*_ISSUER`, `XRPL_*_ADDRESS` (public) | ✓ | ✓ (quote, verified badge) | ✓ | |
+| `XRPL_*_SEED`, `WALLET_ENCRYPTION_KEY` (signing) | ✓ | **never** | ✓ | |
+| `BSC_RPC_URL`, `BSC_TOKEN_*`, `BSC_DEPOSIT_XPUB` | ✓ | ✓ (deposit addresses) | ✓ (watcher) | |
+| `BSC_DEPOSIT_MNEMONIC` | ✓ | **never** | ✓ | |
 | `SPECTRUM_*` (incl. WhatsApp), `ANTHROPIC_API_KEY`, `ELEVENLABS_*` | ✓ | | | ✓ |
 | `USE_MOCK_*`, `USE_TERMINAL_PROVIDER` | ✓ | ✓ | ✓ | ✓ |
