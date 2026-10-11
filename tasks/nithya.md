@@ -8,7 +8,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - [~] **H2 (11:30)** Credentials: enabled on testnet (verified in NI-A4). RLUSD testnet issuer: still to ask. · Ripple table: Credentials on testnet? testnet RLUSD issuer? Log answers.
 - [x] **H3 (12:00)** done via the Stripe API: Apple Pay active on rove-topaz.vercel.app · Stripe → Payment method domains → add the Vercel domain (Apple Pay).
 - [~] **H4 (12:30)** G1 passed; flip `USE_MOCK_SETTLEMENT=0` when the worker deploys. · Gate **G1**, then `USE_MOCK_SETTLEMENT=0`.
-- [~] **H5 (14:00)** handed to Sahith (deploys on his Railway); env handoff file prepared by Nithya · Deploy worker to Railway; share `WORKER_URL`.
+- [x] **H5 (14:00)** Sahith deployed it: `https://worker-production-b037.up.railway.app`, /healthz ok (real XRPL + DB), reconciler ok · Deploy worker to Railway; share `WORKER_URL`.
 
 ## Lane A: XRPL engine (`packages/xrpl`)
 
