@@ -32,7 +32,12 @@ const HAS_LIVE_PAYMENT = `exists (select 1 from payments p where p.invoice_id = 
 
 const CODE_ATTEMPTS = 10;
 
-export function invoicesRepo(pool: Pool): InvoicesRepo {
+export interface InvoicesRepoOptions {
+  /** Payment code generator (tests inject collisions). Default newShortCode(). */
+  newCode?: () => string;
+}
+
+export function invoicesRepo(pool: Pool, { newCode = () => newShortCode() }: InvoicesRepoOptions = {}): InvoicesRepo {
   const many = async (sql: string, params: Param[]) => (await pool.query(sql, params)).map(toInvoice);
   const one = async (sql: string, params: Param[]) => (await many(sql, params))[0] ?? null;
 
@@ -61,7 +66,7 @@ export function invoicesRepo(pool: Pool): InvoicesRepo {
            returning ${INVOICE_COLS}`,
           [
             newId("inv"),
-            newShortCode(),
+            newCode(),
             i.merchantId,
             i.kind,
             i.contactId ?? null,

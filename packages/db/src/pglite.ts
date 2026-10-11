@@ -1,7 +1,8 @@
-// PGlite adapter for the executor (tests only; PGlite is a devDependency, so only ./testing imports this file).
+// PGlite adapter for the executor (tests only; PGlite is a devDependency, so only ./testing and tests import this file).
 // PGlite runs every top-level query and transaction behind one mutex, which serializes them like row locks would.
 
-import type { PGliteInterface, Transaction } from "@electric-sql/pglite";
+import { readFileSync } from "node:fs";
+import { PGlite, type PGliteInterface, type Transaction } from "@electric-sql/pglite";
 import { translateError } from "./errors";
 import type { Executor, Param, Pool, Row } from "./executor";
 
@@ -28,4 +29,27 @@ export function pglitePool(pg: PGliteInterface): Pool {
       if (!pg.closed) await pg.close();
     },
   };
+}
+
+/** packages/db/schema.sql */
+export function schemaSql(): string {
+  return readFileSync(new URL("../schema.sql", import.meta.url), "utf8");
+}
+
+// The schema is applied once per process and snapshotted; each test database boots from the snapshot (~4x faster
+// than re-applying). The template instance is closed right away: an open PGlite keeps the process alive ~10s.
+let snapshot: Promise<File | Blob> | undefined;
+
+/** A fresh in-memory Postgres with schema.sql applied. */
+export async function freshPglite(): Promise<PGliteInterface> {
+  snapshot ??= (async () => {
+    const pg = await PGlite.create();
+    try {
+      await pg.exec(schemaSql());
+      return await pg.dumpDataDir("none");
+    } finally {
+      await pg.close();
+    }
+  })();
+  return PGlite.create({ loadDataDir: await snapshot });
 }
