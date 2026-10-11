@@ -39,7 +39,7 @@ export function agentRepo(pool: Pool): AgentRepo {
       const row = await action(
         returningAction(
           `insert into pending_actions (id, merchant_id, kind, args, confirm_message_ids, expires_at)
-           values ($1, $2, $3, $4::jsonb, array(select jsonb_array_elements_text($5::jsonb)),
+           values ($1, $2, $3, $4::text::jsonb, array(select jsonb_array_elements_text($5::text::jsonb)),
                    coalesce($6::timestamptz, now() + make_interval(secs => $7)))`,
         ),
         [
@@ -61,7 +61,7 @@ export function agentRepo(pool: Pool): AgentRepo {
       await pool.query(
         `update pending_actions
             set confirm_message_ids = confirm_message_ids ||
-                array(select m from jsonb_array_elements_text($2::jsonb) m where m <> all(confirm_message_ids))
+                array(select m from jsonb_array_elements_text($2::text::jsonb) m where m <> all(confirm_message_ids))
           where id = $1`,
         [id, JSON.stringify([...new Set(messageIds)])],
       );
@@ -93,7 +93,7 @@ export function agentRepo(pool: Pool): AgentRepo {
         returningAction(
           `update pending_actions set
              status = $2,
-             result = coalesce($3::jsonb, result),
+             result = coalesce($3::text::jsonb, result),
              executed_at = case when $2 in ('done', 'failed') then coalesce(executed_at, now()) else executed_at end
            where id = $1`,
         ),
@@ -132,7 +132,7 @@ export function agentRepo(pool: Pool): AgentRepo {
 
     async setOnboarding(phone, channel, step, data) {
       await pool.query(
-        `insert into onboarding (phone, channel, step, data, updated_at) values ($1, $2, $3, $4::jsonb, now())
+        `insert into onboarding (phone, channel, step, data, updated_at) values ($1, $2, $3, $4::text::jsonb, now())
          on conflict (phone) do update set channel = excluded.channel, step = excluded.step, data = excluded.data, updated_at = now()`,
         [normalizePhone(phone), channel, step, JSON.stringify(data)],
       );
@@ -146,7 +146,7 @@ export function agentRepo(pool: Pool): AgentRepo {
     },
 
     async insertEvent(envelope) {
-      await pool.query(`insert into events (id, type, payload, at) values ($1, $2, $3::jsonb, $4::timestamptz) on conflict (id) do nothing`, [
+      await pool.query(`insert into events (id, type, payload, at) values ($1, $2, $3::text::jsonb, $4::timestamptz) on conflict (id) do nothing`, [
         envelope.id,
         envelope.event.type,
         JSON.stringify(envelope.event),

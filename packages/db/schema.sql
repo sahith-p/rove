@@ -272,3 +272,21 @@ alter table events          enable row level security;
 -- AUSD lane: allow the new payment method on databases created before it existed.
 alter table payments drop constraint if exists payments_method_check;
 alter table payments add constraint payments_method_check check (method in ('apple_pay','card','bnb','ausd'));
+
+-- ------------------------------------------------------------ AUSD lane (docs/specs/ausd-lane.md)
+-- The payer's signed ERC-3009 TransferWithAuthorization (Agora AUSD on Base Sepolia), stored by POST /api/ausd/authorize or the
+-- x402 route; the worker relayer submits it and pays the gas. uint256 values are numeric(78,0): exact, never float.
+alter table payments add column if not exists ausd_from           text;          -- payer (the authorizer)
+alter table payments add column if not exists ausd_to             text;          -- Rove's AUSD_PAY_TO
+alter table payments add column if not exists ausd_value          numeric(78,0); -- token base units (AUSD has 6 decimals)
+alter table payments add column if not exists ausd_valid_after    numeric(78,0); -- unix seconds
+alter table payments add column if not exists ausd_valid_before   numeric(78,0); -- unix seconds
+alter table payments add column if not exists ausd_nonce          text;          -- bytes32 hex
+alter table payments add column if not exists ausd_signature      text;          -- 65-byte hex
+alter table payments add column if not exists ausd_relay_tx_hash  text;          -- recorded before broadcast, so a restart finds it
+alter table payments add column if not exists ausd_relay_attempts int not null default 0;
+-- one authorization pays one payment (ERC-3009 nonces are per authorizer); one relay tx belongs to one payment
+create unique index if not exists payments_ausd_nonce on payments (lower(ausd_from), lower(ausd_nonce)) where ausd_nonce is not null;
+create unique index if not exists payments_ausd_relay_tx on payments (lower(ausd_relay_tx_hash)) where ausd_relay_tx_hash is not null;
+create index if not exists payments_ausd_awaiting_relay on payments (updated_at)
+  where method = 'ausd' and status = 'created' and ausd_signature is not null;
