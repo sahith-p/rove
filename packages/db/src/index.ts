@@ -2,10 +2,11 @@
 // Server-side only (service role key). Map snake_case rows ↔ camelCase domain types here, nowhere else.
 //
 // Planned surface (implement in NI-B1; other owners request additions in tasks/integration.md):
-//   merchants:  getMerchant(id) · getMerchantByPhone(phone) · upsertDraftMerchant(m) · updateShop(id, patch) · setAutoWithdraw(id, mode)
+//   merchants:  getMerchant(id) · getMerchantByPhone(phone) · findShop(query) ← shop code, then phone, then fuzzy name
+//               upsertDraftMerchant(m) · updateShop(id, patch) · setAutoWithdraw(id, mode)
 //   menu:       listMenu(merchantId) · replaceMenu(merchantId, items) · upsertMenuItem(merchantId, item) · findMenuItems(merchantId, names[])
 //   contacts:   addContact(merchantId, {name, phone, channel}) · findContacts(merchantId, query) · getContactByName(merchantId, name)
-//   invoices:   createInvoice(i) · getInvoiceByCode(code) · listInvoices(merchantId, status) · openInvoicesForPhone(phone)
+//   invoices:   createInvoice(i) (kinds: invoice | one_time_qr | pay_request) · getInvoiceByCode(code) · listInvoices(merchantId, status) · openInvoicesForPhone(phone)
 //               markInvoicePaid(id, paymentId) · cancelInvoice(code) · expireInvoices()
 //   payments:   insertPayment(p) · getPayment(id) · getPaymentByStripePI(pi) · getPaymentByDepositAddress(addr)
 //               transitionPayment(id, from[], to, patch) ← compare-and-set on status, returns boolean

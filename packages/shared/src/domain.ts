@@ -89,10 +89,13 @@ export interface InvoiceLine {
 /**
  * kind:
  *  - "invoice":     sent to a specific person by message (has toPhone)
- *  - "one_time_qr": shown as a QR by the merchant; single use, expires when paid
+ *  - "one_time_qr": a payment code + QR shown by the merchant; single use, expires when paid. The customer can scan it
+ *                   OR text the code (e.g. "K7Q2MX") to Rove.
+ *  - "pay_request": started by the CUSTOMER over text ("pay ahseng 6.50", "pay +6591234567 10"); `to` = the customer.
  * A fixed shop QR is not an invoice: it points at /m/<merchantId> and the payer enters an amount or picks menu items.
+ * The merchant id doubles as the public **shop code** customers can text ("pay ahseng").
  */
-export type InvoiceKind = "invoice" | "one_time_qr";
+export type InvoiceKind = "invoice" | "one_time_qr" | "pay_request";
 export type InvoiceStatus = "open" | "paid" | "expired" | "cancelled";
 
 export interface Invoice {
@@ -117,7 +120,7 @@ export interface Invoice {
 /** apple_pay/card = Stripe; bnb = USDT from a BNB Chain wallet (Privy), settled on XRPL like every other payment. */
 export type PaymentMethod = "apple_pay" | "card" | "bnb";
 
-export type PaymentSource = "invoice" | "one_time_qr" | "fixed_qr";
+export type PaymentSource = "invoice" | "one_time_qr" | "fixed_qr" | "pay_request";
 
 /**
  * created → authorized (Stripe succeeded) → settling → settled (XSGD in the merchant's custodial account)

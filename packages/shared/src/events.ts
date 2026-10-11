@@ -9,7 +9,7 @@ export const RoveEventZ = z.discriminatedUnion("type", [
     type: z.literal("payment.settled"),
     paymentId: z.string(),
     merchantId: z.string(),
-    source: z.enum(["invoice", "one_time_qr", "fixed_qr"]),
+    source: z.enum(["invoice", "one_time_qr", "fixed_qr", "pay_request"]),
     invoiceId: z.string().nullable(),
     local: MoneyZ,
     payer: RecipientZ.nullable(),

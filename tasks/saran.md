@@ -16,7 +16,7 @@ Specs: [agent](../docs/specs/agent.md) · [onboarding](../docs/specs/onboarding.
 - [ ] status
 - **Depends:** G0
 - **Paths:** `apps/agent/src/{index,runtime,personas}.ts`
-- **Do:** agent.md §1: iMessage + WhatsApp + terminal providers, `claim("spectrum:"+id)`, sender → `Recipient`, persona (merchant / onboarding / customer), content switch (text, voice, reaction, poll_option, contact), `space.responding`. Presenter: console mock or Sahith's.
+- **Do:** agent.md §1: iMessage + WhatsApp + terminal providers, `claim("spectrum:"+id)`, sender → `Recipient`, persona (merchant / onboarding / customer; merchants also get customer tools), content switch (text, voice, reaction, poll_option, contact), **payment-code fast path** (`PAYMENT_CODE_RE` → `pay_code`, no Claude), `space.responding`. Presenter: console mock or Sahith's.
 - **Done when:** Terminal and phone messages route to the right persona stub; duplicates ignored.
 
 ### SA-A2 · Internal HTTP + events → messages · 60 min
@@ -60,14 +60,14 @@ Specs: [agent](../docs/specs/agent.md) · [onboarding](../docs/specs/onboarding.
 - [ ] status
 - **Depends:** SA-B2
 - **Paths:** `apps/agent/src/tools/customer/**`, `apps/agent/src/agent/prompts.ts`
-- **Do:** `my_open_invoices`, `pay_invoice`, `my_receipts`, `find_shop`, `start_shop`; scoping by phone; bank-number-in-chat handling; untrusted text; out-of-scope refusals.
+- **Do:** `my_open_invoices`, `pay_invoice`, `pay_code`, `pay_shop` (shop code → phone → fuzzy name; menu pricing; creates `pay_request`; no amount → menu card), `my_receipts`, `start_shop` (invoicing-and-qr.md §7); merchants get these tools too; scoping by phone; bank-number-in-chat handling; untrusted text; out-of-scope refusals.
 - **Done when:** Adversarial evals pass.
 
 ### SA-B4 · Evals · 45 min
 - [ ] status
 - **Depends:** SA-B2
 - **Paths:** `apps/agent/evals/**`
-- **Do:** ≥ 18 JSON cases from agent.md §7 + runner (`pnpm --filter agent evals`) on the terminal provider + mocks.
+- **Do:** ≥ 22 JSON cases from agent.md §7 (incl. codes, pay-by-text, merchant-as-customer) + runner (`pnpm --filter agent evals`) on the terminal provider + mocks.
 - **Done when:** 100% pass; re-run after prompt changes.
 
 ## Lane C: Voice, proactive, WhatsApp

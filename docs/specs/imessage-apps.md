@@ -69,7 +69,7 @@ export function createSpectrumCardPresenter(spectrum: SpectrumInstance, opts: { 
 
 ## 6. QR images (SH-B6)
 
-`qrPng(url)` (via `qrcode`, error correction M, 1024px) and `stickerPng({ name, url, verified })`: a printable sticker (shop name, QR, "✓ Verified on XRPL", "Scan to pay · Apple Pay"). Rendered server-side (e.g. `@napi-rs/canvas` or an SVG → PNG step); the agent sends them as attachments.
+`qrPng(url)` (via `qrcode`, error correction M, 1024px; one-time QRs print the typed code `K7Q2MX` underneath) and `stickerPng({ name, url, shopCode, roveNumber, verified })`: a printable sticker (shop name, QR, "✓ Verified on XRPL", "Scan to pay · or text *pay ahseng* to Rove"). Rendered server-side (e.g. `@napi-rs/canvas` or an SVG → PNG step); the agent sends them as attachments.
 
 ## 7. Acceptance (G2)
 

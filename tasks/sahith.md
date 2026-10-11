@@ -23,7 +23,7 @@ Specs: [web-app](../docs/specs/web-app.md) · [imessage-apps](../docs/specs/imes
 - [ ] status
 - **Depends:** SH-A1
 - **Paths:** `apps/web/app/pay/**`
-- **Do:** Fetch `InvoicePublicRes` (fixtures until NI-B4); every state in web-app.md (open, paying, paid, expired, already paid, cancelled); mobile width; works inside Messages.
+- **Do:** Fetch `InvoicePublicRes` (fixtures until NI-B4); same page for `invoice`, `one_time_qr` and `pay_request` codes; every state in web-app.md (open, paying, paid, expired, already paid, cancelled); mobile width; works inside Messages.
 - **Done when:** All states render from fixtures at 375px.
 
 ### SH-A3 · Apple Pay (Stripe Express Checkout) · 60 min
@@ -95,7 +95,7 @@ Specs: [web-app](../docs/specs/web-app.md) · [imessage-apps](../docs/specs/imes
 - [ ] status
 - **Depends:** G0
 - **Paths:** `packages/imessage-apps/src/qr.ts`
-- **Do:** `qrPng(url)` and `stickerPng({ name, url, verified })` (shop name, QR, "✓ Verified on XRPL", "Scan to pay · Apple Pay"). Export from the package index.
+- **Do:** `qrPng(url)` and `stickerPng({ name, url, shopCode, roveNumber, verified })` (shop name, QR, "✓ Verified on XRPL", "Scan to pay · or text *pay ahseng* to +1 555…"). One-time QR images also print the typed code (`K7Q2MX`) under the QR. Export from the package index.
 - **Done when:** Test decodes the PNG back to the URL; the printed sticker scans on phone C.
 
 ## Lane C: Merchant pages + demo

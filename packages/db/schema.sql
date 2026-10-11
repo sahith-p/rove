@@ -47,7 +47,7 @@ create table if not exists invoices (
   id          text primary key,                                -- inv_<hex>
   code        text not null unique,                            -- public short code, /pay/<code>
   merchant_id text not null references merchants(id),
-  kind        text not null check (kind in ('invoice','one_time_qr')),
+  kind        text not null check (kind in ('invoice','one_time_qr','pay_request')),
   contact_id  text references contacts(id),
   to_phone    text,
   to_channel  text check (to_channel in ('imessage','whatsapp')),
@@ -67,7 +67,7 @@ create index if not exists invoices_to_phone_open on invoices (to_phone) where s
 create table if not exists payments (
   id                    text primary key,                      -- pay_<hex>
   merchant_id           text not null references merchants(id),
-  source                text not null check (source in ('invoice','one_time_qr','fixed_qr')),
+  source                text not null check (source in ('invoice','one_time_qr','fixed_qr','pay_request')),
   invoice_id            text references invoices(id),
   lines                 jsonb not null default '[]',
   amount_local          numeric(18,2) not null check (amount_local > 0),

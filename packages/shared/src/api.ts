@@ -74,7 +74,7 @@ export const ShopPublicRes = z.object({
 /** GET /api/invoices/:code  Invoice / one-time QR pay page. */
 export const InvoicePublicRes = z.object({
   code: z.string(),
-  kind: z.enum(["invoice", "one_time_qr"]),
+  kind: z.enum(["invoice", "one_time_qr", "pay_request"]),
   merchant: z.object({ id: z.string(), name: z.string(), verified: z.boolean() }),
   lines: z.array(InvoiceLineZ),
   total: MoneyZ,
@@ -140,7 +140,7 @@ export const MeRes = z.object({
   contacts: z.array(z.object({ id: z.string(), name: z.string(), phone: z.string() })),
   openInvoices: z.array(z.object({ code: z.string(), to: z.string().nullable(), total: MoneyZ, createdAt: z.string() })),
   recentPayments: z.array(
-    z.object({ id: z.string(), local: MoneyZ, status: PaymentStatusZ, source: z.enum(["invoice", "one_time_qr", "fixed_qr"]), createdAt: z.string() }),
+    z.object({ id: z.string(), local: MoneyZ, status: PaymentStatusZ, source: z.enum(["invoice", "one_time_qr", "fixed_qr", "pay_request"]), createdAt: z.string() }),
   ),
   bankAccounts: z.array(BankAccountViewZ),
   withdrawals: z.array(WithdrawalViewZ),

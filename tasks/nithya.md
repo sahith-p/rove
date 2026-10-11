@@ -53,7 +53,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - [ ] status
 - **Depends:** G0 (schema applied)
 - **Paths:** `packages/db/src/**`
-- **Do:** Everything listed in `packages/db/src/index.ts`: row ↔ domain mapping, CAS transitions, `claim`, ledger append (unique kind+ref) + `getBalance` (view), menu/contact name matching (`findMenuItems`, `getContactByName`), invoices, onboarding state.
+- **Do:** Everything listed in `packages/db/src/index.ts`: row ↔ domain mapping, CAS transitions, `claim`, ledger append (unique kind+ref) + `getBalance` (view), menu/contact name matching (`findMenuItems`, `getContactByName`), `findShop` (shop code → phone → fuzzy name), invoices (all three kinds incl. `pay_request`, 1-hour expiry), onboarding state.
 - **Done when:** A script walks a payment and a withdrawal through every status and the balance view is right at each step.
 
 ### NI-B2 · `POST /api/checkout` · 60 min

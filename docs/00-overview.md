@@ -15,8 +15,8 @@
 | "add chicken rice 5.50, barley 1.50" | updates the menu |
 | shares a contact card / "add Maya +65…" | saves a customer contact |
 | "invoice Maya 2 chicken rice and a barley" | builds the invoice from the menu (S$12.50) and **texts Maya** a pay card |
-| "QR for 6.50" | sends a **one-time QR** image (single use, dies when paid) |
-| "send my QR sticker" | sends the **fixed QR** (customer enters an amount or picks from the menu) |
+| "code for 6.50" / "QR for 6.50" | sends a **one-time code + QR** (`K7Q2MX`): customers scan it or text the code to Rove |
+| "send my QR sticker" | sends the **fixed QR** + **shop code** (`ahseng`): customers scan it or text "pay ahseng 6.50" |
 | (a customer pays) | sale card: "S$12.50 from Maya · settled" |
 | "balance?" / "how much today?" | answers from the ledger |
 | "add my bank" | sends the **secure bank card**: a form; bank numbers never go in chat |
@@ -24,7 +24,14 @@
 | "refund Maya" | proposes a refund → 👍 → refunded |
 | voice note: "how much did I make this week?" | answers by voice (ElevenLabs) |
 
-**Customer:** gets "Ah Seng Chicken Rice sent you a request for S$12.50" with a pay card → taps → pays with **Apple Pay** (or card, or USDT from a **BNB Chain** wallet via Privy) → gets a receipt in the same thread. They can also text Rove: "what do I owe?", "my receipts". Scanning a QR leads to the same pay page.
+**Customer:** gets "Ah Seng Chicken Rice sent you a request for S$12.50" with a pay card → taps → pays with **Apple Pay** (or card, or USDT from a **BNB Chain** wallet via Privy) → gets a receipt in the same thread. Or they start it themselves by texting Rove:
+| Says | Rove does |
+|---|---|
+| `K7Q2MX` (a code the merchant showed) | sends that payment's pay card |
+| "pay ahseng 6.50" / "pay Ah Seng 2 chicken rice" / "pay +65 9123 4567 10" | finds the shop (shop code, name or phone), prices items from its menu, sends a pay card |
+| "what do I owe?" / "my receipts" | lists invoices sent to their number / their payments |
+
+Scanning any Rove QR leads to the same pay page. **One agent, two roles:** the sender's phone number decides. A live merchant's number gets merchant tools *plus* customer tools; anyone else gets customer tools. Everything is scoped to that number.
 
 ## Money path
 
@@ -70,7 +77,9 @@ Customer: Apple Pay / card (Stripe)        or   USDT from a BNB Chain wallet (Pr
 | Term | Meaning |
 |---|---|
 | Invoice | A payment request sent to a person by message (`/pay/<code>`) |
-| One-time QR | An invoice shown as a QR; single use |
+| One-time code / QR | A single-use payment code (e.g. `K7Q2MX`) shown as a QR; customers scan it or text the code |
+| Pay request | A payment the customer started by text ("pay ahseng 6.50") |
+| Shop code | The merchant id (`ahseng`), printed on the sticker; customers text it to pay |
 | Fixed QR | The shop's permanent QR (`/m/<shop>`); payer enters an amount or picks menu items |
 | Settle | Treasury → merchant XRPL payment delivering XSGD |
 | Balance | XSGD on the merchant's custodial XRPL account = ledger available + held |
