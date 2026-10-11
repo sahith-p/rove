@@ -1,0 +1,464 @@
+/* /setup mini-app. Owner: Sahith · SH-B2. Uses the tokens in app/globals.css (light + dark). Fits a 375px card. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header h1 {
+  display: flex;
+  flex-direction: column;
+}
+
+.subhead {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.counter {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.input::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.input:focus {
+  border-color: var(--text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+.input:disabled {
+  opacity: 0.5;
+}
+
+.error {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--error);
+}
+
+.hint {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* -------- Category chips -------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.chipOn {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-color: var(--btn-bg);
+}
+
+/* -------- Currency (fixed) -------- */
+.currency {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.currencyValue {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.currencyCode {
+  font-weight: 650;
+}
+
+/* -------- Quick add -------- */
+.quickRow {
+  display: flex;
+  gap: 8px;
+}
+
+.quickBtn {
+  flex: none;
+  height: 48px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.quickBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* -------- Menu rows -------- */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--card);
+  transition: opacity 150ms ease;
+}
+
+.rowOff .rowFields {
+  opacity: 0.55;
+}
+
+.rowFields {
+  display: flex;
+  gap: 8px;
+}
+
+.itemName {
+  flex: 1;
+}
+
+.priceWrap {
+  flex: none;
+  display: flex;
+  align-items: center;
+  width: 112px;
+  height: 48px;
+  padding-left: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.priceWrap:focus-within {
+  border-color: var(--text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.priceWrapBad {
+  border-color: var(--error);
+}
+
+.pricePrefix {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.priceInput {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 12px 0 4px;
+  border: none;
+  background: transparent;
+  outline: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.priceInput:focus-visible {
+  outline: none;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.switchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background 150ms ease;
+}
+
+.switchOn {
+  background: var(--success);
+}
+
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 150ms ease;
+}
+
+.switchOn .knob {
+  transform: translateX(16px);
+}
+
+.switchLabel {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.iconGroup {
+  display: flex;
+  gap: 4px;
+}
+
+.iconBtn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.iconBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.removeBtn {
+  color: var(--error);
+}
+
+.addRow {
+  min-height: 48px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.addRow:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* -------- Empty state -------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  font-size: 15px;
+}
+
+.empty > :last-child {
+  margin-top: 8px;
+}
+
+.emptyIcon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 650;
+}
+
+/* -------- Sticky save bar -------- */
+.bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 20px var(--gutter) max(12px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 75%, color-mix(in srgb, var(--bg) 0%, transparent));
+}
+
+.barNotice {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-size: 15px;
+  box-shadow: var(--shadow);
+  animation: rise 160ms ease-out;
+}
+
+.toastText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toastBtn {
+  flex: none;
+  min-height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--btn-text) 16%, transparent);
+  color: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* -------- Loading -------- */
+.skel {
+  border-radius: 12px;
+  background: var(--card);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* -------- Expired -------- */
+.expired {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 72px;
+  text-align: center;
+}
+
+.expired h1 {
+  font-size: 24px;
+}
+
+.expiredIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 26px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .skel {
+    animation: none;
+  }
+}

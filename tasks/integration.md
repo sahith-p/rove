@@ -49,6 +49,7 @@
 
 | Time | From | To | Request | Status |
 |---|---|---|---|---|
+| 14:20 | Sahith | Nithya | Add optional fields to `PaymentStatusRes` for the receipt page: `createdAt`, `refunded` (Money), `payerName`, `merchantVerified`. The page already reads them when present (SH-A6). | open |
 | pre-G0 | Nithya | Sahith | `/pay` + `/m`: show `CheckoutRes.charge` as the big amount ("US$9.72 · S$12.50 at 1.2860 · no card FX fees"), add a USD/SGD toggle, and send `payCurrency` from the browser locale; receipt shows `PaymentStatusRes.charge`. Why: payments-stripe.md §1a (card leg never converts) | open |
 | pre-G0 | Nithya | Sahith | Demo script + pitch (docs/07): use the fee lines in payments-stripe.md §8 "Saying it to judges"; lead the BNB beat with "no card fees at all". Don't claim everyone pays less | open |
 | pre-G0 | Nithya | Saran | `@rove/db` interface is now defined (`packages/db/src/index.ts`: `Db`, `getDb()`; tests use `createTestDb()` from `@rove/db/testing`, an in-process Postgres). Build agent tools against it. Env: `DATABASE_URL` replaces `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` on the agent too | open |

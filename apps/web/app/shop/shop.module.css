@@ -1,0 +1,288 @@
+/* /shop: one calm scrolling column. Tokens from app/globals.css. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 1 · Header: two-tone (dark name, gray meta line) */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.name {
+  font-size: 26px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.meta > span + span:not(.badge)::before {
+  content: "·";
+  margin-right: 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 2 · Balance */
+.balance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 20px 16px 18px;
+  text-align: center;
+}
+
+.balanceLabel {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.amount {
+  padding: 2px 0 4px;
+}
+
+.held {
+  color: var(--muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger {
+  margin-top: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ledgerOk {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.ledgerBad {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.auto {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* 3 · Hints (non-interactive) */
+.hints {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.hintLead {
+  color: var(--muted);
+  margin-right: 2px;
+}
+
+.chip {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Sections */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sectionHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.aside {
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list > li + li {
+  border-top: 1px solid var(--border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.row:active {
+  opacity: 0.6;
+}
+
+.compact {
+  min-height: 48px;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.sub {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.end {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.money {
+  flex: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chev {
+  flex: none;
+  margin-left: -4px;
+  color: var(--border-strong);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.phone {
+  flex: none;
+  color: var(--muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.inactive .title,
+.inactive .money {
+  color: var(--muted);
+}
+
+.off {
+  font-weight: 400;
+  font-size: 13px;
+}
+
+/* Status pills */
+.pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.busy {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.bad {
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+.quiet {
+  background: var(--card);
+  color: var(--muted);
+}
+
+.empty {
+  padding: 8px 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.footnote {
+  padding-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.demo {
+  padding-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
