@@ -20,6 +20,7 @@ import {
   parseAbi,
   parseEventLogs,
   parseSignature,
+  RawContractError,
   TransactionNotFoundError,
   TransactionReceiptNotFoundError,
   type Address,
@@ -87,8 +88,11 @@ export class RelayRevertedError extends Error {
   }
 }
 
+/** A genuine revert of the call (not "the relayer can't pay for gas", which nodes also report as a revert). */
 function isRevert(err: unknown): boolean {
-  return err instanceof BaseError && Boolean(err.walk((e) => e instanceof ExecutionRevertedError || e instanceof ContractFunctionRevertedError));
+  if (!(err instanceof BaseError)) return false;
+  if (/gas required exceeds allowance|insufficient funds/i.test(err.message)) return false;
+  return Boolean(err.walk((e) => e instanceof ExecutionRevertedError || e instanceof ContractFunctionRevertedError || e instanceof RawContractError));
 }
 
 export interface RelayReceipt {
@@ -102,7 +106,7 @@ export interface RelayReceipt {
 export interface AusdRelayChain {
   relayer: Address;
   authorizationState(authorizer: Address, nonce: Hex): Promise<boolean>;
-  /** Builds, simulates (estimateGas) and signs the relay tx. Does not broadcast. RelayRevertedError if it would revert. */
+  /** Simulates (eth_call), prepares and signs the relay tx. Does not broadcast. RelayRevertedError if it would revert. */
   signRelay(a: AusdAuthorization): Promise<{ hash: Hex; serialized: Hex }>;
   broadcast(serialized: Hex): Promise<void>;
   getReceipt(hash: Hex, a: AusdAuthorization): Promise<RelayReceipt | null>;
@@ -139,15 +143,17 @@ export function createAusdRelayChain(config: AusdRelayerConfig): AusdRelayChain 
       pub.readContract({ address: config.token, abi: AUSD_RELAY_ABI, functionName: "authorizationState", args: [authorizer, nonce] }),
 
     async signRelay(a) {
-      // prepareTransactionRequest estimates gas (a would-be revert throws here: nothing is signed or sent), picks the
-      // pending nonce and EIP-1559 fees for Base Sepolia.
-      let request;
+      const data = relayCalldata(a);
+      // Simulate with eth_call first: no gas price, so it works even when the relayer is out of ETH, and a revert here
+      // really is the authorization (bad signature, used nonce, payer short of AUSD, paused, frozen).
       try {
-        request = await wallet.prepareTransactionRequest({ account, chain: baseSepolia, to: config.token, data: relayCalldata(a) });
+        await pub.call({ account, to: config.token, data });
       } catch (err) {
         if (isRevert(err)) throw new RelayRevertedError((err as BaseError).shortMessage);
         throw err;
       }
+      // Gas, pending nonce, EIP-1559 fees. Failing here (e.g. no ETH for gas) is the relayer's problem: plain error → retry.
+      const request = await wallet.prepareTransactionRequest({ account, chain: baseSepolia, to: config.token, data });
       const serialized = await wallet.signTransaction(request);
       return { hash: keccak256(serialized), serialized };
     },

@@ -1,7 +1,10 @@
-// SERVER ONLY (Node runtime). One premium 1200×630 layout for every card page's static preview (SH-B3).
+// SERVER ONLY (Node runtime). One 1200×630 layout for every card page's static preview (SH-B3).
 // Messages shows this image when it can't render the iMessage App live, so it has to read at a glance:
 // wordmark + status pill on top, a big amount or headline, one line of detail, merchant on the footer.
-// Satori rules: every multi-child <div> needs display:flex; no glyph that Geist may lack (the ✓ is an SVG).
+// Same rules as the web UI: one surface color, hairlines in one neutral border color, pure neutral grays (R=G=B),
+// color only for meaning (green = paid/done, red = failed, amber = pending), Faculty Glyphic for the wordmark and
+// the hero line, Geist for text, Geist Mono for codes. No orange.
+// Satori rules: every multi-child <div> needs display:flex; no glyph that the fonts may lack (the ✓ is an SVG).
 import { ImageResponse } from "next/og";
 import { ogFonts } from "./fonts";
 
@@ -12,7 +15,7 @@ export type OgTone = "success" | "pending" | "error" | "neutral";
 export type OgIcon = "check" | "dot" | "lock" | "none";
 
 export interface OgCardInput {
-  /** Small line above the headline ("Ah Seng Chicken Rice", "Receipt"). */
+  /** Small line above the headline ("Ah Seng Chicken Rice", "Receipt"). Drawn as an uppercase mono label. */
   eyebrow?: string;
   /** Big line: an amount ("S$12.50": the currency prefix is drawn smaller) or a short headline. */
   headline: string;
@@ -30,31 +33,16 @@ export interface OgCardInput {
   dark?: boolean;
 }
 
-const LIGHT = {
-  bg: "#ffffff",
-  text: "#0b0b0c",
-  muted: "#6b7280",
-  faint: "#a1a1aa",
-  rule: "#ececee",
-  accent: "#ea580c",
-  glow: "rgba(234, 88, 12, 0.13)",
-};
-const DARK = {
-  bg: "#0b0b0c",
-  text: "#f4f4f5",
-  muted: "#a1a1aa",
-  faint: "#71717a",
-  rule: "#27272a",
-  accent: "#fb923c",
-  glow: "rgba(251, 146, 60, 0.14)",
-};
+// Pure neutral grays only (R=G=B), matching app/globals.css.
+const LIGHT = { bg: "#ffffff", text: "#0a0a0a", muted: "#737373", line: "#e5e5e5" };
+const DARK = { bg: "#0a0a0a", text: "#fafafa", muted: "#a3a3a3", line: "#262626" };
 
-const TONES: Record<OgTone, { light: [string, string]; dark: [string, string] }> = {
-  // [background, foreground]
-  success: { light: ["#ecfdf3", "#15803d"], dark: ["#0c1f14", "#4ade80"] },
-  pending: { light: ["#fffbeb", "#b45309"], dark: ["#2a1d08", "#fbbf24"] },
-  error: { light: ["#fef2f2", "#b91c1c"], dark: ["#2a1111", "#f87171"] },
-  neutral: { light: ["#f4f4f5", "#3f3f46"], dark: ["#1f1f23", "#d4d4d8"] },
+/** The one meaning color per tone (dot / check / label). Neutral stays gray. */
+const TONE_COLOR: Record<OgTone, { light: string; dark: string }> = {
+  success: { light: "#15803d", dark: "#4ade80" },
+  pending: { light: "#b45309", dark: "#fbbf24" },
+  error: { light: "#dc2626", dark: "#f87171" },
+  neutral: { light: "#737373", dark: "#a3a3a3" },
 };
 
 function clip(s: string, max: number): string {
@@ -65,8 +53,8 @@ function clip(s: string, max: number): string {
 /** Headline size steps down with length so long words never wrap off the card. */
 function headlineSize(text: string, amount: boolean): number {
   const n = Array.from(text).length;
-  if (amount) return n <= 8 ? 176 : n <= 11 ? 156 : n <= 14 ? 128 : 104;
-  return n <= 10 ? 136 : n <= 16 ? 112 : n <= 22 ? 92 : 76;
+  if (amount) return n <= 8 ? 184 : n <= 11 ? 160 : n <= 14 ? 132 : 108;
+  return n <= 10 ? 132 : n <= 16 ? 108 : n <= 22 ? 90 : 74;
 }
 
 function splitAmount(text: string): { prefix: string; value: string } {
@@ -78,27 +66,27 @@ function Icon({ kind, color, size }: { kind: OgIcon; color: string; size: number
   if (kind === "check") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M5 12.5l4.5 4.5L19 7.5" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5 12.5l4.5 4.5L19 7.5" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
   if (kind === "lock") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <rect x="5" y="10.5" width="14" height="10" rx="2.5" fill={color} />
-        <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" stroke={color} strokeWidth={2.4} strokeLinecap="round" />
+        <rect x="5" y="10.5" width="14" height="10" rx="2.5" stroke={color} strokeWidth={1.8} />
+        <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
       </svg>
     );
   }
   if (kind === "dot") {
-    return <div style={{ width: size * 0.5, height: size * 0.5, borderRadius: 999, background: color }} />;
+    return <div style={{ width: size * 0.36, height: size * 0.36, borderRadius: 999, background: color }} />;
   }
   return null;
 }
 
-/** The status pill, e.g. [✓ Paid]. */
-function Pill({ label, tone, icon, dark }: { label: string; tone: OgTone; icon?: OgIcon; dark: boolean }) {
-  const [bg, fg] = TONES[tone][dark ? "dark" : "light"];
+/** The status pill: hairline frame, meaning-colored dot or check, ink label (red label for errors). */
+function Pill({ label, tone, icon, dark, c }: { label: string; tone: OgTone; icon?: OgIcon; dark: boolean; c: typeof LIGHT }) {
+  const color = TONE_COLOR[tone][dark ? "dark" : "light"];
   const kind = icon ?? (tone === "success" ? "check" : "dot");
   return (
     <div
@@ -106,30 +94,22 @@ function Pill({ label, tone, icon, dark }: { label: string; tone: OgTone; icon?:
         display: "flex",
         alignItems: "center",
         gap: 14,
-        padding: kind === "none" ? "16px 32px" : "16px 32px 16px 24px",
+        padding: kind === "none" ? "14px 30px" : "14px 30px 14px 22px",
+        border: `2px solid ${c.line}`,
         borderRadius: 999,
-        background: bg,
-        color: fg,
-        fontSize: 34,
+        background: c.bg,
+        color: tone === "error" ? color : tone === "neutral" ? c.muted : c.text,
+        fontSize: 32,
         fontWeight: 600,
-        letterSpacing: -0.4,
+        letterSpacing: -0.3,
       }}
     >
       {kind !== "none" ? (
-        <div style={{ display: "flex", width: 34, height: 34, alignItems: "center", justifyContent: "center" }}>
-          <Icon kind={kind} color={fg} size={34} />
+        <div style={{ display: "flex", width: 32, height: 32, alignItems: "center", justifyContent: "center" }}>
+          <Icon kind={kind} color={kind === "lock" ? c.text : color} size={32} />
         </div>
       ) : null}
       <span>{clip(label, 28)}</span>
-    </div>
-  );
-}
-
-function Wordmark({ c }: { c: typeof LIGHT }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ width: 22, height: 22, borderRadius: 999, background: c.accent }} />
-      <span style={{ fontSize: 40, fontWeight: 700, letterSpacing: -1.2, color: c.text }}>Rove</span>
     </div>
   );
 }
@@ -138,9 +118,13 @@ export async function ogCard(input: OgCardInput): Promise<ImageResponse> {
   const dark = input.dark ?? false;
   const c = dark ? DARK : LIGHT;
   const fonts = await ogFonts();
+  const has = (name: string) => fonts.some((f) => f.name === name);
+  const serif = has("Faculty Glyphic") ? "Faculty Glyphic" : undefined;
+  const mono = has("Geist Mono") ? "Geist Mono" : undefined;
   const headline = clip(input.headline, 26);
   const size = headlineSize(headline, input.amount ?? false);
   const { prefix, value } = input.amount ? splitAmount(headline) : { prefix: "", value: headline };
+  const success = TONE_COLOR.success[dark ? "dark" : "light"];
 
   return new ImageResponse(
     (
@@ -150,57 +134,54 @@ export async function ogCard(input: OgCardInput): Promise<ImageResponse> {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          position: "relative",
           background: c.bg,
           color: c.text,
-          fontFamily: fonts.length ? "Geist" : undefined,
-          padding: "64px 80px 56px",
+          fontFamily: has("Geist") ? "Geist" : undefined,
+          padding: "60px 80px 56px",
         }}
       >
-        {/* soft brand glow, top right */}
-        <div
-          style={{
-            position: "absolute",
-            top: -380,
-            right: -300,
-            width: 900,
-            height: 900,
-            borderRadius: 999,
-            background: `radial-gradient(circle at center, ${c.glow} 0%, rgba(0,0,0,0) 62%)`,
-          }}
-        />
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 70 }}>
-          <Wordmark c={c} />
-          {input.status ? <Pill {...input.status} dark={dark} /> : null}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 72 }}>
+          {/* Wordmark: "Rove" in the display serif, near-black (same as app/icon.png). */}
+          <span style={{ fontFamily: serif, fontSize: 52, fontWeight: 400, letterSpacing: -0.5, color: c.text }}>Rove</span>
+          {input.status ? <Pill {...input.status} dark={dark} c={c} /> : null}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", flexGrow: 1, paddingBottom: 8 }}>
           {input.eyebrow ? (
-            <div style={{ display: "flex", fontSize: 38, fontWeight: 600, color: c.muted, letterSpacing: -0.6, marginBottom: 6 }}>
-              {clip(input.eyebrow, 44)}
+            <div
+              style={{
+                display: "flex",
+                fontFamily: mono,
+                fontSize: 26,
+                fontWeight: 500,
+                color: c.muted,
+                letterSpacing: 3,
+                textTransform: "uppercase",
+                marginBottom: 18,
+              }}
+            >
+              {clip(input.eyebrow, 40)}
             </div>
           ) : null}
           <div
             style={{
               display: "flex",
               alignItems: "baseline",
+              fontFamily: serif,
               fontSize: size,
-              fontWeight: 700,
-              letterSpacing: -size * 0.032,
+              fontWeight: 400,
+              letterSpacing: -size * 0.025,
               lineHeight: 1,
               color: c.text,
             }}
           >
             {prefix ? (
-              <span style={{ fontSize: size * 0.56, color: c.muted, fontWeight: 600, marginRight: size * 0.04, letterSpacing: -size * 0.02 }}>
-                {prefix}
-              </span>
+              <span style={{ fontSize: size * 0.5, color: c.muted, marginRight: size * 0.06, letterSpacing: -size * 0.005 }}>{prefix}</span>
             ) : null}
             <span>{value}</span>
           </div>
           {input.detail ? (
-            <div style={{ display: "flex", fontSize: 36, fontWeight: 400, color: c.muted, marginTop: 18 }}>
+            <div style={{ display: "flex", fontSize: 34, fontWeight: 400, color: c.muted, marginTop: 22, letterSpacing: -0.3 }}>
               {clip(input.detail, 56)}
             </div>
           ) : null}
@@ -211,26 +192,26 @@ export async function ogCard(input: OgCardInput): Promise<ImageResponse> {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderTop: `2px solid ${c.rule}`,
-            paddingTop: 30,
+            borderTop: `2px solid ${c.line}`,
+            paddingTop: 28,
             minHeight: 72,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 32, fontWeight: 600, letterSpacing: -0.4, color: c.text }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 30, fontWeight: 600, letterSpacing: -0.4, color: c.text }}>
             <span>{clip(input.footer ?? "Pay and get paid in a text thread", 44)}</span>
             {input.verified ? (
               <div
                 style={{
                   display: "flex",
-                  width: 30,
-                  height: 30,
+                  width: 32,
+                  height: 32,
                   borderRadius: 999,
-                  background: c.accent,
+                  border: `2px solid ${success}`,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Icon kind="check" color="#ffffff" size={20} />
+                <Icon kind="check" color={success} size={20} />
               </div>
             ) : null}
           </div>
@@ -238,11 +219,14 @@ export async function ogCard(input: OgCardInput): Promise<ImageResponse> {
             <div
               style={{
                 display: "flex",
-                fontFamily: fonts.some((f) => f.name === "Geist Mono") ? "Geist Mono" : undefined,
+                padding: "8px 16px",
+                border: `2px solid ${c.line}`,
+                borderRadius: 12,
+                fontFamily: mono,
                 fontSize: 26,
                 fontWeight: 500,
-                color: c.faint,
-                letterSpacing: 0.5,
+                color: c.text,
+                letterSpacing: 3,
               }}
             >
               {clip(input.meta, 28)}

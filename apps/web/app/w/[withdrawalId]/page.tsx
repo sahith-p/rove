@@ -4,7 +4,10 @@
 // URL: /w/<id>?t=<session>&a=<actionId>&c=<confirmToken>   (fixture mode also: ?state=<status>&dest=wallet&stepup=0)
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { Clock } from "lucide-react";
 import { WithdrawalRes } from "@rove/shared";
+import { CardFrame, CardTitle, IconBadge } from "../../../components";
+import { fullPageHref, isCardMode } from "../../../lib/ui/card";
 import { readSession, sessionHeaders } from "../../../lib/ui/session";
 import { previewMetadata } from "../../../lib/og/metadata";
 import { fixtureDest, isFixtureStatus, withdrawalFixture } from "./_fixtures";
@@ -39,7 +42,16 @@ export default async function Page({ params, searchParams }: { params: Params; s
   const { withdrawalId } = await params;
   const sp = await searchParams;
   const { expired, t, initial, fixture } = await resolve(withdrawalId, sp);
-  if (expired) return <Expired />;
+  const card = isCardMode(sp);
+  if (expired) {
+    return card ? (
+      <CardFrame eyebrow="Withdrawal">
+        <CardTitle sub="Text Rove “withdrawal status” for a fresh one.">This link has expired</CardTitle>
+      </CardFrame>
+    ) : (
+      <Expired />
+    );
+  }
 
   return (
     <WithdrawalView
@@ -49,6 +61,7 @@ export default async function Page({ params, searchParams }: { params: Params; s
       actionId={one(sp.a)}
       confirmToken={one(sp.c)}
       fixture={fixture}
+      cardHref={card ? fullPageHref(`/w/${encodeURIComponent(withdrawalId)}`, sp) : null}
     />
   );
 }
@@ -106,10 +119,10 @@ async function fetchWithdrawal(id: string, t: string): Promise<View | null> {
 function Expired() {
   return (
     <main className={styles.expired}>
-      <div className={styles.expiredIcon} aria-hidden="true">
-        ⏱
-      </div>
-      <h2>This link has expired</h2>
+      <IconBadge>
+        <Clock size={22} strokeWidth={1.5} />
+      </IconBadge>
+      <h1 className={styles.expiredTitle}>This link has expired</h1>
       <p className="muted">For your security, withdrawal links don't last forever. Text Rove “withdrawal status” for a fresh one.</p>
     </main>
   );

@@ -3,6 +3,8 @@
 // Must work in Safari AND inside Messages (Spectrum iMessage App card). Mobile-first, no navigation.
 import type { Metadata } from "next";
 import { previewMetadata } from "../../lib/og/metadata";
+import { CardFrame, CardTitle } from "../../components";
+import { fullPageHref, isCardMode } from "../../lib/ui/card";
 import { readSession } from "../../lib/ui/session";
 import { fixtureSetup } from "./_fixtures";
 import { Expired, SetupApp } from "./SetupApp";
@@ -20,7 +22,9 @@ export function generateMetadata(): Promise<Metadata> {
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function Page({ searchParams }: { searchParams: SearchParams }) {
-  const { t } = await searchParams;
+  const sp = await searchParams;
+  const { t } = sp;
+  const card = isCardMode(sp);
   const token = (Array.isArray(t) ? t[0] : t) ?? "";
   const fixtures = process.env.NEXT_PUBLIC_DEMO_FIXTURES === "1";
 
@@ -32,7 +36,17 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     if (!fixtures) console.error("[setup] could not verify session:", err);
   }
 
-  if (!valid && !fixtures) return <Expired />;
+  if (!valid && !fixtures) {
+    return card ? (
+      <CardFrame eyebrow="Shop setup">
+        <CardTitle sub="Text Rove “edit my shop” for a new one.">This link expired.</CardTitle>
+      </CardFrame>
+    ) : (
+      <Expired />
+    );
+  }
 
-  return <SetupApp t={valid ? token : ""} fixture={fixtures ? fixtureSetup() : null} />;
+  return (
+    <SetupApp t={valid ? token : ""} fixture={fixtures ? fixtureSetup() : null} cardHref={card ? fullPageHref("/setup", sp) : null} />
+  );
 }

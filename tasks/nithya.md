@@ -144,5 +144,9 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 ## Extra: AUSD lane (Agora track)
 
 ### NI-X1 · AUSD gasless pay-in (ERC-3009) + x402 agent payments
-- [~] nithya/AUSD-lane
+- [x] code done (checkout, `/api/ausd/authorize`, worker relayer, x402 v2); signatures verified against the live AUSD contract. Live run waits on Base Sepolia ETH for the relayer
 - **Do:** pay with Agora AUSD on Base Sepolia without gas (payer signs, the worker relays), settle on XRPL like BNB; stretch: an AI agent pays a Rove invoice through x402. Spec: docs/specs/ausd-lane.md
+
+### NI-X2 · Multi-currency corridors (any currency with a stablecoin)
+- [x] Phase A: currency registry (USD, SGD, EUR live; INR/AUD/BRL planned), any-to-any XRPL engine through the RLUSD hub, EUR seed + `cafe-berlin`. Testnet: [EUR→SGD](https://testnet.xrpl.org/transactions/F9A8BF3F40D1B309EE53D0F89C2B40A555EF84C443B7133EA6E21500E98D7B66), [USD→EUR](https://testnet.xrpl.org/transactions/2474B08F9BBA69DC0F7A0BA4CF4E58A40C19094BA2DC7E5C5EA221C931044B5C), [SGD→EUR](https://testnet.xrpl.org/transactions/1B272AC58B1074CAF953876DDBECAC5E21F966268A6880FE0F786229D158E435), EUR→EUR
+- [ ] Phase B: wire checkout/worker/onboarding/withdrawals to the registry (checklist in docs/specs/corridors.md)

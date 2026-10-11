@@ -1,0 +1,240 @@
+/* Card mode: exactly the webview, never scrolls. Sizes scale with the card's height (dvh, vh fallback).
+   globals.css also locks html/body scrolling while a [data-card-frame] is on the page. */
+
+.frame {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 3vh, 16px);
+  gap: clamp(6px, 3dvh, 16px);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  padding: clamp(12px, 5vh, 20px) max(16px, env(safe-area-inset-right)) clamp(12px, 5vh, 20px) max(16px, env(safe-area-inset-left));
+  padding: clamp(12px, 5dvh, 20px) max(16px, env(safe-area-inset-right)) clamp(12px, 5dvh, 20px)
+    max(16px, env(safe-area-inset-left));
+  background: var(--bg);
+}
+
+.top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 24px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.eyebrow > * {
+  flex: none;
+}
+
+.eyebrow > span:last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topRight {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The hero area takes what's left and centers its content vertically. */
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(4px, 2.4vh, 12px);
+  gap: clamp(4px, 2.4dvh, 12px);
+  overflow: hidden;
+}
+
+.amount {
+  display: flex;
+  align-items: baseline;
+  max-width: 100%;
+  font-family: var(--serif);
+  font-size: clamp(32px, 18vh, 68px);
+  font-size: clamp(32px, 18dvh, 68px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: proportional-nums;
+  white-space: nowrap;
+}
+
+.prefix {
+  margin-right: 0.1em;
+  color: var(--muted);
+  font-size: 0.5em;
+  letter-spacing: -0.01em;
+}
+
+.struck {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: clamp(20px, 10vh, 34px);
+  font-size: clamp(20px, 10dvh, 34px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.titleMain,
+.titleSub {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.titleSub {
+  margin-top: 0.2em;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 0.5em;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  -webkit-line-clamp: 2;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: clamp(12px, 5.2vh, 15px);
+  font-size: clamp(12px, 5.2dvh, 15px);
+  line-height: 1.3;
+}
+
+.lineIcon {
+  display: inline-flex;
+  flex: none;
+}
+
+.lineText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono .lineText {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  letter-spacing: 0.02em;
+}
+
+/* Mini stepper: dots on a hairline + the current step. */
+.dotsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dots {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dots::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  height: 1px;
+  background: var(--line);
+}
+
+.dot {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg);
+}
+
+.dot_done {
+  border-color: var(--text);
+  background: var(--text);
+}
+
+.dot_current {
+  border-color: var(--text);
+  animation: rove-pulse 1.2s ease-in-out infinite;
+}
+
+.dot_failed {
+  border-color: var(--error);
+  background: var(--error);
+}
+
+.dotsLabel {
+  min-width: 0;
+  overflow: hidden;
+  font-size: clamp(12px, 5.2vh, 15px);
+  font-size: clamp(12px, 5.2dvh, 15px);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Action row: one button (or two side by side). Height scales with the card. */
+.action {
+  flex: none;
+  display: flex;
+  gap: 8px;
+}
+
+.action > :is(a, button) {
+  flex: 1 1 0;
+  height: clamp(38px, 16vh, 52px);
+  height: clamp(38px, 16dvh, 52px);
+  font-size: clamp(14px, 6vh, 16px);
+  font-size: clamp(14px, 6dvh, 16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot_current {
+    animation: none;
+  }
+}

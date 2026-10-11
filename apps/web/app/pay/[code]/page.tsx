@@ -3,6 +3,8 @@
 // Must work in Safari AND inside Messages (Spectrum iMessage App card). Mobile-first, no navigation.
 import type { Metadata } from "next";
 import { previewMetadata } from "../../../lib/og/metadata";
+import { fullPageHref, isCardMode } from "../../../lib/ui/card";
+import { PayCard } from "./_card";
 import { asPreviewState, FIXTURES_ENABLED, type InvoiceKind } from "./_fixtures";
 import { invoiceCopy, loadInvoicePreview, normalizeCode } from "./_preview";
 import { PayClient } from "./PayClient";
@@ -34,6 +36,12 @@ export default async function Page({ params, searchParams }: { params: Params; s
   const preview = FIXTURES_ENABLED ? asPreviewState(first(sp.state)) : null;
   const kindParam = first(sp.kind) as InvoiceKind | undefined;
   const fixtureKind: InvoiceKind = FIXTURES_ENABLED && kindParam && KINDS.includes(kindParam) ? kindParam : "invoice";
+
+  // Inside an iMessage App card: compact, no-scroll layout; "Pay" opens this page in Safari.
+  if (isCardMode(sp)) {
+    const invoice = await loadInvoicePreview(code, preview);
+    return <PayCard invoice={invoice} code={code} fullHref={fullPageHref(`/pay/${encodeURIComponent(code)}`, sp)} demo={FIXTURES_ENABLED} />;
+  }
 
   return <PayClient key={`${code}:${preview ?? ""}:${fixtureKind}`} code={code} preview={preview} fixtureKind={fixtureKind} />;
 }
