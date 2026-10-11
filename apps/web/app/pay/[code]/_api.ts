@@ -31,10 +31,10 @@ export function getPayment(paymentId: string): Promise<Fetched<PaymentView>> {
 }
 
 /** UI method → contract method. Apple Pay runs through Stripe's Express Checkout, so it is a "card" checkout. */
-export type PayMethod = "apple_pay" | "card" | "bnb";
+export type PayMethod = "apple_pay" | "card" | "bnb" | "ausd";
 
-export function contractMethod(method: PayMethod): "card" | "bnb" {
-  return method === "bnb" ? "bnb" : "card";
+export function contractMethod(method: PayMethod): "card" | "bnb" | "ausd" {
+  return method === "apple_pay" ? "card" : method;
 }
 
 /** `payCurrency`: the payer is charged in their own currency so the card leg never converts (payments-stripe.md §1a). */

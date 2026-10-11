@@ -16,6 +16,7 @@ import {
   StatusStepper,
   type Step,
 } from "../../../components";
+import type { CryptoHandlers, CryptoMethod } from "../../../components/privy/lazy";
 import { ExpressPay, clearStripeReturn, readStripeReturn, toIntent, type StripeIntent } from "../../../components/stripe/ExpressPay";
 import { format, shortHash } from "../../../lib/ui/format";
 import { linesTotal } from "../../../lib/ui/lines";
@@ -103,7 +104,15 @@ function checkPhone(raw: string): string | null | false {
 
 // ---------------------------------------------------------------- display helpers
 
-function steps(status: PaymentStatus | undefined, payment: PaymentView | null): Step[] {
+/** What "Payment received" waits on, by lane. */
+function waitingDetail(checkout: CheckoutView | null, payment: PaymentView | null): string {
+  const method = payment?.method ?? (checkout?.bnb ? "bnb" : checkout?.ausd ? "ausd" : "card");
+  if (method === "bnb") return "Waiting for BNB Chain confirmations…";
+  if (method === "ausd") return "Relaying your AUSD on Base…";
+  return "Confirming with your bank…";
+}
+
+function steps(status: PaymentStatus | undefined, payment: PaymentView | null, checkout: CheckoutView | null = null): Step[] {
   const s = status ?? "created";
   if (s === "failed") {
     return [
@@ -115,7 +124,7 @@ function steps(status: PaymentStatus | undefined, payment: PaymentView | null): 
   const settled = SETTLED.includes(s);
   const received = s !== "created";
   return [
-    { label: "Payment received", state: received ? "done" : "current", detail: received ? undefined : "Confirming with your bank…" },
+    { label: "Payment received", state: received ? "done" : "current", detail: received ? undefined : waitingDetail(checkout, payment) },
     {
       label: "Settling on XRPL",
       state: settled ? "done" : received ? "current" : "todo",
@@ -417,8 +426,8 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
       if (!next) return setError("Couldn't start the card payment. Please try again.");
       return setIntent(next);
     } else {
+      // Crypto methods go through PayOptions' `crypto` handlers (components/privy), not onPay.
       sim.current = null;
-      // TODO SH-A4: confirm with the BNB wallet (res.data.bnb).
     }
     setBusy(null);
     setHeld(null);
@@ -430,6 +439,39 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
       payment: sim.current ? simPayment(sim.current, "created") : null,
     });
     window.scrollTo({ top: 0 });
+  };
+
+  /** Crypto lanes (SH-A4): the buttons in components/privy run the wallet steps; the page owns checkout and polling. */
+  const crypto: CryptoHandlers = {
+    start: async (method: CryptoMethod) => {
+      if (phase.name !== "review") return null;
+      const p = validPhone();
+      if (p === false) return null;
+      const o = phase.order;
+      setError(null);
+      const res = await checkout(o, method, "USD", p);
+      if (!res) return null;
+      if (!res.simulated) return res.data;
+      // Demo mode (no backend): no wallet step, just run the simulated settlement.
+      sim.current = {
+        start: Date.now(),
+        paymentId: res.data.paymentId,
+        method,
+        local: res.data.local,
+        charge: res.data.charge,
+        lines: o.lines,
+        merchantName: shop.name,
+      };
+      setPhase({ name: "processing", order: o, checkout: res.data, paymentId: res.data.paymentId, payment: simPayment(sim.current, "created") });
+      window.scrollTo({ top: 0 });
+      return null;
+    },
+    submitted: (c: CheckoutView) => {
+      sim.current = null;
+      setHeld(null);
+      setPhase((prev) => (prev.name === "review" ? { name: "processing", order: prev.order, checkout: c, paymentId: c.paymentId, payment: null } : prev));
+      window.scrollTo({ top: 0 });
+    },
   };
 
   /** Stripe confirmed the PaymentIntent: poll our payment through the webhook (authorized) and settlement (settled). */
@@ -644,7 +686,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
               <ExpressPay key={intent.checkout.stripe.clientSecret} intent={intent} onPaid={onStripePaid} onCancel={() => setIntent(null)} />
             )
           ) : (
-            <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+            <PayOptions onPay={onPay} busy={busy} disabled={quoting} crypto={crypto} />
           )}
         </div>
         {footer}
@@ -664,7 +706,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
           <p className={payStyles.statusLine} aria-live="polite">
             {payment && payment.status !== "created" ? "Payment received. Settling…" : "Processing your payment…"}
           </p>
-          <StatusStepper steps={steps(payment?.status, payment)} />
+          <StatusStepper steps={steps(payment?.status, payment, c)} />
         </Card>
         <p className={payStyles.hintCenter}>You can keep this open. It updates by itself.</p>
         {footer}
