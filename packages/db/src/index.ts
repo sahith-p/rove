@@ -276,15 +276,7 @@ export interface Db {
 }
 
 /** Unique-constraint conflicts that callers handle (e.g. a second authorization for the same invoice). */
-export class DbConflictError extends Error {
-  constructor(
-    message: string,
-    readonly constraint: string,
-  ) {
-    super(message);
-    this.name = "DbConflictError";
-  }
-}
+export { DbConflictError } from "./errors";
 
 /** Postgres over `DATABASE_URL` (Supabase transaction pooler in deploys). */
 export function createDb(_opts: { url?: string } = {}): Db {
