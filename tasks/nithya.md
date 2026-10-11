@@ -6,7 +6,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 
 - [~] **H1 (pre-G0)** done: Stripe sandbox keys, Supabase project `rove` + schema, `INTERNAL_SECRET`, `WALLET_ENCRYPTION_KEY`. Left: Railway, BNB faucet, `BSC_DEPOSIT_MNEMONIC`. · Stripe test keys · Supabase + run `packages/db/schema.sql` · Railway (worker + agent services) · BNB testnet faucet · `INTERNAL_SECRET`, `WALLET_ENCRYPTION_KEY`, `BSC_DEPOSIT_MNEMONIC` · [docs/09](../docs/09-services-and-keys.md)
 - [~] **H2 (11:30)** Credentials: enabled on testnet (verified in NI-A4). RLUSD testnet issuer: still to ask. · Ripple table: Credentials on testnet? testnet RLUSD issuer? Log answers.
-- [ ] **H3 (12:00)** Stripe → Payment method domains → add the Vercel domain (Apple Pay).
+- [x] **H3 (12:00)** done via the Stripe API: Apple Pay active on rove-topaz.vercel.app · Stripe → Payment method domains → add the Vercel domain (Apple Pay).
 - [~] **H4 (12:30)** G1 passed; flip `USE_MOCK_SETTLEMENT=0` when the worker deploys. · Gate **G1**, then `USE_MOCK_SETTLEMENT=0`.
 - [ ] **H5 (14:00)** Deploy worker to Railway; share `WORKER_URL`.
 
