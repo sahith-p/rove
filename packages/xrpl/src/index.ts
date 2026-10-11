@@ -7,6 +7,11 @@
 
 import type { SettlementEngine } from "@rove/shared";
 
+export * from "./currency";
+export * from "./crypto";
+export * from "./queue";
+export * from "./client";
+
 export function createXrplSettlement(): SettlementEngine {
   throw new Error("not implemented: see tasks/nithya.md NI-A1..NI-A5");
 }
