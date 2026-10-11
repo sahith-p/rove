@@ -1,34 +1,38 @@
-/* Rove web shell: tokens + base styles. Owner: Sahith (SH-A1). Spec: docs/specs/design.md
-   White canvas, near-black text, one sparing accent, soft gray cards, black rounded buttons.
-   Mobile first, one column; must fit a ~375px iMessage App card with no horizontal scroll. */
+/* Rove web shell: tokens + base styles. Owner: Sahith (SH-A1).
+   System: one surface per mode (white / near-black), 1px hairlines in ONE border color, pure neutral grays
+   (R=G=B, never blue-tinted), color only for meaning (green = paid/success, red = error, amber = pending).
+   Type: Faculty Glyphic serif for display (headlines, wordmark, hero amounts), Geist for UI, Geist Mono for codes.
+   8px grid, one column ≤ 440px, must fit a ~375px iMessage App card with no horizontal scroll. */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
+  /* Surfaces: page and every surface are the same color. Group with hairlines + space, never fills. */
   --bg: #ffffff;
-  --text: #111827;
-  --muted: #6b7280;
-  --card: #f4f4f5;
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
+  --text: #0a0a0a;
+  --muted: #737373;
+  --line: #e5e5e5;
+  /* Transient fills only: skeletons, pressed rows. Never a card background. */
+  --wash: #f5f5f5;
 
-  --accent: #ea580c;
-  --accent-soft: #fff7ed;
-  --success: #16a34a;
-  --success-soft: #f0fdf4;
+  /* Meaning */
+  --success: #15803d;
   --error: #dc2626;
-  --error-soft: #fef2f2;
+  --pending: #b45309;
 
-  --btn-bg: #111827;
-  --btn-text: #ffffff;
+  /* Primary button: solid ink with a faint gloss (Flip). */
+  --btn-bg: #0a0a0a;
+  --btn-fg: #ffffff;
+  --btn-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 55%);
+  --btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 6px 16px -8px rgba(0, 0, 0, 0.35);
 
-  --radius: 16px;
-  --radius-lg: 20px;
-  --shadow: 0 6px 18px rgba(17, 24, 39, 0.18), 0 1px 3px rgba(17, 24, 39, 0.12);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --pill: 999px;
 
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --serif: var(--font-serif), Georgia, "Times New Roman", serif;
+  --font: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --page-max: 440px;
   --gutter: 16px;
@@ -36,24 +40,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b0b0c;
-    --text: #f4f4f5;
-    --muted: #a1a1aa;
-    --card: #18181b;
-    --border: #27272a;
-    --border-strong: #3f3f46;
+    color-scheme: dark;
 
-    --accent: #fb923c;
-    --accent-soft: #2a1608;
+    --bg: #0a0a0a;
+    --text: #fafafa;
+    --muted: #a3a3a3;
+    --line: #262626;
+    --wash: #161616;
+
     --success: #4ade80;
-    --success-soft: #0c1f14;
     --error: #f87171;
-    --error-soft: #2a1111;
+    --pending: #fbbf24;
 
-    --btn-bg: #f4f4f5;
-    --btn-text: #111827;
-
-    --shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --btn-bg: #fafafa;
+    --btn-fg: #0a0a0a;
+    --btn-gloss: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 60%);
+    --btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -66,6 +68,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  background: var(--bg);
 }
 
 body {
@@ -77,10 +80,16 @@ body {
   font-family: var(--font);
   font-size: 16px;
   line-height: 1.5;
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   overflow-wrap: break-word;
+}
+
+::selection {
+  background: var(--text);
+  color: var(--bg);
 }
 
 /* The one column every page renders into (see app/layout.tsx). */
@@ -88,8 +97,8 @@ body {
   width: 100%;
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 24px max(var(--gutter), env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom))
-    max(var(--gutter), env(safe-area-inset-left));
+  padding: max(24px, env(safe-area-inset-top)) max(var(--gutter), env(safe-area-inset-right))
+    max(40px, env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
 }
 
 h1,
@@ -99,23 +108,27 @@ p {
   margin: 0;
 }
 
+/* Display type is the serif (single Regular weight). */
 h1 {
-  font-size: 28px;
-  line-height: 1.2;
-  font-weight: 700;
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1.12;
+  font-weight: 400;
   letter-spacing: -0.02em;
 }
 
 h2 {
-  font-size: 20px;
-  line-height: 1.3;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 400;
+  letter-spacing: -0.015em;
 }
 
 a {
   color: inherit;
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
 }
 
 img,
@@ -131,15 +144,25 @@ textarea,
 button {
   font: inherit;
   font-size: 16px;
+  letter-spacing: inherit;
   color: inherit;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--text);
   outline-offset: 2px;
 }
 
-/* A few utilities, no more. */
+/* Card mode (components/CardFrame): the page is exactly the iMessage card webview and never scrolls. */
+html:has([data-card-frame]),
+html:has([data-card-frame]) body {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------- utilities (keep these few) */
+
 .muted {
   color: var(--muted);
 }
@@ -153,6 +176,45 @@ button {
 .mono {
   font-family: var(--mono);
   font-size: 0.9em;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Small uppercase section label (Ramp): "AMOUNT", "PAY WITH", "STATUS". */
+.eyebrow {
+  display: block;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Two-tone headline (Flip): serif line in ink, then a muted sans line. */
+.twoTone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+
+.twoTone > :first-child {
+  font-family: var(--serif);
+  font-weight: 400;
+}
+
+.twoTone > :last-child:not(:first-child) {
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 0.62em;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
 }
 
 .sr-only {
@@ -165,4 +227,20 @@ button {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+@keyframes rove-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes rove-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

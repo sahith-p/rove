@@ -2,11 +2,18 @@
 // Client bits for /r/[paymentId]: the print button and the 1s "Settling…" poller.
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Download } from "lucide-react";
 import { Button } from "../../../components/Button";
 
 export function SaveReceiptButton({ className }: { className?: string }) {
   return (
-    <Button variant="secondary" fullWidth className={className} onClick={() => window.print()}>
+    <Button
+      variant="secondary"
+      fullWidth
+      className={className}
+      onClick={() => window.print()}
+      icon={<Download size={18} strokeWidth={1.5} />}
+    >
       Save receipt
     </Button>
   );

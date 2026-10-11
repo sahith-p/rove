@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { loadStripe, type Appearance, type Stripe, type StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements, ExpressCheckoutElement, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { Currency, Money } from "@rove/shared";
+import { ChevronRight, CircleAlert, CreditCard, Lock } from "lucide-react";
 import { Button } from "../Button";
 import { format } from "../../lib/ui/format";
 import styles from "./ExpressPay.module.css";
@@ -50,29 +51,40 @@ function returnUrl(paymentId: string): string {
   return url.toString();
 }
 
-/** Monochrome black/white to match the pages (globals.css tokens; Stripe can't read CSS variables). */
+/**
+ * Monochrome to match the pages: the globals.css tokens as literals (Stripe's iframe can't read CSS variables).
+ * Pure neutral grays (R=G=B), one hairline border color, ink focus, Geist (loaded into the iframe via `fonts`).
+ */
 function appearance(dark: boolean): Appearance {
+  const ink = dark ? "#fafafa" : "#0a0a0a";
+  const line = dark ? "#262626" : "#e5e5e5";
   return {
     theme: dark ? "night" : "stripe",
     variables: {
-      colorPrimary: dark ? "#f4f4f5" : "#111827",
-      colorBackground: dark ? "#18181b" : "#ffffff",
-      colorText: dark ? "#f4f4f5" : "#111827",
-      colorTextSecondary: dark ? "#a1a1aa" : "#6b7280",
+      colorPrimary: ink,
+      colorBackground: dark ? "#0a0a0a" : "#ffffff",
+      colorText: ink,
+      colorTextSecondary: dark ? "#a3a3a3" : "#737373",
+      colorTextPlaceholder: dark ? "#737373" : "#a3a3a3",
       colorDanger: dark ? "#f87171" : "#dc2626",
-      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      colorIcon: dark ? "#a3a3a3" : "#737373",
+      fontFamily: 'Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
       fontSizeBase: "16px",
-      borderRadius: "12px",
+      borderRadius: "14px",
       spacingUnit: "4px",
     },
     rules: {
-      ".Input": { border: `1px solid ${dark ? "#3f3f46" : "#d4d4d8"}`, boxShadow: "none" },
-      ".Input:focus": { border: `1px solid ${dark ? "#f4f4f5" : "#111827"}`, boxShadow: "none" },
-      ".Tab": { border: `1px solid ${dark ? "#3f3f46" : "#d4d4d8"}`, boxShadow: "none" },
-      ".Tab--selected": { border: `1px solid ${dark ? "#f4f4f5" : "#111827"}`, boxShadow: "none" },
+      ".Input": { border: `1px solid ${line}`, boxShadow: "none" },
+      ".Input:focus": { border: `1px solid ${ink}`, boxShadow: `0 0 0 1px ${ink}` },
+      ".Tab": { border: `1px solid ${line}`, boxShadow: "none" },
+      ".Tab--selected": { border: `1px solid ${ink}`, boxShadow: `0 0 0 1px ${ink}` },
+      ".Label": { fontWeight: "500" },
     },
   };
 }
+
+/** Geist inside Stripe's iframe (it can't see next/font). */
+const STRIPE_FONTS = [{ cssSrc: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" }];
 
 function usePrefersDark(): boolean {
   const [dark, setDark] = useState(false);
@@ -126,7 +138,7 @@ export function ExpressPay(props: ExpressPayProps) {
   const dark = usePrefersDark();
   const stripe = useMemo(() => getStripe(), []);
   const clientSecret = props.intent.checkout.stripe.clientSecret;
-  const options = useMemo<StripeElementsOptions>(() => ({ clientSecret, appearance: appearance(dark) }), [clientSecret, dark]);
+  const options = useMemo<StripeElementsOptions>(() => ({ clientSecret, appearance: appearance(dark), fonts: STRIPE_FONTS }), [clientSecret, dark]);
 
   if (!stripe) {
     return (
@@ -235,10 +247,11 @@ function ExpressPayInner({ intent, onPaid, onCancel }: ExpressPayProps) {
           }}
           disabled={paying}
         >
-          <span>Pay with card</span>
-          <span aria-hidden="true" className={showCard ? styles.chevOpen : styles.chev}>
-            ›
+          <span className={styles.toggleLabel}>
+            <CreditCard size={18} strokeWidth={1.5} aria-hidden="true" />
+            Pay with card
           </span>
+          <ChevronRight size={18} strokeWidth={1.5} aria-hidden="true" className={showCard ? styles.chevOpen : styles.chev} />
         </button>
       ) : null}
 
@@ -253,7 +266,13 @@ function ExpressPayInner({ intent, onPaid, onCancel }: ExpressPayProps) {
             }}
             onChange={(e) => setCardComplete(e.complete)}
           />
-          <Button type="submit" fullWidth loading={paying} disabled={!stripe || !elements || !cardComplete || paying}>
+          <Button
+            type="submit"
+            fullWidth
+            loading={paying}
+            disabled={!stripe || !elements || !cardComplete || paying}
+            icon={<Lock size={17} strokeWidth={1.5} />}
+          >
             {paying ? "Paying…" : `Pay ${amount}`}
           </Button>
         </form>
@@ -261,6 +280,7 @@ function ExpressPayInner({ intent, onPaid, onCancel }: ExpressPayProps) {
 
       {error ? (
         <p className={styles.error} role="alert">
+          <CircleAlert size={16} strokeWidth={1.75} aria-hidden="true" />
           {error}
         </p>
       ) : null}

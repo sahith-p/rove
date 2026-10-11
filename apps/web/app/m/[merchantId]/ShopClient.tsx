@@ -3,7 +3,19 @@
 // Totals on this page are previews built with bigint money math; the server prices items from the DB and charges `charge`.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { E164, cmp, isPositive, money, type Currency, type InvoiceLine, type Money, type PaymentStatus } from "@rove/shared";
-import { Amount, Button, Card, LineItems, MerchantHeader, StatusStepper, type Step } from "../../../components";
+import { ArrowRight, ArrowUpRight, Check, ChevronLeft, Minus, Plus, Receipt, RotateCw, X } from "lucide-react";
+import {
+  Amount,
+  Button,
+  Card,
+  IconBadge,
+  LineItems,
+  MerchantHeader,
+  PageFooter,
+  StateBlock,
+  StatusStepper,
+  type Step,
+} from "../../../components";
 import { ExpressPay, clearStripeReturn, readStripeReturn, toIntent, type StripeIntent } from "../../../components/stripe/ExpressPay";
 import { format, shortHash } from "../../../lib/ui/format";
 import { linesTotal } from "../../../lib/ui/lines";
@@ -121,7 +133,9 @@ function ChargeAmount({
   checkout,
   payment,
   payCurrency,
+  label,
 }: {
+  label?: string;
   shopName: string;
   order: Order;
   checkout: CheckoutView | null;
@@ -134,14 +148,14 @@ function ChargeAmount({
       payCurrency && payCurrency !== order.local.currency
         ? `Charged in ${payCurrency} at today's rate · no card FX fees`
         : `To ${shopName} · final total confirmed at checkout`;
-    return <Amount money={payment?.local ?? order.local} sub={sub} />;
+    return <Amount money={payment?.local ?? order.local} sub={sub} label={label} />;
   }
   const local = payment?.local ?? checkout?.local ?? order.local;
   const converted = charge.currency !== local.currency;
   const sub = converted
     ? `${format(local)} to ${shopName}${checkout ? ` · rate ${checkout.quote.rate}` : ""} · no card FX fees`
     : `To ${shopName} · no conversion · no card FX fees`;
-  return <Amount money={charge} sub={sub} />;
+  return <Amount money={charge} sub={sub} label={label} />;
 }
 
 function itemsLabel(n: number): string {
@@ -431,10 +445,9 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
 
   const header = <MerchantHeader name={shop.name} verified={shop.verified} />;
   const footer = (
-    <footer className={payStyles.footer}>
-      {usingFixtures ? <span className={payStyles.demo}>Demo data</span> : null}
-      <span>Rove · settles on XRPL</span>
-    </footer>
+    <PageFooter demo={usingFixtures} className={payStyles.footer}>
+      Settles on XRPL
+    </PageFooter>
   );
 
   if (phase.name === "pick") {
@@ -445,13 +458,10 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
       <main className={`${payStyles.page} ${styles.pickPage}`}>
         <div className={styles.top}>
           {header}
-          <p className={styles.hint}>
-            <span>Scan</span>
-            <span aria-hidden="true">·</span>
-            <span>Pick</span>
-            <span aria-hidden="true">·</span>
-            <span>Pay</span>
-          </p>
+          <h1 className={`twoTone ${styles.headline}`}>
+            <span>What are you having?</span>
+            <span>Pick, then pay. No app needed.</span>
+          </h1>
         </div>
 
         {menu.length > 0 ? (
@@ -485,12 +495,13 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
                     </div>
                     {qty === 0 ? (
                       <button type="button" className={styles.add} onClick={() => bump(item.id, 1)} aria-label={`Add ${item.name}`}>
+                        <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
                         Add
                       </button>
                     ) : (
                       <div className={styles.stepper}>
                         <button type="button" className={styles.stepBtn} onClick={() => bump(item.id, -1)} aria-label={`Remove one ${item.name}`}>
-                          −
+                          <Minus size={16} strokeWidth={1.75} aria-hidden="true" />
                         </button>
                         <span className={styles.qty} aria-live="polite" aria-label={`${qty} ${item.name}`}>
                           {qty}
@@ -502,7 +513,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
                           disabled={qty >= MAX_QTY}
                           aria-label={`Add one more ${item.name}`}
                         >
-                          +
+                          <Plus size={16} strokeWidth={1.75} aria-hidden="true" />
                         </button>
                       </div>
                     )}
@@ -555,7 +566,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
             <span className={styles.barLabel}>{barLabel}</span>
             <span className={styles.barTotal}>{format(barTotal)}</span>
           </div>
-          <Button onClick={toReview} disabled={!order} className={styles.barButton}>
+          <Button onClick={toReview} disabled={!order} className={styles.barButton} trailingIcon={<ArrowRight size={16} strokeWidth={1.75} />}>
             Pay
           </Button>
         </div>
@@ -571,13 +582,15 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
     return (
       <main className={payStyles.page}>
         <button type="button" className={styles.back} onClick={backToPick} disabled={busy !== null}>
-          ‹ Edit order
+          <ChevronLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+          Edit order
         </button>
         {header}
         <section className={payStyles.hero} aria-busy={quoting || undefined}>
-          <ChargeAmount shopName={shop.name} order={o} checkout={heldCheckout} payCurrency={payCurrency} />
+          <ChargeAmount shopName={shop.name} order={o} checkout={heldCheckout} payCurrency={payCurrency} label="Amount due" />
+          {payCurrency ? <CurrencyToggle value={payCurrency} onChange={onCurrency} disabled={busy !== null || quoting} busy={quoting} /> : null}
         </section>
-        <Card>
+        <Card label="Order">
           {o.lines.length > 0 ? (
             <LineItems lines={o.lines} totalLabel="Total" />
           ) : (
@@ -590,7 +603,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
 
         <div className={styles.phoneBlock}>
           <label htmlFor="phone" className={styles.label}>
-            Text me a receipt <span className={styles.optional}>optional</span>
+            Text me a receipt <span className={styles.optional}>Optional</span>
           </label>
           <input
             id="phone"
@@ -625,14 +638,15 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
             {error}
           </p>
         ) : null}
-        {payCurrency ? <CurrencyToggle value={payCurrency} onChange={onCurrency} disabled={busy !== null || quoting} busy={quoting} /> : null}
-        {intent ? (
-          quoting ? null : (
-            <ExpressPay key={intent.checkout.stripe.clientSecret} intent={intent} onPaid={onStripePaid} onCancel={() => setIntent(null)} />
-          )
-        ) : (
-          <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
-        )}
+        <div className={payStyles.payBlock}>
+          {intent ? (
+            quoting ? null : (
+              <ExpressPay key={intent.checkout.stripe.clientSecret} intent={intent} onPaid={onStripePaid} onCancel={() => setIntent(null)} />
+            )
+          ) : (
+            <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+          )}
+        </div>
         {footer}
       </main>
     );
@@ -644,12 +658,12 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
       <main className={payStyles.page}>
         {header}
         <section className={payStyles.hero}>
-          <ChargeAmount shopName={shop.name} order={o} checkout={c} payment={payment} />
-          <p className={payStyles.meta} aria-live="polite">
+          <ChargeAmount shopName={shop.name} order={o} checkout={c} payment={payment} label="Paying" />
+        </section>
+        <Card label="Status">
+          <p className={payStyles.statusLine} aria-live="polite">
             {payment && payment.status !== "created" ? "Payment received. Settling…" : "Processing your payment…"}
           </p>
-        </section>
-        <Card>
           <StatusStepper steps={steps(payment?.status, payment)} />
         </Card>
         <p className={payStyles.hintCenter}>You can keep this open. It updates by itself.</p>
@@ -663,27 +677,35 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
     return (
       <main className={payStyles.page}>
         <section className={payStyles.paidHero}>
-          <div className={payStyles.check} aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12.5l4.5 4.5L19 7.5" />
-            </svg>
-          </div>
-          <h1 className={payStyles.paidTitle}>Paid</h1>
-          <ChargeAmount shopName={payment.merchantName || shop.name} order={o} checkout={c} payment={payment} />
+          <IconBadge tone="success" size="lg">
+            <Check size={30} strokeWidth={2.25} />
+          </IconBadge>
+          <h1 className={`twoTone ${payStyles.paidTitle}`}>
+            <span>Paid</span>
+            <span>{payment.merchantName || shop.name}</span>
+          </h1>
         </section>
-        <Card>
+        <ChargeAmount shopName={payment.merchantName || shop.name} order={o} checkout={c} payment={payment} />
+        <Card label="Status">
           <StatusStepper steps={steps(payment.status, payment)} />
         </Card>
         <div className={payStyles.actions}>
-          <Button fullWidth href={`/r/${encodeURIComponent(payment.paymentId)}`}>
+          <Button fullWidth href={`/r/${encodeURIComponent(payment.paymentId)}`} icon={<Receipt size={18} strokeWidth={1.75} />}>
             Receipt
           </Button>
           {payment.explorerUrl ? (
-            <Button fullWidth variant="secondary" href={payment.explorerUrl} target="_blank" rel="noopener noreferrer">
-              View on XRPL ↗
+            <Button
+              fullWidth
+              variant="secondary"
+              href={payment.explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              trailingIcon={<ArrowUpRight size={16} strokeWidth={1.75} />}
+            >
+              View on XRPL
             </Button>
           ) : null}
-          <button type="button" className={payStyles.tertiary} onClick={newOrder}>
+          <button type="button" className={styles.textButton} onClick={newOrder}>
             Start a new order
           </button>
         </div>
@@ -696,16 +718,16 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
   return (
     <main className={payStyles.page}>
       {header}
-      <section className={payStyles.state} data-tone="error">
-        <div className={payStyles.stateIcon} aria-hidden="true">
-          !
-        </div>
-        <h1 className={payStyles.stateTitle}>Payment failed</h1>
-        <p className={payStyles.stateLine}>You weren&apos;t charged. Try again or use another method.</p>
-        <p className={payStyles.codeLine}>{format(phase.order.local)}</p>
-      </section>
+      <StateBlock
+        tone="error"
+        icon={<X size={22} strokeWidth={1.75} />}
+        title="Payment failed"
+        line="You weren't charged. Try again or use another method."
+        facts={[["Amount", format(phase.order.local)]]}
+      />
       <Button
         fullWidth
+        icon={<RotateCw size={18} strokeWidth={1.75} />}
         onClick={() => {
           sim.current = null;
           setError(null);

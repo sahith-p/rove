@@ -1,4 +1,4 @@
-// SERVER ONLY (Node runtime). Geist + Geist Mono for the OG images, read from packages/imessage-apps/assets/fonts.
+// SERVER ONLY (Node runtime). Faculty Glyphic (display serif) + Geist + Geist Mono for the OG images, read from packages/imessage-apps/assets/fonts.
 // cwd is apps/web under `next dev/build` and on Vercel, but the repo root when something runs from there, so check both.
 // Any missing file is skipped; with no fonts at all, next/og falls back to its bundled default font.
 import { readFile } from "node:fs/promises";
@@ -6,7 +6,7 @@ import path from "node:path";
 
 type Weight = 400 | 500 | 600 | 700;
 export interface OgFont {
-  name: "Geist" | "Geist Mono";
+  name: "Geist" | "Geist Mono" | "Faculty Glyphic";
   data: ArrayBuffer;
   weight: Weight;
   style: "normal";
@@ -18,6 +18,7 @@ const FILES: { file: string; name: OgFont["name"]; weight: Weight }[] = [
   { file: "Geist-Bold.ttf", name: "Geist", weight: 700 },
   { file: "GeistMono-Medium.ttf", name: "Geist Mono", weight: 500 },
   { file: "GeistMono-SemiBold.ttf", name: "Geist Mono", weight: 600 },
+  { file: "FacultyGlyphic-Regular.ttf", name: "Faculty Glyphic", weight: 400 },
 ];
 
 function fontDirs(): string[] {
@@ -52,7 +53,7 @@ export function ogFonts(): Promise<OgFont[]> {
   ).then((list) => {
     const fonts = list.filter((f): f is OgFont => f !== null);
     if (fonts.length < FILES.length) {
-      console.warn(`[og] loaded ${fonts.length}/${FILES.length} Geist fonts; the rest fall back to the default font`);
+      console.warn(`[og] loaded ${fonts.length}/${FILES.length} fonts; the rest fall back to the default font`);
     }
     if (fonts.length === 0) cached = null; // try again on the next image instead of caching the miss forever
     return fonts;

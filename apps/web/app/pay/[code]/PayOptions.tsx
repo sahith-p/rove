@@ -2,8 +2,11 @@
 // The payment buttons. The page only needs `onPay(method)`. Apple Pay / card start a card checkout, and the page then
 // swaps these buttons for Stripe's sheet (components/stripe/ExpressPay: Express Checkout Element + card form, SH-A3).
 // SH-A4 wires the BNB Chain wallet.
+// Layout: [ Pay] full width (primary), then [Card] [BNB Chain] side by side (secondary), then the Safari fallback.
 import { useEffect, useState } from "react";
-import { Button } from "../../../components";
+import { ArrowUpRight, CreditCard } from "lucide-react";
+import { Button } from "../../../components/Button";
+import { AppleLogo, BnbMark } from "../../../components/icons";
 import type { PayMethod } from "./_api";
 import styles from "./pay.module.css";
 
@@ -44,30 +47,39 @@ export function PayOptions({ onPay, busy = null, disabled = false }: PayOptionsP
         loading={busy === "apple_pay"}
         disabled={locked && busy !== "apple_pay"}
         className={styles.applePay}
+        icon={<AppleLogo size={19} />}
+        aria-label={busy === "apple_pay" ? undefined : "Pay with Apple Pay"}
       >
-        {busy === "apple_pay" ? "Starting Apple Pay…" : "Pay with Apple Pay"}
+        {busy === "apple_pay" ? "Starting Apple Pay…" : "Pay"}
       </Button>
-      <Button
-        fullWidth
-        variant="secondary"
-        onClick={() => onPay("card")}
-        loading={busy === "card"}
-        disabled={locked && busy !== "card"}
-      >
-        {busy === "card" ? "Starting…" : "Pay with card"}
-      </Button>
-      <button
-        type="button"
-        className={styles.tertiary}
-        onClick={() => onPay("bnb")}
-        disabled={locked}
-        aria-busy={busy === "bnb" || undefined}
-      >
-        {busy === "bnb" ? "Connecting wallet…" : "Pay with a BNB Chain wallet"}
-      </button>
+      <div className={styles.altMethods}>
+        <Button
+          fullWidth
+          variant="secondary"
+          onClick={() => onPay("card")}
+          loading={busy === "card"}
+          disabled={locked && busy !== "card"}
+          icon={<CreditCard size={18} strokeWidth={1.5} />}
+          aria-label={busy === "card" ? undefined : "Pay with card"}
+        >
+          {busy === "card" ? "Starting…" : "Card"}
+        </Button>
+        <Button
+          fullWidth
+          variant="secondary"
+          onClick={() => onPay("bnb")}
+          loading={busy === "bnb"}
+          disabled={locked && busy !== "bnb"}
+          icon={<BnbMark size={18} />}
+          aria-label={busy === "bnb" ? undefined : "Pay with a BNB Chain wallet"}
+        >
+          {busy === "bnb" ? "Connecting…" : "BNB Chain"}
+        </Button>
+      </div>
       {!applePayReady ? (
         <a className={styles.safari} href={safariHref ?? undefined} target="_blank" rel="noopener noreferrer">
-          Open in Safari to pay with Apple Pay ↗
+          Open in Safari to pay with Apple Pay
+          <ArrowUpRight size={13} strokeWidth={1.75} aria-hidden="true" />
         </a>
       ) : null}
     </div>
