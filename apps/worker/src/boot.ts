@@ -25,8 +25,8 @@ export const REPLAY_GIVE_UP_AFTER = 3;
 export interface BootSummary {
   /** Withdrawals found mid-pipeline and handed to resumeWithdrawals (null if they couldn't be counted). */
   withdrawalsResumed: number | null;
-  /** Undelivered events found / delivered now. */
-  eventsPending: number;
+  /** Undelivered events found (null if they couldn't be read) / delivered now. */
+  eventsPending: number | null;
   eventsDelivered: number;
   /** Steps that failed (also logged). */
   errors: string[];
@@ -59,6 +59,7 @@ export async function boot(deps: WorkerDeps, opts: BootOptions = {}): Promise<Bo
   try {
     await replayEvents(deps, summary, log);
   } catch (err) {
+    if (summary.eventsPending === 0) summary.eventsPending = null;
     summary.errors.push(`event replay: ${errText(err)}`);
     log.error("event replay failed", { err: errText(err) });
   }
@@ -74,7 +75,7 @@ async function replayEvents(deps: WorkerDeps, summary: BootSummary, log: Logger)
     const pending = (await deps.db.listUndeliveredEvents(REPLAY_PAGE)).filter((e) => !tried.has(e.id));
     if (pending.length === 0) return;
     if (page === 0) log.info("replaying undelivered events", { count: pending.length, oldest: pending[0]!.at });
-    summary.eventsPending += pending.length;
+    summary.eventsPending = (summary.eventsPending ?? 0) + pending.length;
     for (const envelope of pending) {
       tried.add(envelope.id);
       if (await deps.emit.deliver(envelope)) {
@@ -95,7 +96,12 @@ async function replayEvents(deps: WorkerDeps, summary: BootSummary, log: Logger)
 /** `boot: resumed 1 withdrawal(s) · replayed 3/3 undelivered event(s)` */
 export function describeBoot(s: BootSummary): string {
   const resumed = s.withdrawalsResumed === null ? "withdrawals: couldn't count" : `resumed ${s.withdrawalsResumed} withdrawal(s)`;
-  const events = s.eventsPending === 0 ? "no undelivered events" : `replayed ${s.eventsDelivered}/${s.eventsPending} undelivered event(s)`;
+  const events =
+    s.eventsPending === null
+      ? "undelivered events: couldn't read"
+      : s.eventsPending === 0
+        ? "no undelivered events"
+        : `replayed ${s.eventsDelivered}/${s.eventsPending} undelivered event(s)`;
   const errors = s.errors.length ? ` · ${s.errors.length} step(s) failed (see above)` : "";
   return `boot: ${resumed} · ${events}${errors}`;
 }

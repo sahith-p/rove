@@ -109,6 +109,19 @@ describe("boot", () => {
   test("describeBoot", () => {
     assert.equal(describeBoot({ withdrawalsResumed: 0, eventsPending: 0, eventsDelivered: 0, errors: [] }), "boot: resumed 0 withdrawal(s) · no undelivered events");
   });
+
+  test("database down: both steps fail, boot still resolves with a summary that says what it couldn't check", async () => {
+    const fake = createFakeDb();
+    const down = async () => {
+      throw new Error("connect ECONNREFUSED");
+    };
+    const { lines, log } = capture();
+    const deps = await createTestDeps({ db: { ...fake.db, listUndeliveredEvents: down, listWithdrawalsByStatus: down }, log });
+    const summary = await boot(deps, { resume: down });
+    assert.equal(summary.eventsPending, null);
+    assert.equal(summary.errors.length, 2);
+    assert.ok(lines.some((l) => l.endsWith("boot: withdrawals: couldn't count · undelivered events: couldn't read · 2 step(s) failed (see above)")), lines.join("\n"));
+  });
 });
 
 describe("money log", () => {
