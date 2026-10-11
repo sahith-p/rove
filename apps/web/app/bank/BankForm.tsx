@@ -5,7 +5,9 @@
 import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
 import { z } from "zod";
 import { AddBankAccountReq, AddBankAccountRes, BankAccountViewZ, ROUTES } from "@rove/shared";
-import { Button, Card, Notice } from "../../components";
+import { Building2, ChevronDown, Landmark, Smartphone } from "lucide-react";
+import { Button, IconBadge, Notice, Row, Rows } from "../../components";
+import { FlagSG } from "../../components/icons";
 import { maskAccount } from "../../lib/ui/format";
 import { sessionHeaders } from "../../lib/ui/headers";
 import { CheckIcon, LockIcon } from "./icons";
@@ -16,10 +18,10 @@ type BankAccountView = z.infer<typeof BankAccountViewZ>;
 type Field = "uen" | "mobile" | "bankName" | "accountNumber" | "holderName";
 type Errors = Partial<Record<Field, string>>;
 
-const KINDS: { value: Kind; label: string }[] = [
-  { value: "paynow_uen", label: "PayNow UEN" },
-  { value: "paynow_mobile", label: "PayNow mobile" },
-  { value: "bank_account", label: "Bank account" },
+const KINDS: { value: Kind; label: string; Icon: typeof Building2 }[] = [
+  { value: "paynow_uen", label: "PayNow UEN", Icon: Building2 },
+  { value: "paynow_mobile", label: "PayNow mobile", Icon: Smartphone },
+  { value: "bank_account", label: "Bank account", Icon: Landmark },
 ];
 
 // `value` is what goes to the API (and shows on the success card / withdrawal labels: "DBS ••••1234").
@@ -69,7 +71,7 @@ export function BankForm({ token, demo, unverifiedSession }: BankFormProps) {
 
   useEffect(() => setHydrated(true), []);
 
-  // Which account a save replaces. Best effort: skipped silently if the API isn't there or won't say.
+  // The account already on file (the backend keeps the first one as default; a save adds another). Best effort: skipped silently if the API isn't there or won't say.
   useEffect(() => {
     if (!token) return;
     const ctrl = new AbortController();
@@ -156,6 +158,17 @@ export function BankForm({ token, demo, unverifiedSession }: BankFormProps) {
       return;
     }
 
+    // The payout partner couldn't verify the account: 422 { error, message }.
+    if (res?.status === 422) {
+      setSubmitting(false);
+      setFormError(
+        `${errorText(json) ?? "We couldn't verify this account with the bank. Check the details and try again."}${
+          body.type === "bank_account" ? " For your safety, re-enter the account number." : ""
+        }`,
+      );
+      return;
+    }
+
     if (demo) {
       // API not live yet (501) or unreachable: simulate the partner's verified response.
       setSubmitting(false);
@@ -198,14 +211,18 @@ export function BankForm({ token, demo, unverifiedSession }: BankFormProps) {
       ) : null}
 
       {current ? (
-        <Card className={styles.replacing}>
-          <div className={styles.replacingLabel}>Replaces your current account</div>
-          <div className={styles.replacingValue}>
-            {accountLabel(current)} · {current.holderName}
-          </div>
-        </Card>
+        <div className={styles.field}>
+          <Rows>
+            <Row label="On file" value={`${accountLabel(current)} · ${current.holderName}`} />
+          </Rows>
+          <p className={styles.hint}>Adds this account for withdrawals. Your first account stays the default.</p>
+        </div>
       ) : null}
 
+      <div className={styles.field}>
+      <span className={styles.label} aria-hidden="true">
+        Payouts go to
+      </span>
       <div className={styles.segmented} role="radiogroup" aria-label="Where should payouts go?">
         {KINDS.map((k) => (
           <button
@@ -221,9 +238,11 @@ export function BankForm({ token, demo, unverifiedSession }: BankFormProps) {
             }}
             disabled={submitting}
           >
+            <k.Icon size={18} strokeWidth={1.5} aria-hidden="true" />
             {k.label}
           </button>
         ))}
+      </div>
       </div>
 
       {kind === "paynow_uen" ? (
@@ -254,6 +273,7 @@ export function BankForm({ token, demo, unverifiedSession }: BankFormProps) {
           {(p) => (
             <div className={[styles.prefixWrap, p["aria-invalid"] && styles.prefixInvalid].filter(Boolean).join(" ")}>
               <span className={styles.prefix} aria-hidden="true">
+                <FlagSG size={16} />
                 +65
               </span>
               <input
@@ -297,6 +317,7 @@ export function BankForm({ token, demo, unverifiedSession }: BankFormProps) {
                     </option>
                   ))}
                 </select>
+                <ChevronDown size={18} strokeWidth={1.5} className={styles.selectChevron} aria-hidden="true" />
               </div>
             )}
           </FieldShell>
@@ -351,7 +372,7 @@ export function BankForm({ token, demo, unverifiedSession }: BankFormProps) {
 
       {formError ? <Notice variant="error">{formError}</Notice> : null}
 
-      <Button type="submit" fullWidth loading={submitting} disabled={!hydrated}>
+      <Button type="submit" fullWidth loading={submitting} disabled={!hydrated} icon={<LockIcon size={17} />}>
         {submitting ? "Saving securely…" : "Save bank details"}
       </Button>
 
@@ -367,22 +388,21 @@ function Saved({ account, simulated, replaced }: { account: BankAccountView; sim
   const pending = account.status === "pending";
   return (
     <div className={styles.form} aria-live="polite">
-      <Card className={styles.success}>
-        <span className={styles.successBadge} aria-hidden="true">
-          <CheckIcon size={26} />
-        </span>
-        <h2>{pending ? "Saved, verifying" : "Saved ✓"}</h2>
-        <p className={styles.successLine}>
-          <span className={styles.successAccount}>{accountLabel(account)}</span>
-          <span className={styles.successDot}> · </span>
-          <span className={styles.successName}>{account.holderName}</span>
-        </p>
-        {replaced && replaced.id !== account.id ? (
-          <p className="muted">Replaces {accountLabel(replaced)}.</p>
-        ) : null}
-        {pending ? <p className="muted">The bank is confirming the name. Rove will text you when it&rsquo;s done.</p> : null}
-        <p className="muted">You can close this and go back to Rove.</p>
-      </Card>
+      <section className={styles.success}>
+        <IconBadge tone={pending ? "neutral" : "success"} size="lg">
+          <CheckIcon size={28} />
+        </IconBadge>
+        <h2 className="twoTone">
+          <span>{pending ? "Saved, verifying" : "Saved"}</span>
+          <span>You can close this and go back to Rove.</span>
+        </h2>
+      </section>
+      <Rows label="Payout account">
+        <Row label="Account" value={accountLabel(account)} mono />
+        <Row label="Name" value={account.holderName} />
+        {replaced && replaced.id !== account.id ? <Row label="Default" value={accountLabel(replaced)} tone="muted" /> : null}
+      </Rows>
+      {pending ? <p className={styles.hint}>The bank is confirming the name. Rove will text you when it&rsquo;s done.</p> : null}
       {simulated ? (
         <Notice variant="simulated" title="Payout partner simulated (demo)">
           Nothing was sent to a bank. The name is shown as entered.
@@ -448,10 +468,12 @@ function formatMobile(d: string): string {
   return d.length > 4 ? `${d.slice(0, 4)} ${d.slice(4)}` : d;
 }
 
+/** The API's merchant-friendly `message` (never the `error` code, e.g. "account_not_verified"), or null. */
 function errorText(json: unknown): string | null {
-  if (json && typeof json === "object" && "error" in json && typeof json.error === "string" && json.error.length < 140) {
+  if (json && typeof json === "object" && "message" in json && typeof json.message === "string") {
+    const msg = json.message.trim();
     // Don't surface internal stub messages like "not implemented: NI-B6".
-    return /not implemented/i.test(json.error) ? null : json.error;
+    if (msg && msg.length < 200 && !/not implemented/i.test(msg)) return msg;
   }
   return null;
 }

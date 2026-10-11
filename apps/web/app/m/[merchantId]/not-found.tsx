@@ -1,19 +1,18 @@
 // /m/<unknown shop code> (404).
+import { SearchX } from "lucide-react";
+import { PageFooter, StateBlock } from "../../../components";
 import payStyles from "../../pay/[code]/pay.module.css";
 
 export default function ShopNotFound() {
   return (
     <main className={payStyles.page}>
-      <section className={payStyles.state} data-tone="muted">
-        <div className={payStyles.stateIcon} aria-hidden="true">
-          –
-        </div>
-        <h1 className={payStyles.stateTitle}>Shop not found</h1>
-        <p className={payStyles.stateLine}>Check the QR code, or ask the shop for their Rove link.</p>
-      </section>
-      <footer className={payStyles.footer}>
-        <span>Rove · settles on XRPL</span>
-      </footer>
+      <StateBlock
+        tone="muted"
+        icon={<SearchX size={22} strokeWidth={1.5} />}
+        title="Shop not found"
+        line="Check the QR code, or ask the shop for their Rove link."
+      />
+      <PageFooter className={payStyles.footer}>Settles on XRPL</PageFooter>
     </main>
   );
 }

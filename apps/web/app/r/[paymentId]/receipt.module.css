@@ -3,209 +3,92 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .hero {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 16px;
   padding-top: 8px;
 }
 
-.paidIn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.paidLabel {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.heroStart {
-  align-items: flex-start;
-  padding-top: 0;
-}
-
-.struck :global(div:first-child) {
-  text-decoration: line-through;
-  text-decoration-thickness: 3px;
-  color: var(--muted);
-}
-
-/* ---- status pill */
 .pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.4;
+  align-self: flex-start;
 }
 
-.paid {
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.neutral {
-  background: var(--card);
+/* Refunded: strike the hero number. */
+.struck [aria-label] {
   color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
 }
 
-.failed {
-  background: var(--error-soft);
-  color: var(--error);
-}
-
-.pending {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: pulse 1s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.3;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dot {
-    animation: none;
-  }
-}
-
-/* ---- merchant sale headline: two-tone (dark line, gray line) */
+/* ---- merchant sale headline: two-tone (ink line, muted line) */
 .saleHead {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.eyebrow {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 8px;
 }
 
 .headline {
-  display: flex;
-  flex-direction: column;
-  font-size: clamp(28px, 8.5vw, 34px);
+  font-size: clamp(26px, 8vw, 32px);
   font-variant-numeric: tabular-nums;
 }
 
-.headlineMuted {
-  color: var(--muted);
-}
-
-/* ---- details list */
-.details {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 16px;
-  padding: 10px 0;
-  font-size: 15px;
-}
-
-.row + .row {
-  border-top: 1px solid var(--border);
-}
-
-.row:first-child {
-  padding-top: 0;
-}
-
-.row:last-child {
-  padding-bottom: 0;
-}
-
-.row dt {
-  flex: none;
-  color: var(--muted);
-}
-
-.row dd {
-  margin: 0;
-  min-width: 0;
-  text-align: right;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
 .link {
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
 }
 
 .hint {
+  color: var(--muted);
+  font-size: 13px;
   text-align: center;
-  font-size: 14px;
 }
 
 .empty {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  text-align: center;
-  padding: 28px 20px;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 32px;
+}
+
+.emptyTitle {
+  margin-top: 12px;
+  font-size: 26px;
 }
 
 .footer {
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted);
+  margin-top: 8px;
 }
 
-/* ---- print ("Save receipt" → window.print): plain black-on-white, no buttons */
+/* ---- print ("Save receipt" → window.print): plain ink-on-white, no buttons */
 @media print {
   /* Browsers drop page backgrounds when printing; re-pin the tokens to light so dark mode prints dark-on-white. */
   .page {
     --bg: #ffffff;
-    --text: #111827;
-    --muted: #4b5563;
-    --card: #ffffff;
-    --border: #d4d4d8;
+    --text: #0a0a0a;
+    --muted: #525252;
+    --line: #d4d4d4;
     --success: #15803d;
-    --success-soft: #ffffff;
     --error: #b91c1c;
-    --error-soft: #ffffff;
-    --accent: #c2410c;
-    --accent-soft: #ffffff;
-    color: #111827;
+    --pending: #b45309;
+    color: #0a0a0a;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
   .page > * {
     break-inside: avoid;
-  }
-
-  .pill {
-    border: 1px solid currentColor;
   }
 
   .noPrint {

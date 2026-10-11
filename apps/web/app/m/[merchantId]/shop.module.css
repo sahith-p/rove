@@ -9,17 +9,15 @@
 .top {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 24px;
 }
 
-.hint {
-  display: flex;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.headline {
+  font-size: 26px;
+}
+
+.shield {
+  color: var(--success);
 }
 
 /* ---------------------------------------------------------------- Menu | Amount */
@@ -27,57 +25,73 @@
 .modeSwitch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--card);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
 }
 
 .mode,
 .modeOn {
-  min-height: 40px;
+  height: 36px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 9px;
   background: transparent;
   color: var(--muted);
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .modeOn {
-  background: var(--bg);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: var(--text);
+  color: var(--bg);
 }
 
-/* ---------------------------------------------------------------- menu */
+/* ---------------------------------------------------------------- menu: one hairline frame, rows divided */
 
 .menu {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .item,
 .itemOn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   min-height: 64px;
   padding: 10px 10px 10px 16px;
-  border: 1.5px solid transparent;
-  border-radius: var(--radius);
-  background: var(--card);
-  transition: border-color 120ms ease;
 }
 
-.itemOn {
-  border-color: var(--text);
+.item + .item,
+.item + .itemOn,
+.itemOn + .item,
+.itemOn + .itemOn {
+  border-top: 1px solid var(--line);
+}
+
+/* Selected: a 2px ink rule on the left edge. */
+.itemOn::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: var(--text);
 }
 
 .itemText {
@@ -87,29 +101,31 @@
 }
 
 .itemName {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 .itemPrice {
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
 .add {
   flex: none;
-  min-width: 72px;
-  min-height: 40px;
-  padding: 6px 16px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--btn-bg);
-  color: var(--btn-text);
-  font-size: 15px;
-  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -118,51 +134,58 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--bg);
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
 }
 
 .stepBtn {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: 0;
   border-radius: 50%;
-  background: var(--card);
+  background: transparent;
   color: var(--text);
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1;
   cursor: pointer;
 }
 
+.stepBtn:active {
+  background: var(--wash);
+}
+
 .stepBtn:disabled {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .qty {
-  min-width: 28px;
+  min-width: 24px;
   text-align: center;
-  font-size: 16px;
-  font-weight: 700;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
-.switchLink {
+.switchLink,
+.textButton {
   display: block;
-  margin: 14px auto 0;
-  padding: 6px 10px;
+  margin: 16px auto 0;
+  padding: 8px 10px;
   border: 0;
   background: none;
   color: var(--muted);
   font-size: 14px;
   text-decoration: underline;
-  text-decoration-color: var(--border-strong);
+  text-decoration-color: var(--line);
   text-underline-offset: 4px;
   cursor: pointer;
+}
+
+.textButton {
+  margin-top: 4px;
 }
 
 /* ---------------------------------------------------------------- amount + phone fields */
@@ -175,15 +198,22 @@
 }
 
 .label {
-  font-size: 15px;
-  font-weight: 650;
+  padding: 0 2px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .optional {
-  margin-left: 4px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 10px;
 }
 
 .amountField,
@@ -191,14 +221,18 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  padding: 14px 18px;
-  border: 1.5px solid var(--border);
+  padding: 16px 18px;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--bg);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .amountField:focus-within {
   border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
 }
 
 .amountFieldError {
@@ -207,8 +241,8 @@
 
 .currencyPrefix {
   color: var(--muted);
-  font-size: 28px;
-  font-weight: 650;
+  font-size: 24px;
+  font-weight: 500;
 }
 
 .amountInput {
@@ -218,30 +252,36 @@
   border: 0;
   outline: none;
   background: transparent;
-  font-size: 40px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
 
+.amountInput:focus-visible {
+  outline: none;
+}
+
 .amountInput::placeholder {
-  color: var(--border-strong);
+  color: var(--line);
 }
 
 .phoneInput,
 .phoneInputError {
   width: 100%;
-  min-height: 48px;
-  padding: 10px 14px;
-  border: 1.5px solid var(--border);
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--bg);
-  font-size: 17px;
+  font-family: var(--mono);
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
 
 .phoneInput:focus {
   border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
   outline: none;
 }
 
@@ -251,6 +291,7 @@
 
 .help,
 .helpError {
+  padding: 0 2px;
   color: var(--muted);
   font-size: 13px;
 }
@@ -265,20 +306,23 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 17px;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   align-self: flex-start;
   margin: -8px 0 -8px -6px;
   padding: 6px;
   border: 0;
   background: none;
   color: var(--muted);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -297,13 +341,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 10px 10px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  -webkit-backdrop-filter: saturate(1.6) blur(14px);
-  backdrop-filter: saturate(1.6) blur(14px);
-  box-shadow: var(--shadow);
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 4px);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  backdrop-filter: saturate(1.4) blur(14px);
 }
 
 .barInfo {
@@ -316,7 +359,7 @@
 
 .barLabel {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -324,8 +367,8 @@
 
 .barTotal {
   font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -336,9 +379,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .mode,
-  .modeOn,
-  .item,
-  .itemOn {
+  .modeOn {
     transition: none;
   }
 }

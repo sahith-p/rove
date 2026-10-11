@@ -1,5 +1,6 @@
-// "2 × Chicken rice   S$9.00" rows + a total row. Line totals use bigint money math (lib/ui/lines.ts), never floats.
-// Pass `total` from the API (the DB total is what gets charged); without it the lines are summed.
+// "2×  Chicken rice   S$11.00" rows + a total row, divided by hairlines. Line totals use bigint money math
+// (lib/ui/lines.ts), never floats. Pass `total` from the API (the DB total is what gets charged); without it the
+// lines are summed.
 import type { InvoiceLine, Money } from "@rove/shared";
 import { format } from "../lib/ui/format";
 import { lineTotal, linesTotal } from "../lib/ui/lines";
@@ -22,8 +23,9 @@ export function LineItems({ lines, total, totalLabel = "Total" }: LineItemsProps
         <ul className={styles.list}>
           {lines.map((line, i) => (
             <li key={`${line.menuItemId ?? "free"}-${i}`} className={styles.row}>
+              <span className={styles.qty}>{line.qty}×</span>
               <div className={styles.name}>
-                <span className={styles.qty}>{line.qty} ×</span> {line.name}
+                {line.name}
                 {line.qty > 1 ? <div className={styles.each}>{format(line.unit)} each</div> : null}
               </div>
               <div className={styles.price}>{format(lineTotal(line))}</div>

@@ -11,28 +11,39 @@
 
 .row {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
-  gap: 16px;
-  padding: 10px 0;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 15px;
+}
+
+.row:first-child {
+  padding-top: 0;
 }
 
 .row + .row {
-  border-top: 1px solid var(--border);
-}
-
-.name {
-  min-width: 0;
+  border-top: 1px solid var(--line);
 }
 
 .qty {
+  flex: none;
+  min-width: 24px;
   color: var(--muted);
+  font-family: var(--mono);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
+.name {
+  flex: 1;
+  min-width: 0;
+}
+
 .each {
+  margin-top: 2px;
   color: var(--muted);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
 .price {
@@ -44,9 +55,13 @@
 .total {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 16px;
-  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.list + .total {
   padding-top: 12px;
-  border-top: 1px solid var(--border-strong);
-  font-weight: 650;
+  border-top: 1px solid var(--line);
 }

@@ -51,7 +51,7 @@ export function buildSteps(v: WithdrawalView): Step[] {
   if (isDone(v)) {
     Object.assign(onXrpl, { state: "done" }, tx);
     Object.assign(sent, { state: "done", detail: "FAST payout" });
-    Object.assign(landed, { state: "done", detail: bank ? v.bankRef ?? v.destination.label : v.destination.label });
+    Object.assign(landed, { state: "done", detail: bank ? v.bankRef ?? v.destination.label : v.destination.label, mono: bank && !!v.bankRef });
     return steps();
   }
 

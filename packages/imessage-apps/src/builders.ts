@@ -195,37 +195,33 @@ const WITHDRAWAL_PILL: Record<WithdrawalStatus, string> = {
   payout_pending: "Sent to bank", completed: "In bank ✓", failed: "Failed", returned: "Returned", cancelled: "Cancelled",
 };
 
-/** Bubble text for the Rove-branded customized card. Short: iMessage truncates around ~28 chars per slot. */
+/** Bubble text for the Rove-branded customized card. Minimal on purpose: a title, the amount, and a status only when it changed. */
 export function layoutFor<K extends keyof CardBuilders>(kind: K, v: Parameters<CardBuilders[K]>[0], spec: CardSpec): CardLayout {
   const summary = spec.fallbackText;
   const a = v as Record<string, any>;
+  const name = () => clip(a.merchant.name, 28);
   switch (kind) {
-    case "setup": {
-      const n = activeItemCount(a.menu as MenuItem[]);
-      return { caption: clip(a.merchant.name, 28), subcaption: n ? `${n} item${n === 1 ? "" : "s"} · tap to edit` : "Add your menu", trailingCaption: "Shop", summary };
-    }
+    case "setup":
+      return { caption: name(), trailingCaption: "Edit menu", summary };
     case "bank":
-      return { caption: "Add your bank", subcaption: "Secure form · 15 min", trailingCaption: "Secure", summary };
+      return { caption: "Add your bank", summary };
     case "shop":
-      return { caption: clip(a.merchant.name, 28), subcaption: "Balance · payments · menu", trailingCaption: "My shop", summary };
-    case "menu": {
-      const n = activeItemCount(a.menu as MenuItem[]);
-      return { caption: clip(a.merchant.name, 28), subcaption: `${n} items · tap to order`, trailingCaption: "Menu", summary };
-    }
+      return { caption: name(), summary };
+    case "menu":
+      return { caption: name(), trailingCaption: "Menu", summary };
     case "invoice": {
       const inv = a.invoice;
-      const items = (inv.lines as { name: string; qty: number }[]).map((l) => `${l.qty}× ${l.name}`).join(", ");
-      const pill = inv.status === "paid" ? "Paid ✓" : inv.status === "expired" ? "Expired" : inv.status === "cancelled" ? "Cancelled" : "Tap to pay";
-      return { caption: clip(a.merchant.name, 28), subcaption: clip(items || inv.note || `Code ${inv.code}`, 32), trailingCaption: format(inv.total), trailingSubcaption: pill, summary };
+      const status = inv.status === "paid" ? "Paid ✓" : inv.status === "expired" ? "Expired" : inv.status === "cancelled" ? "Cancelled" : undefined;
+      return { caption: name(), trailingCaption: format(inv.total), ...(status ? { trailingSubcaption: status } : {}), summary };
     }
     case "receipt":
-      return { caption: clip(a.merchant.name, 28), subcaption: "Receipt", trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "", summary };
+      return { caption: name(), trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "", summary };
     case "sale":
-      return { caption: "New sale", subcaption: a.payment.payer?.phone ? `From ${a.payment.payer.phone}` : "From a customer", trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "", summary };
+      return { caption: "New sale", trailingCaption: format(a.payment.local), summary };
     case "withdrawal":
-      return { caption: "Withdrawal", subcaption: clip(a.destinationLabel, 30), trailingCaption: format(a.withdrawal.amount), trailingSubcaption: WITHDRAWAL_PILL[a.withdrawal.status as WithdrawalStatus], summary };
+      return { caption: "Withdrawal", trailingCaption: format(a.withdrawal.amount), trailingSubcaption: WITHDRAWAL_PILL[a.withdrawal.status as WithdrawalStatus], summary };
     case "confirm":
-      return { caption: clip(a.summary, 30), subcaption: "Tap to confirm · 5 min", trailingCaption: "Confirm", summary };
+      return { caption: clip(a.summary, 30), trailingCaption: "Confirm", summary };
     default:
       return { summary };
   }

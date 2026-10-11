@@ -1,0 +1,26 @@
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  padding-top: 32px;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  font-size: 26px;
+}
+
+.line {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.facts {
+  align-self: stretch;
+}
