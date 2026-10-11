@@ -197,8 +197,17 @@ export interface WithdrawalFixture {
   seed(amount: string): Promise<void>;
   /** Partner beneficiary + bank_accounts row (the merchant's first is the default). */
   addBank(opts?: { bankName?: string | null }): Promise<string>;
-  /** Fails the test if ledger available + held != the merchant's XSGD balance. */
-  reconciled(): Promise<{ available: string; held: string; onchain: string; ok: boolean }>;
+  /** Ledger available / held vs the merchant's XSGD balance; ok = available + held == balance. */
+  reconciled(): Promise<Snapshot>;
+  /** reconciled() taken at every withdrawal.updated this merchant emitted, in order. */
+  snapshots: (Snapshot & { status: string })[];
+}
+
+export interface Snapshot {
+  available: string;
+  held: string;
+  onchain: string;
+  ok: boolean;
 }
 
 let merchantSeq = 0;
@@ -222,7 +231,17 @@ export async function withdrawalFixture(
   const deps = await createTestDeps({ settlement: fast.engine, payouts: opts.payouts ?? createMockPayoutPartner(20), log, ...opts.overrides });
   openDbs.add(deps.db);
   const fx = await addMerchant(deps, fast, opts.merchantId);
-  const fixture: WithdrawalFixture = { ...fx, deps, fast, logs };
+  const snapshots: WithdrawalFixture["snapshots"] = [];
+  // Check the invariant at the moment each status is announced (still recorded in deps.events by the inner emitter).
+  const inner = deps.emit;
+  deps.emit = Object.assign(
+    async (event: Parameters<typeof inner>[0]) => {
+      if (event.type === "withdrawal.updated" && event.merchantId === fx.merchantId) snapshots.push({ status: event.status, ...(await fx.reconciled()) });
+      await inner(event);
+    },
+    { deliver: inner.deliver },
+  );
+  const fixture: WithdrawalFixture = { ...fx, deps, fast, logs, snapshots };
   if (opts.bank ?? true) await fixture.addBank();
   if (opts.balance) await fixture.seed(opts.balance);
   return fixture;

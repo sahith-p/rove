@@ -19,33 +19,51 @@ import { advance, emitUpdate, IN_FLIGHT, pipelineLog, schedule } from "./pipelin
 
 export async function executeWithdrawal(deps: WorkerDeps, id: WithdrawalId, body: InternalExecuteWithdrawalReq): Promise<void> {
   const log = pipelineLog(deps);
-  const r = await serial(id, () => deps.db.approveWithdrawal(id, body.actionId));
+
+  // Approvals for one withdrawal run one at a time on their own key (not behind the pipeline, so a retried /execute
+  // still answers right away), and each queues its follow-up on serial(id) before the next approval runs: the winner's
+  // pipeline (which announces `approved`) is always queued ahead of any loser's resume.
+  const { r, insufficient } = await serial(`approve:${id}`, async () => {
+    const r = await deps.db.approveWithdrawal(id, body.actionId);
+    if (r.ok) {
+      void schedule(deps, id, "withdrawal pipeline", async () => {
+        await emitUpdate(deps, r.withdrawal);
+        await advance(deps, id);
+      });
+      return { r, insufficient: null };
+    }
+    if (r.withdrawal && IN_FLIGHT.includes(r.withdrawal.status)) {
+      void schedule(deps, id, "withdrawal resume", () => advance(deps, id));
+      return { r, insufficient: null };
+    }
+    if (r.reason === "insufficient_funds" && r.withdrawal) {
+      // Funds left (a refund) between the request and the confirmation: fail it without touching the ledger.
+      const w = r.withdrawal;
+      const { available } = await deps.db.getBalance(w.merchantId);
+      const reason = `You have ${format(available)} available now, less than ${format(w.amount)}, so nothing was withdrawn.`;
+      const failed = await deps.db.transitionWithdrawal(id, ["requested"], "failed", { failureReason: reason });
+      if (failed) void schedule(deps, id, "withdrawal.updated failed", () => emitUpdate(deps, failed));
+      return { r, insufficient: { reason, available } };
+    }
+    return { r, insufficient: null };
+  });
 
   if (r.ok) {
     log.info("withdrawal approved; funds held", { id, merchantId: r.withdrawal.merchantId, amount: r.withdrawal.amount.amount, actionId: body.actionId });
-    void schedule(deps, id, "withdrawal pipeline", async () => {
-      await emitUpdate(deps, r.withdrawal);
-      await advance(deps, id);
-    });
     return;
   }
 
   const w = r.withdrawal;
   if (!w) throw new UserFacingError("withdrawal_not_found", "I couldn't find that withdrawal. Say 'withdraw' to start a new one.", 404);
 
-  if (r.reason === "insufficient_funds") {
-    const { available } = await deps.db.getBalance(w.merchantId);
-    const reason = `You have ${format(available)} available now, less than ${format(w.amount)}, so nothing was withdrawn.`;
-    const failed = await serial(id, () => deps.db.transitionWithdrawal(id, ["requested"], "failed", { failureReason: reason }));
-    log.warn("withdrawal refused at approval: not enough available", { id, merchantId: w.merchantId, amount: w.amount.amount, available: available.amount });
-    if (failed) void schedule(deps, id, "withdrawal.updated failed", () => emitUpdate(deps, failed));
-    throw new UserFacingError("insufficient_funds", reason);
+  if (insufficient) {
+    log.warn("withdrawal refused at approval: not enough available", { id, merchantId: w.merchantId, amount: w.amount.amount, available: insufficient.available.amount });
+    throw new UserFacingError("insufficient_funds", insufficient.reason);
   }
 
-  // not_requested: someone (an earlier /execute, the boot resume) already approved it.
+  // not_requested: someone (an earlier /execute, the boot resume) already approved it; resume was queued above.
   if (IN_FLIGHT.includes(w.status)) {
     log.info("execute again: resuming from current status", { id, status: w.status });
-    void schedule(deps, id, "withdrawal resume", () => advance(deps, id));
     return;
   }
   if (w.status === "cancelled") {
