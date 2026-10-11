@@ -121,6 +121,11 @@ export const PaymentStatusRes = z.object({
   /** What the payer was charged, in their currency (receipt: "You paid US$9.72"). */
   charge: MoneyZ.optional(),
   merchantName: z.string(),
+  /** Receipt extras (SH-A6 reads them when present). payerName only with a merchant `sale` session for this payment. */
+  createdAt: z.string().optional(),
+  refunded: MoneyZ.optional(),
+  payerName: z.string().optional(),
+  merchantVerified: z.boolean().optional(),
   lines: z.array(InvoiceLineZ),
   method: z.enum(["apple_pay", "card", "bnb"]),
   settleTxHash: z.string().optional(),
@@ -144,7 +149,7 @@ export const MeRes = z.object({
   }),
   balance: z.object({ available: MoneyZ, held: MoneyZ, total: MoneyZ }),
   /** Reconciler result: ledger available + held equals the XSGD balance on the merchant's XRPL account ("Ledger ✓ matches XRPL"). */
-  ledgerMatchesXrpl: z.boolean().optional(),
+  reconciled: z.boolean().optional(),
   menu: z.array(MenuItemViewZ),
   contacts: z.array(z.object({ id: z.string(), name: z.string(), phone: z.string() })),
   openInvoices: z.array(z.object({ code: z.string(), to: z.string().nullable(), total: MoneyZ, createdAt: z.string() })),

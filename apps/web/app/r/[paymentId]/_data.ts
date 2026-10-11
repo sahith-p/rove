@@ -26,8 +26,10 @@ export type ReceiptLoad =
 
 export const PENDING: readonly PaymentStatus[] = ["created", "authorized", "settling"];
 
-function extras(raw: Record<string, unknown>): Omit<ReceiptData, keyof PaymentStatusResT> {
-  const out: Omit<ReceiptData, keyof PaymentStatusResT> = {};
+type Extras = Pick<ReceiptData, "createdAt" | "refunded" | "payerName" | "merchantVerified">;
+
+function extras(raw: Record<string, unknown>): Extras {
+  const out: Extras = {};
   if (typeof raw.createdAt === "string" && !Number.isNaN(Date.parse(raw.createdAt))) out.createdAt = raw.createdAt;
   if (typeof raw.payerName === "string" && raw.payerName.trim()) out.payerName = raw.payerName.trim();
   if (typeof raw.merchantVerified === "boolean") out.merchantVerified = raw.merchantVerified;
