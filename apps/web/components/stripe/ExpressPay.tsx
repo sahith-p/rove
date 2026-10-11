@@ -243,7 +243,8 @@ function ExpressPayInner({ intent, onPaid, onCancel }: ExpressPayProps) {
             buttonHeight: 52,
             buttonType: { applePay: "plain", googlePay: "plain" },
             buttonTheme: { applePay: "black", googlePay: "black" },
-            layout: { maxColumns: 1, maxRows: 3, overflow: "never" },
+            // No `layout` option: with { maxColumns: 1, maxRows: 3, overflow: "never" } the element never fires ready
+            // (verified 2026-10-11 against the live page), so Apple Pay never appeared and the page fell back to card.
             // "always": show Apple Pay whenever the browser supports it, even before a card is in Wallet ("auto" hides
             // it then). Amazon Pay / Klarna-style buttons aren't part of this flow.
             paymentMethods: { applePay: "always", googlePay: "auto", link: "auto", amazonPay: "never" },
