@@ -155,7 +155,27 @@ export function ExpressPay(props: ExpressPayProps) {
 }
 
 type ExpressState = "loading" | "ready" | "none";
-const EXPRESS_READY_TIMEOUT_MS = 5000;
+
+/** `?debug=1` on the page: print Express Checkout diagnostics on screen (for phones with no dev tools). */
+function debug(line: string) {
+  try {
+    console.info("[express]", line);
+    if (!new URLSearchParams(window.location.search).has("debug")) return;
+    const ap = (window as { ApplePaySession?: { canMakePayments(): boolean } }).ApplePaySession;
+    let el = document.getElementById("rove-debug");
+    if (!el) {
+      el = document.createElement("pre");
+      el.id = "rove-debug";
+      el.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99;font:11px/1.4 monospace;white-space:pre-wrap;background:#111;color:#0f0;padding:8px;border-radius:8px;max-height:40vh;overflow:auto";
+      el.textContent = `ApplePaySession: ${ap ? "yes" : "no"} · canMakePayments: ${ap ? String(ap.canMakePayments()) : "-"} · ${location.host}\n`;
+      document.body.appendChild(el);
+    }
+    el.textContent += `${new Date().toLocaleTimeString()} ${line}\n`;
+  } catch {
+    // diagnostics only
+  }
+}
+const EXPRESS_READY_TIMEOUT_MS = 12000;
 
 function ExpressPayInner({ intent, onPaid, onCancel }: ExpressPayProps) {
   const { paymentId } = intent.checkout;
@@ -172,7 +192,15 @@ function ExpressPayInner({ intent, onPaid, onCancel }: ExpressPayProps) {
   // Some web views never report the Express Checkout Element ready: don't leave an empty slot, open the card form.
   // (If it does become ready later, onReady shows it again.)
   useEffect(() => {
-    const id = setTimeout(() => setExpress((s) => (s === "loading" ? "none" : s)), EXPRESS_READY_TIMEOUT_MS);
+    debug("mounting Express Checkout");
+    const id = setTimeout(
+      () =>
+        setExpress((s) => {
+          if (s === "loading") debug(`timeout after ${EXPRESS_READY_TIMEOUT_MS}ms: no ready event`);
+          return s === "loading" ? "none" : s;
+        }),
+      EXPRESS_READY_TIMEOUT_MS,
+    );
     return () => clearTimeout(id);
   }, []);
 
@@ -216,9 +244,18 @@ function ExpressPayInner({ intent, onPaid, onCancel }: ExpressPayProps) {
             buttonType: { applePay: "plain", googlePay: "plain" },
             buttonTheme: { applePay: "black", googlePay: "black" },
             layout: { maxColumns: 1, maxRows: 3, overflow: "never" },
+            // "always": show Apple Pay whenever the browser supports it, even before a card is in Wallet ("auto" hides
+            // it then). Amazon Pay / Klarna-style buttons aren't part of this flow.
+            paymentMethods: { applePay: "always", googlePay: "auto", link: "auto", amazonPay: "never" },
           }}
-          onReady={(e) => setExpress(e.availablePaymentMethods ? "ready" : "none")}
-          onLoadError={() => setExpress("none")}
+          onReady={(e) => {
+            debug(`ready: ${JSON.stringify(e.availablePaymentMethods ?? null)}`);
+            setExpress(e.availablePaymentMethods ? "ready" : "none");
+          }}
+          onLoadError={(e) => {
+            debug(`loadError: ${e.error?.message ?? "unknown"}`);
+            setExpress("none");
+          }}
           onClick={(e) => {
             setError(null);
             e.resolve();
