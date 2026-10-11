@@ -1,5 +1,6 @@
 -- Rove database (Supabase Postgres). Owner: Nithya. Mirrors packages/shared/src/domain.ts.
--- Apply in the Supabase SQL editor, or: psql "$DATABASE_URL" -f packages/db/schema.sql
+-- Apply in the Supabase SQL editor, or: psql "$DATABASE_URL" -f packages/db/schema.sql, or: pnpm --filter @rove/db migrate
+-- Idempotent: safe to re-apply after every change (create … if not exists, add column if not exists, create or replace).
 -- Amounts are numeric, never float. Local currency has 2 decimals; USD quotes keep 6.
 
 -- ------------------------------------------------------------ shops
@@ -129,7 +130,8 @@ create table if not exists ledger_entries (
 );
 create index if not exists ledger_merchant on ledger_entries (merchant_id);
 
-create or replace view merchant_balances as
+-- security_invoker: the view obeys the caller's RLS (see the end of this file), so it can't leak balances via the Data API.
+create or replace view merchant_balances with (security_invoker = true) as
 select merchant_id,
   coalesce(sum(case kind when 'payment_credit' then amount when 'withdrawal_release' then amount
                          when 'withdrawal_return' then amount when 'refund_debit' then -amount when 'withdrawal_hold' then -amount else 0 end), 0) as available,
@@ -232,3 +234,37 @@ create table if not exists events (
   payload jsonb not null,
   at      timestamptz not null default now()
 );
+
+-- ------------------------------------------------------------ additions (NI-B1)
+-- Everything below is idempotent: `pnpm --filter @rove/db migrate` re-applies this whole file safely.
+
+-- the agent acks each envelope; boot-time replay sends the rest (listUndeliveredEvents)
+alter table events add column if not exists delivered_at timestamptz;
+create index if not exists events_undelivered on events (at) where delivered_at is null;
+
+-- per-payment BSC deposit address index, m/44'/60'/0'/0/<n> (nextDepositIndex); never reused, 0 left for the collector
+create sequence if not exists bsc_deposit_index start with 1 minvalue 1;
+
+-- lookups the services make
+create index if not exists payments_payer_phone on payments (payer_phone, created_at desc) where payer_phone is not null;
+create index if not exists payments_status_updated on payments (status, updated_at);
+create index if not exists ledger_merchant_kind_created on ledger_entries (merchant_id, kind, created_at);
+create index if not exists withdrawals_status on withdrawals (status, created_at);
+create index if not exists pending_actions_confirm_ids on pending_actions using gin (confirm_message_ids);
+
+-- Lock the tables away from Supabase's Data API (anon / authenticated roles). Services connect as the table owner
+-- through DATABASE_URL, which bypasses RLS; with no policies, every other role sees nothing.
+alter table merchants       enable row level security;
+alter table menu_items      enable row level security;
+alter table contacts        enable row level security;
+alter table invoices        enable row level security;
+alter table payments        enable row level security;
+alter table refunds         enable row level security;
+alter table ledger_entries  enable row level security;
+alter table bank_accounts   enable row level security;
+alter table withdrawals     enable row level security;
+alter table pending_actions enable row level security;
+alter table agent_messages  enable row level security;
+alter table onboarding      enable row level security;
+alter table processed       enable row level security;
+alter table events          enable row level security;
