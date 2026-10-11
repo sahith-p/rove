@@ -32,7 +32,7 @@ The point of Rove is that stablecoins replace card and bank conversion rates. Th
 | Local (+65) | `total` in **SGD** | domestic for an SG card | treasury XSGD → XSGD, no swap (`settle`, `from: "SGD"`) |
 | Stablecoin wallet (BNB lane) | `quote.usd` in USDT | no card at all | same as USD |
 
-- Dollars in and Singapore dollars out still means the currency changes once. It happens as a **stablecoin-to-stablecoin swap at the market rate** (pool fee 0.3% in the seed, already inside `quote.usd`), not at a card network's markup. The pay page shows it plainly: "US$9.72 · S$12.50 at 1.2860 · no card FX fees".
+- Dollars in and Singapore dollars out still means the currency changes once. It happens as a **stablecoin-to-stablecoin swap at the market rate** (our testnet pool's fee is 0.03%, TradingFee 30; mainnet pools set their own, up to 1%; it's already inside `quote.usd`), not at a card network's markup. The pay page shows it plainly: "US$9.72 · S$12.50 at 1.2860 · no card FX fees".
 - **Choosing the currency before the Apple Pay sheet opens** (the sheet shows a fixed amount): texted flows use the payer's phone country (`+1` → USD, `+65` → SGD). QR scans send `payCurrency` from the browser locale, and the page offers a USD/SGD toggle. Don't use IP geolocation: a tourist in Singapore has a Singapore IP.
 - Other payer countries fall back to USD until they get a rail of their own (for example UPI for Indian payers, later).
 - Demo: Stripe test mode on a US account, so USD payers are fully domestic. An SGD charge on a US account would pay Stripe's 1% conversion; that is acceptable in test mode, and production adds an SG Stripe entity.
@@ -86,8 +86,8 @@ The worker also polls `authorized` payments every 3s, so a lost nudge costs only
 
 | Rail | Payer pays | Card fee | Who absorbs it |
 |---|---|---|---|
-| **Stablecoin wallet (BNB lane, Privy): the move** | market rate + 0.3% pool fee + cents of gas | **none** | — |
-| Apple Pay / card in the payer's own currency | market rate + 0.3% pool fee | 2.9% + 30¢ | demo: Rove (test mode). Production: the merchant, like any card terminal, on tourist sales they'd otherwise lose |
+| **Stablecoin wallet (BNB lane, Privy): the move** | market rate + pool fee (0.03% on our testnet pool) + cents of gas | **none** | — |
+| Apple Pay / card in the payer's own currency | market rate + pool fee (0.03%) | 2.9% + 30¢ | demo: Rove (test mode). Production: the merchant, like any card terminal, on tourist sales they'd otherwise lose |
 
 - **The stablecoin wallet lane is the move.** It is the only rail where nobody pays card fees, so it's where Rove is cheaper for everyone. Apple Pay is the on-ramp for tourists who don't hold stablecoins yet.
 - **The payer always pays the market rate.** We never add a fee in place of their bank's foreign transaction fee. It would erase the payer's savings, and a 3% fee only covers Stripe on tickets above about US$300. As a US merchant of record it would also count as a card surcharge, which card-network rules cap and don't allow on debit cards.
