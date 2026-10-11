@@ -1,7 +1,8 @@
 // Domain types shared by every service. packages/db/schema.sql mirrors these one-to-one
 // (snake_case columns ↔ camelCase fields).
 
-import type { Currency, Money } from "./money";
+import { currencyLimits } from "./currencies";
+import { money, type Currency, type Money } from "./money";
 
 export type MerchantId = string; // slug, e.g. "ahseng"
 export type PaymentId = string; // "pay_<hex>"
@@ -212,7 +213,9 @@ export interface Balance {
   total: Money;
 }
 
-export type BankAccountType = "paynow_uen" | "paynow_mobile" | "bank_account";
+/** paynow_* / bank_account: Singapore (SGD, StraitsX-shaped payout). iban: SEPA (EUR, SEPA-shaped payout). payouts.ts maps
+ *  each type to its payout partner. */
+export type BankAccountType = "paynow_uen" | "paynow_mobile" | "bank_account" | "iban";
 
 /** Bank details are entered only on the secure web form, never in chat. We store a partner beneficiary id + last 4. */
 export interface BankAccount {
@@ -267,7 +270,19 @@ export interface Withdrawal {
   updatedAt: string;
 }
 
+/** SGD demo limits (kept for SGD callers). Every currency's limits: withdrawalLimitsFor() / currencies.ts `limits`. */
 export const WITHDRAWAL_LIMITS = { minSgd: "1.00", stepUpAboveSgd: "200.00", dailyMaxSgd: "2000.00" } as const;
+
+/** Withdrawal limits in `currency` from the registry: SGD = WITHDRAWAL_LIMITS (S$1 / S$200 / S$2,000), EUR €1 / €150 / €1,500. */
+export function withdrawalLimitsFor(currency: Currency): { min: Money; stepUpAbove: Money; dailyMax: Money } {
+  const l = currencyLimits(currency);
+  return { min: money(l.withdrawalMin, currency), stepUpAbove: money(l.withdrawalStepUpAbove, currency), dailyMax: money(l.withdrawalDailyMax, currency) };
+}
+
+/** Cap on one fixed shop-QR payment in `currency` (invoicing-and-qr.md §1): S$500, €350, US$400. */
+export function fixedQrMaxFor(currency: Currency): Money {
+  return money(currencyLimits(currency).fixedQrMax, currency);
+}
 
 // ------------------------------------------------------------------ confirmations
 

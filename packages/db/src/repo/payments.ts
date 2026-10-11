@@ -1,6 +1,6 @@
 // payments: checkout rows, CAS transitions, settlement, reporting
 
-import { fromMinor, newId, toMinor, type DaySummary, type PaymentStatus } from "@rove/shared";
+import { fromMinor, newId, toMinor, type DaySummary, type PaymentStatus, type Quote } from "@rove/shared";
 import type { Param, Pool } from "../executor";
 import type { Db } from "../index";
 import { decimal, dbMoney, linesToDb, norm, normalizePhone, PAYMENT_COLS, toPayment } from "../map";
@@ -22,6 +22,16 @@ type PaymentsRepo = Pick<
   | "nextDepositIndex"
 >;
 
+/**
+ * The payer-currency route of a quote as column values: quote_from (= pay.currency), quote_pay, quote_send_max.
+ * All null when the quote has no `pay` (a USD-only quote from an older engine / the mock without `from`).
+ */
+function payerRoute(q: Quote | null): { from: string | null; pay: string | null; sendMax: string | null } {
+  if (!q?.pay || q.sendMax === undefined) return { from: null, pay: null, sendMax: null };
+  const pay = norm(q.pay);
+  return { from: pay.currency, pay: pay.amount, sendMax: decimal(q.sendMax) };
+}
+
 /** Payments that count as money received (receipts). */
 const RECEIPT_STATUSES: PaymentStatus[] = ["authorized", "settling", "settled", "partially_refunded", "refunded"];
 
@@ -34,12 +44,14 @@ export function paymentsRepo(pool: Pool): PaymentsRepo {
       const local = norm(p.local);
       const charge = norm(p.charge);
       const q = p.quote;
+      const route = payerRoute(q);
       const rows = await pool.query(
         `insert into payments (id, merchant_id, source, invoice_id, lines, amount_local, currency,
             quote_usd, quote_rate, quote_send_max_usd, quote_expires_at, charge_amount, charge_currency,
-            method, payer_phone, payer_channel, stripe_payment_intent, bnb_deposit_address)
+            method, payer_phone, payer_channel, stripe_payment_intent, bnb_deposit_address,
+            quote_from, quote_pay, quote_send_max)
          values ($1, $2, $3, $4, $5::text::jsonb, $6::numeric, $7, $8::numeric, $9::numeric, $10::numeric, $11::timestamptz,
-                 $12::numeric, $13, $14, $15, $16, $17, $18)
+                 $12::numeric, $13, $14, $15, $16, $17, $18, $19, $20::numeric, $21::numeric)
          returning ${PAYMENT_COLS}`,
         [
           p.id,
@@ -60,6 +72,9 @@ export function paymentsRepo(pool: Pool): PaymentsRepo {
           p.payer?.channel ?? null,
           p.stripePaymentIntentId ?? null,
           p.bnbDepositAddress ?? null,
+          route.from,
+          route.pay,
+          route.sendMax,
         ],
       );
       return toPayment(rows[0]!);
@@ -81,11 +96,15 @@ export function paymentsRepo(pool: Pool): PaymentsRepo {
       if (patch.failureReason !== undefined) set.add("failure_reason", patch.failureReason);
       if (patch.quote !== undefined) {
         const q = patch.quote;
+        const route = payerRoute(q);
         set
           .add("quote_usd", q ? norm(q.usd).amount : null, "::numeric")
           .add("quote_rate", q ? decimal(q.rate) : null, "::numeric")
           .add("quote_send_max_usd", q ? decimal(q.sendMaxUsd) : null, "::numeric")
-          .add("quote_expires_at", q ? q.expiresAt : null, "::timestamptz");
+          .add("quote_expires_at", q ? q.expiresAt : null, "::timestamptz")
+          .add("quote_from", route.from)
+          .add("quote_pay", route.pay, "::numeric")
+          .add("quote_send_max", route.sendMax, "::numeric");
       }
       // A second authorization for the same invoice hits payments_one_per_invoice → DbConflictError (executor).
       return one(`update payments set ${set.sql} where id = $1 and status in ${inJson(2)} returning ${PAYMENT_COLS}`, params);

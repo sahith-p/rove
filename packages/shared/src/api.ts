@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { CURRENCY_CODES } from "./currencies";
+import { isValidIban } from "./payouts";
 
 export const Decimal = z.string().regex(/^\d+(\.\d{1,6})?$/, "decimal string");
 /** Every enabled currency in the registry (currencies.ts): "SGD" | "USD" | "EUR". */
@@ -45,7 +46,7 @@ export const WithdrawalDestinationZ = z.discriminatedUnion("kind", [
 ]);
 export const BankAccountViewZ = z.object({
   id: z.string(),
-  type: z.enum(["paynow_uen", "paynow_mobile", "bank_account"]),
+  type: z.enum(["paynow_uen", "paynow_mobile", "bank_account", "iban"]),
   bankName: z.string().nullable(),
   last4: z.string(),
   holderName: z.string(),
@@ -208,6 +209,14 @@ export const AddBankAccountReq = z.discriminatedUnion("type", [
   z.object({ type: z.literal("paynow_uen"), uen: z.string().regex(/^[0-9A-Z]{9,10}$/), holderName: z.string().min(2) }),
   z.object({ type: z.literal("paynow_mobile"), mobile: E164, holderName: z.string().min(2) }),
   z.object({ type: z.literal("bank_account"), bankName: z.string(), accountNumber: z.string().regex(/^\d{6,16}$/), holderName: z.string().min(2) }),
+  /** EUR shops (SEPA). The IBAN travels in `accountNumber` (spaces / lower case allowed; checksum-validated), so code
+   *  that narrows on `type` and reads `accountNumber` keeps compiling. Only for merchants whose currency pays out over SEPA. */
+  z.object({
+    type: z.literal("iban"),
+    accountNumber: z.string().max(42).refine(isValidIban, "IBAN"),
+    bankName: z.string().max(40).optional(),
+    holderName: z.string().min(2),
+  }),
 ]);
 export const AddBankAccountRes = BankAccountViewZ;
 
@@ -246,6 +255,12 @@ export const InternalCreateMerchantReq = z.object({
   channel: ChannelZ,
   currency: MerchantCurrencyZ,
   category: z.string().nullable(),
+  /** ISO 3166-1 alpha-2. Omitted → the currency's default country from the registry (SGD → SG, EUR → DE, USD → US). */
+  country: z
+    .string()
+    .regex(/^[A-Za-z]{2}$/)
+    .transform((s) => s.toUpperCase())
+    .optional(),
 });
 export const InternalCreateMerchantRes = z.object({
   merchantId: z.string(),

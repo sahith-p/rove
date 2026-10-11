@@ -9,7 +9,7 @@
 
 import { createTestDb } from "@rove/db/testing";
 import type { EventEnvelope, RoveEvent } from "@rove/shared";
-import { createMockPayoutPartner, createMockSettlement } from "@rove/shared/mocks";
+import { createMockPayoutPartners, createMockSettlement } from "@rove/shared/mocks";
 import type { WorkerConfig, WorkerDeps } from "./deps";
 import type { Emit } from "./emit";
 import { createLogger } from "./log";
@@ -58,7 +58,7 @@ export async function createTestDeps(overrides: Partial<WorkerDeps> = {}): Promi
   const deps: WorkerDeps = {
     db: overrides.db ?? (await createTestDb()),
     settlement: overrides.settlement ?? createMockSettlement(),
-    payouts: overrides.payouts ?? createMockPayoutPartner(20),
+    payouts: overrides.payouts ?? createMockPayoutPartners(20),
     stripe: overrides.stripe ?? null,
     emit: overrides.emit ?? captured.emit,
     config: overrides.config ?? TEST_CONFIG,

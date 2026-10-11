@@ -13,7 +13,7 @@ create table if not exists merchants (
   category          text,
   country           text not null default 'SG',
   currency          text not null default 'SGD',
-  xrpl_address      text unique,                               -- custodial account holding the merchant's XSGD
+  xrpl_address      text unique,                               -- custodial account holding the merchant's stablecoin (XSGD, EUR, …)
   xrpl_seed_enc     text,                                      -- AES-256-GCM with WALLET_ENCRYPTION_KEY (demo custody only)
   credential_status text not null default 'none' check (credential_status in ('none','issued','accepted')),
   auto_withdraw     text not null default 'off' check (auto_withdraw in ('off','daily')),
@@ -78,7 +78,7 @@ create table if not exists payments (
   quote_send_max_usd    numeric(18,6),
   quote_expires_at      timestamptz,
   charge_amount         numeric(18,2),                         -- what the payer was charged, in their own currency
-  charge_currency       text,                                  -- 'USD' | 'SGD' (the card leg never converts)
+  charge_currency       text,                                  -- the payer's currency, any enabled one (the card leg never converts)
   method                text not null check (method in ('apple_pay','card','bnb','ausd')),
   status                text not null default 'created'
                         check (status in ('created','authorized','settling','settled','partially_refunded','refunded','failed')),
@@ -290,3 +290,18 @@ create unique index if not exists payments_ausd_nonce on payments (lower(ausd_fr
 create unique index if not exists payments_ausd_relay_tx on payments (lower(ausd_relay_tx_hash)) where ausd_relay_tx_hash is not null;
 create index if not exists payments_ausd_awaiting_relay on payments (updated_at)
   where method = 'ausd' and status = 'created' and ausd_signature is not null;
+
+-- ------------------------------------------------------------ corridors, Phase B (docs/specs/corridors.md)
+-- The payer's route, so the worker settles from the float the payer actually paid into:
+--   quote_from     = the payer's currency (= charge_currency for card payments; USD for bnb/ausd)
+--   quote_pay      = what that float spends on XRPL (= the card charge), in quote_from
+--   quote_send_max = its SendMax, in quote_from (= quote_pay when no swap is needed)
+-- quote_usd / quote_send_max_usd stay the USD route; quote_rate is "local per 1 quote_from" (per USD when quote_from is null).
+-- merchants.country (ISO 3166-1 alpha-2) is now always written by the app (onboarding, or the currency's default country).
+alter table payments add column if not exists quote_from     text;
+alter table payments add column if not exists quote_pay      numeric(18,6);
+alter table payments add column if not exists quote_send_max numeric(18,6);
+
+-- IBAN bank accounts (EUR shops, SEPA payouts). Only beneficiary id + last 4 are stored, as for PayNow / bank accounts.
+alter table bank_accounts drop constraint if exists bank_accounts_type_check;
+alter table bank_accounts add constraint bank_accounts_type_check check (type in ('paynow_uen','paynow_mobile','bank_account','iban'));

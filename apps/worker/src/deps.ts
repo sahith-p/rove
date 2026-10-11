@@ -3,14 +3,14 @@
 //
 // Mock vs real (env, see .env.example):
 //   USE_MOCK_SETTLEMENT=1 → createMockSettlement()          else createXrplSettlement(xrplConfigFromEnv(), seedStore) (@rove/xrpl)
-//   USE_MOCK_PAYOUTS=1    → createMockPayoutPartner()       else: no real partner exists (StraitsX API isn't self-serve) → boot fails
+//   USE_MOCK_PAYOUTS=1    → createMockPayoutPartners() (StraitsX for SGD, SEPA for EUR; routed by currency) else: no real partner exists (StraitsX API isn't self-serve) → boot fails
 //   STRIPE_SECRET_KEY set → Stripe client                   else stripe = null (refunds then fail with a clear error)
 //   db                    → getDb() from @rove/db (DATABASE_URL)
 
 import Stripe from "stripe";
 import { getDb, type Db } from "@rove/db";
 import type { MerchantId, PayoutPartner, SettlementEngine } from "@rove/shared";
-import { createMockPayoutPartner, createMockSettlement } from "@rove/shared/mocks";
+import { createMockPayoutPartners, createMockSettlement } from "@rove/shared/mocks";
 import { createEmitter, type Emit } from "./emit";
 import { createLogger, type Logger } from "./log";
 
@@ -115,7 +115,7 @@ export async function createRealSettlement(seeds: SeedStore): Promise<Settlement
 }
 
 export function createPayouts(config: Pick<WorkerConfig, "useMockPayouts">): PayoutPartner {
-  if (config.useMockPayouts) return createMockPayoutPartner();
+  if (config.useMockPayouts) return createMockPayoutPartners();
   throw new Error("No real payout partner is wired up (StraitsX API access isn't self-serve). Set USE_MOCK_PAYOUTS=1.");
 }
 
@@ -136,7 +136,7 @@ export async function createDepsFromEnv(env: Env = process.env): Promise<WorkerD
 
   log.info("deps ready", {
     settlement: config.useMockSettlement ? "mock" : "xrpl",
-    payouts: config.useMockPayouts ? "mock (simulated StraitsX)" : "real",
+    payouts: config.useMockPayouts ? "mock (simulated StraitsX for SGD, SEPA for EUR)" : "real",
     stripe: stripe ? "on" : "off",
     agentUrl: config.agentUrl,
   });

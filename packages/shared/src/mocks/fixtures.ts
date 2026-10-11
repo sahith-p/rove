@@ -31,6 +31,33 @@ export const DEMO_CONTACTS: Contact[] = [
   { id: "ct_maya", merchantId: "ahseng", name: DEMO_CUSTOMER.name, phone: DEMO_CUSTOMER.phone, channel: "imessage", createdAt: new Date(0).toISOString() },
 ];
 
+/**
+ * The EUR demo shop (docs/specs/corridors.md): XRPL account from the seed (XRPL_MERCHANT_CAFE_BERLIN_*). The phone is
+ * deliberately unroutable (+49 0…: no German number starts with 0 after the country code), so nothing ever texts a
+ * real person about a test sale.
+ */
+export const DEMO_EUR_MERCHANT: Merchant = {
+  id: "cafe-berlin",
+  name: "Café Berlin",
+  phone: "+4900000000001",
+  channel: "whatsapp",
+  category: "cafe",
+  country: "DE",
+  currency: "EUR",
+  xrplAddress: null,
+  credentialStatus: "none",
+  autoWithdraw: "off",
+  status: "live",
+  createdAt: new Date(0).toISOString(),
+};
+
+export const DEMO_EUR_MENU: MenuItem[] = [
+  { id: "item_cb_flat_white", merchantId: "cafe-berlin", name: "Flat white", price: money("3.80", "EUR"), active: true, sort: 1 },
+  { id: "item_cb_croissant", merchantId: "cafe-berlin", name: "Croissant", price: money("2.50", "EUR"), active: true, sort: 2 },
+  { id: "item_cb_strudel", merchantId: "cafe-berlin", name: "Apfelstrudel", price: money("4.20", "EUR"), active: true, sort: 3 },
+  { id: "item_cb_pretzel", merchantId: "cafe-berlin", name: "Pretzel", price: money("1.90", "EUR"), active: true, sort: 4 },
+];
+
 export function demoInvoice(overrides: Partial<Invoice> = {}): Invoice {
   return {
     id: "inv_demo0001",

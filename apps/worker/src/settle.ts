@@ -1,5 +1,5 @@
-// Settlement: authorized payment → XSGD in the merchant's custodial account. Owner: Nithya · Task: NI-C2.
-// Spec: docs/specs/settlement-xrpl.md §4, docs/specs/payments-stripe.md §1a + §7.
+// Settlement: authorized payment → the merchant's stablecoin (XSGD, EUR, …) in their custodial account. Owner: Nithya ·
+// Task: NI-C2. Spec: docs/specs/settlement-xrpl.md §4, docs/specs/payments-stripe.md §1a + §7, docs/specs/corridors.md.
 //
 // POST /internal/settle (server.ts) awaits handleSettle() and then answers 202, so handleSettle returns quickly:
 // it checks the payment exists and schedules settlePayment() without awaiting it. The poller picks up anything a
@@ -7,8 +7,10 @@
 //
 // settlePayment:
 //   CAS authorized → settling
-//   settle() on XRPL, from the payer's currency (USD → RLUSD through the AMM, SGD → treasury XSGD; bnb/ausd → USD)
-//     path error (tecPATH_PARTIAL / tecPATH_DRY) or expired quote → fresh quote, retry; at most 2 retries
+//   settle() on XRPL from the payer's currency (= the charge currency; bnb/ausd → USD) with the stored route's SendMax
+//     (quote.sendMax in that currency): same currency → direct (EUR → EUR), else one Payment through the RLUSD hub
+//     (USD → EUR, EUR → RLUSD → XSGD)
+//     path error (tecPATH_PARTIAL / tecPATH_DRY) or expired quote → fresh quote({ local, from }), retry; at most 2 retries
 //     other XRPL rejection → fail now; unknown outcome (timeout etc.) → leave `settling` for review (never pay twice)
 //   delivered_amount must equal local exactly, else fail loudly without crediting (ledger invariant)
 //   db.completeSettlement (settled + ledger payment_credit + invoice paid + contact) → emit payment.settled (firstSale)
@@ -148,6 +150,17 @@ export async function settlePayment(deps: WorkerDeps, paymentId: PaymentId): Pro
 
 // ------------------------------------------------------------------ the XRPL part
 
+/**
+ * The quote's SendMax in `from` (the payer's float): `quote.sendMax` when the quote was made from `from` (quote.pay is in
+ * that currency); from USD, the USD route (`sendMaxUsd`) always is one. Undefined → the stored quote is for another
+ * float (e.g. a payment from before the route was stored): re-quote with `from`.
+ */
+export function routeFrom(quote: Quote, from: Currency): string | undefined {
+  if (quote.pay && quote.sendMax !== undefined && quote.pay.currency === from) return quote.sendMax;
+  if (from === "USD") return quote.sendMaxUsd;
+  return undefined;
+}
+
 function quoteExpired(quote: Quote, now: Date): boolean {
   const t = Date.parse(quote.expiresAt);
   return !Number.isFinite(t) || t <= now.getTime();
@@ -173,14 +186,21 @@ async function attemptSettle(
   let quote = payment.quote;
   let last: ClassifiedError | null = null;
   const attempts = SETTLE_MAX_RETRIES + 1;
+  // Same currency (EUR payer → EUR shop, SGD → SGD): that float pays directly, no swap, so no SendMax matters.
+  const swap = from !== payment.local.currency;
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
-    // The SGD float pays XSGD directly (no swap), so its quote only matters as a placeholder SendMax.
-    const needQuote = !quote || (from === "USD" && (attempt > 1 || quoteExpired(quote, deps.now())));
+    const needQuote = !quote || (swap && (attempt > 1 || quoteExpired(quote, deps.now()) || !routeFrom(quote, from)));
     if (needQuote) {
       try {
-        quote = await deps.settlement.quote({ local: payment.local });
-        log.info("fresh quote", { paymentId: payment.id, attempt, usd: format(quote.usd), sendMaxUsd: quote.sendMaxUsd });
+        quote = await deps.settlement.quote({ local: payment.local, from });
+        log.info("fresh quote", {
+          paymentId: payment.id,
+          attempt,
+          from,
+          pay: quote.pay ? format(quote.pay) : format(quote.usd),
+          sendMax: quote.sendMax ?? quote.sendMaxUsd,
+        });
       } catch (err) {
         last = { kind: "path", code: null, message: `quote failed: ${errorMessage(err)}` };
         log.warn("quote failed", { paymentId: payment.id, attempt, error: last.message });
@@ -190,12 +210,14 @@ async function attemptSettle(
 
     ctx.submitted = true;
     try {
+      const sendMax = routeFrom(quote!, from);
       const result = await deps.settlement.settle({
         paymentId: payment.id,
         merchantAddress,
         local: payment.local,
         sendMaxUsd: quote!.sendMaxUsd,
         from,
+        ...(sendMax ? { sendMax } : {}),
       });
       return checkDelivered(payment, result);
     } catch (err) {
