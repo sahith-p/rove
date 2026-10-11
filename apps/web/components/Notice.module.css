@@ -1,0 +1,82 @@
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.title + .text {
+  margin-top: 2px;
+}
+
+.info {
+  background: var(--card);
+}
+
+.info .icon {
+  background: var(--muted);
+  color: var(--bg);
+}
+
+.success {
+  background: var(--success-soft);
+}
+
+.success .icon {
+  background: var(--success);
+  color: var(--bg);
+}
+
+.success .title {
+  color: var(--success);
+}
+
+.error {
+  background: var(--error-soft);
+}
+
+.error .icon {
+  background: var(--error);
+  color: var(--bg);
+}
+
+.error .title {
+  color: var(--error);
+}
+
+/* Demo-only parts: dashed accent outline so it reads as "not real money movement". */
+.simulated {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
+.simulated .icon {
+  color: var(--accent);
+  font-size: 14px;
+}

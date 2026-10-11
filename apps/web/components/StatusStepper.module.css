@@ -1,0 +1,113 @@
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 20px;
+}
+
+.step:last-child {
+  padding-bottom: 0;
+}
+
+/* Connector line down to the next marker. */
+.step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 28px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--border);
+}
+
+.done:not(:last-child)::before {
+  background: var(--success);
+}
+
+.marker {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.done .marker {
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--bg);
+}
+
+.current .marker {
+  border-color: var(--accent);
+}
+
+.current .marker::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.failed .marker {
+  border-color: var(--error);
+  background: var(--error);
+  color: var(--bg);
+}
+
+.body {
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.label {
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.todo .label {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.failed .label {
+  color: var(--error);
+}
+
+.detail {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.detail a {
+  color: var(--text);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .current .marker::after {
+    animation: none;
+  }
+}
