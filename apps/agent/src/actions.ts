@@ -144,10 +144,11 @@ export function createActions(deps: Deps): ActionsService {
     try {
       switch (args.kind) {
         case "withdrawal":
-          // Stays `executing` until withdrawal.updated reaches completed/failed → settle().
-          await worker.executeWithdrawal(args.withdrawalId, action.id);
+          // Stays `executing` until withdrawal.updated reaches completed/failed → settle(), which edits the card.
+          // Acknowledge first: the pipeline's events can arrive before executeWithdrawal returns.
           await refreshCard(await fresh(action.id, action), merchant);
           await tell(merchant, `On it ✓ ${summary}`);
+          await worker.executeWithdrawal(args.withdrawalId, action.id);
           return "executing";
         case "refund": {
           const res = await worker.refund({ actionId: action.id, paymentId: args.paymentId, amount: args.amount.amount });
