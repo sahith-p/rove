@@ -1,6 +1,6 @@
 // Demo fixtures for /pay/[code] while the invoice / checkout / payment APIs return 501.
 // Only used when NEXT_PUBLIC_DEMO_FIXTURES=1. Built from @rove/shared/mocks and validated with the contract schemas.
-import { CheckoutRes, InvoicePublicRes, PaymentStatusRes, type PaymentStatus } from "@rove/shared";
+import { CheckoutRes, InvoicePublicRes, PaymentStatusRes, type Currency, type Money, type PaymentStatus } from "@rove/shared";
 import { DEMO_MERCHANT, demoInvoice, demoPayment } from "@rove/shared/mocks";
 import type { z } from "zod";
 
@@ -50,13 +50,18 @@ export function fixtureInvoice(code: string, kind: InvoiceKind = "invoice", stat
   });
 }
 
-export function fixturePayment(status: PaymentStatus, method: PaymentView["method"] = "apple_pay"): PaymentView {
-  const p = demoPayment({ status, method });
+/** Demo quote: S$12.50 at 1.2860 SGD per USD → US$9.72 (a stablecoin swap at the market rate, no card FX). */
+const DEMO_RATE = "1.2860";
+const DEMO_USD: Money = { amount: "9.72", currency: "USD" };
+
+export function fixturePayment(status: PaymentStatus, method: PaymentView["method"] = "apple_pay", charge: Money = DEMO_USD): PaymentView {
+  const p = demoPayment({ status, method, charge });
   const onLedger = status === "settled" || status === "refunded" || status === "partially_refunded";
   return PaymentStatusRes.parse({
     paymentId: p.id,
     status,
     local: p.local,
+    charge: p.charge,
     merchantName: DEMO_MERCHANT.name,
     lines: p.lines,
     method,
@@ -64,17 +69,14 @@ export function fixturePayment(status: PaymentStatus, method: PaymentView["metho
   });
 }
 
-export function fixtureCheckout(invoice: InvoiceView): CheckoutView {
+/** What checkout would return. USD payers (and every BNB payer: USDT is a dollar) pay quote.usd; SGD payers pay the total. */
+export function fixtureCheckout(invoice: InvoiceView, payCurrency: Currency, method: "card" | "bnb"): CheckoutView {
+  const charge = method === "bnb" || payCurrency === "USD" ? DEMO_USD : invoice.total;
   return CheckoutRes.parse({
     paymentId: demoPayment().id,
     local: invoice.total,
-    quote: {
-      local: invoice.total,
-      usd: { amount: "9.69", currency: "USD" },
-      rate: "1.29",
-      sendMaxUsd: "9.79",
-      expiresAt: new Date(Date.now() + 5 * MIN).toISOString(),
-    },
+    charge,
+    quote: { local: invoice.total, usd: DEMO_USD, rate: DEMO_RATE, sendMaxUsd: "9.82", expiresAt: new Date(Date.now() + 5 * MIN).toISOString() },
   });
 }
 

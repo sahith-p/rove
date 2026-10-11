@@ -1,5 +1,5 @@
 // Client fetches for /pay/[code]. Relative URLs, every response validated with the @rove/shared schemas.
-import { CheckoutReq, CheckoutRes, InvoicePublicRes, PaymentStatusRes, ROUTES } from "@rove/shared";
+import { CheckoutReq, CheckoutRes, InvoicePublicRes, PaymentStatusRes, ROUTES, type Currency } from "@rove/shared";
 import type { z } from "zod";
 import type { CheckoutView, InvoiceView, PaymentView } from "./_fixtures";
 
@@ -33,10 +33,16 @@ export function getPayment(paymentId: string): Promise<Fetched<PaymentView>> {
 /** UI method → contract method. Apple Pay runs through Stripe's Express Checkout, so it is a "card" checkout. */
 export type PayMethod = "apple_pay" | "card" | "bnb";
 
-export function startCheckout(code: string, method: PayMethod): Promise<Fetched<CheckoutView>> {
+export function contractMethod(method: PayMethod): "card" | "bnb" {
+  return method === "bnb" ? "bnb" : "card";
+}
+
+/** `payCurrency`: the payer is charged in their own currency so the card leg never converts (payments-stripe.md §1a). */
+export function startCheckout(code: string, method: PayMethod, payCurrency: Currency): Promise<Fetched<CheckoutView>> {
   const body: z.infer<typeof CheckoutReq> = CheckoutReq.parse({
     target: { source: "invoice", code },
-    method: method === "bnb" ? "bnb" : "card",
+    method: contractMethod(method),
+    payCurrency,
   });
   return call(ROUTES.checkout, CheckoutRes, {
     method: "POST",

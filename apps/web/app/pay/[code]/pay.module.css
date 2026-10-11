@@ -104,6 +104,56 @@
   text-decoration: underline;
 }
 
+/* ---------------------------------------------------------------- currency toggle */
+
+.currencyRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.currencyLabel {
+  color: var(--muted);
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.segmented[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+.seg,
+.segOn {
+  min-width: 56px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segOn {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.seg:disabled,
+.segOn:disabled {
+  cursor: not-allowed;
+}
+
 /* ---------------------------------------------------------------- processing / paid */
 
 .hintCenter {

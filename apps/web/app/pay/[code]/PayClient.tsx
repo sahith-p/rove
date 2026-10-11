@@ -1,22 +1,25 @@
 "use client";
 // /pay/[code] state machine: loading → open → (checkout) → processing (poll) → paid, plus closed / not found / failed.
 // Amounts only ever come from the API (or fixtures in demo mode), never from the URL.
+// The payer is charged in their own currency (`charge`, payments-stripe.md §1a): SGD total until checkout quotes it.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PAYMENT_CODE_RE, type PaymentStatus } from "@rove/shared";
+import { PAYMENT_CODE_RE, type Currency, type Money, type PaymentStatus } from "@rove/shared";
 import { Amount, Button, Card, LineItems, MerchantHeader, StatusStepper, type Step } from "../../../components";
 import { format, shortHash } from "../../../lib/ui/format";
-import { getInvoice, getPayment, startCheckout, type PayMethod } from "./_api";
+import { contractMethod, getInvoice, getPayment, startCheckout, type PayMethod } from "./_api";
 import {
   FIXTURES_ENABLED,
   fixtureCheckout,
   fixtureInvoice,
   fixturePayment,
   simulatedStatus,
+  type CheckoutView,
   type InvoiceKind,
   type InvoiceView,
   type PaymentView,
   type PreviewState,
 } from "./_fixtures";
+import { CurrencyToggle, localeCurrency } from "./CurrencyToggle";
 import { PayOptions } from "./PayOptions";
 import styles from "./pay.module.css";
 
@@ -25,12 +28,27 @@ type ClosedReason = "expired" | "already_paid" | "cancelled";
 type Phase =
   | { name: "loading" }
   | { name: "open"; invoice: InvoiceView }
-  | { name: "processing"; invoice: InvoiceView; paymentId: string; payment: PaymentView | null }
-  | { name: "paid"; invoice: InvoiceView; payment: PaymentView }
+  | { name: "processing"; invoice: InvoiceView; checkout: CheckoutView | null; paymentId: string; payment: PaymentView | null }
+  | { name: "paid"; invoice: InvoiceView; checkout: CheckoutView | null; payment: PaymentView }
   | { name: "failed"; invoice: InvoiceView }
   | { name: "closed"; invoice: InvoiceView; reason: ClosedReason }
   | { name: "not_found" }
   | { name: "error" };
+
+/** A checkout result held on the open page (from the currency toggle), reused by the card / Apple Pay buttons. */
+interface Held {
+  checkout: CheckoutView;
+  currency: Currency;
+  method: "card" | "bnb";
+  simulated: boolean;
+}
+
+/** A fixture-mode settlement simulation in progress. */
+interface Sim {
+  start: number;
+  method: PayMethod;
+  charge: Money | undefined;
+}
 
 const POLL_MS = 1000;
 const SIM_POLL_MS = 500;
@@ -45,17 +63,25 @@ function phaseForInvoice(invoice: InvoiceView, now = Date.now()): Phase {
 
 function previewPhase(code: string, state: PreviewState, kind: InvoiceKind): Phase {
   const invoice = fixtureInvoice(code, kind);
+  const checkout = fixtureCheckout(invoice, "USD", "card");
+  const processing = (status: PaymentStatus): Phase => ({
+    name: "processing",
+    invoice,
+    checkout,
+    paymentId: checkout.paymentId,
+    payment: fixturePayment(status),
+  });
   switch (state) {
     case "loading":
       return { name: "loading" };
     case "open":
       return { name: "open", invoice };
     case "paying":
-      return { name: "processing", invoice, paymentId: "pay_demo0001", payment: fixturePayment("created") };
+      return processing("created");
     case "settling":
-      return { name: "processing", invoice, paymentId: "pay_demo0001", payment: fixturePayment("settling") };
+      return processing("settling");
     case "paid":
-      return { name: "paid", invoice, payment: fixturePayment("settled") };
+      return { name: "paid", invoice, checkout, payment: fixturePayment("settled") };
     case "failed":
       return { name: "failed", invoice };
     case "expired":
@@ -106,6 +132,22 @@ function steps(status: PaymentStatus | undefined, payment: PaymentView | null): 
   ];
 }
 
+/**
+ * The big amount. Before checkout: the invoice total (SGD). After: `charge` in the payer's currency, with
+ * "S$12.50 to Ah Seng · rate 1.2860 · no card FX fees" under it.
+ */
+function ChargeAmount({ invoice, checkout, payment }: { invoice: InvoiceView; checkout: CheckoutView | null; payment?: PaymentView | null }) {
+  const charge = payment?.charge ?? checkout?.charge;
+  if (!charge) return <Amount money={payment?.local ?? invoice.total} />;
+  const local = payment?.local ?? checkout?.local ?? invoice.total;
+  const merchant = payment?.merchantName || invoice.merchant.name;
+  const converted = charge.currency !== local.currency;
+  const sub = converted
+    ? `${format(local)} to ${merchant}${checkout ? ` · rate ${checkout.quote.rate}` : ""} · no card FX fees`
+    : `To ${merchant} · no conversion · no card FX fees`;
+  return <Amount money={charge} sub={sub} />;
+}
+
 export interface PayClientProps {
   code: string;
   /** Fixture mode only: render this state without calling the APIs. */
@@ -120,8 +162,13 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [usingFixtures, setUsingFixtures] = useState(preview !== null);
   const [now, setNow] = useState(() => Date.now());
-  /** Set when a fixture checkout started a simulated settlement (ms timestamp). */
-  const simStart = useRef<number | null>(null);
+  /** null until mounted (locale is a browser thing), then the locale guess or the payer's toggle. */
+  const [payCurrency, setPayCurrency] = useState<Currency | null>(null);
+  const [held, setHeld] = useState<Held | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const sim = useRef<Sim | null>(null);
+
+  useEffect(() => setPayCurrency(localeCurrency()), []);
 
   const load = useCallback(async () => {
     if (!PAYMENT_CODE_RE.test(code)) return setPhase({ name: "not_found" });
@@ -154,24 +201,25 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
 
   // Poll the payment until it settles or fails. Previews stay frozen.
   const processingId = phase.name === "processing" ? phase.paymentId : null;
+  const processingCharge = phase.name === "processing" ? phase.checkout?.charge : undefined;
   useEffect(() => {
     if (!processingId) return;
     // A ?state=paying / settling preview stays frozen; a preview that was paid from ?state=open runs the simulation.
-    if (preview && simStart.current === null) return;
+    if (preview && sim.current === null) return;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const tick = async () => {
       let payment: PaymentView | null = null;
-      if (simStart.current !== null) {
-        payment = fixturePayment(simulatedStatus(simStart.current));
+      const s = sim.current;
+      if (s) {
+        payment = fixturePayment(simulatedStatus(s.start), s.method, s.charge);
       } else {
         const res = await getPayment(processingId);
         if (res.ok) payment = res.data;
         else if (FIXTURES_ENABLED && (res.status === 501 || res.status === 404)) {
-          simStart.current = Date.now();
           setUsingFixtures(true);
-          payment = fixturePayment("created");
+          sim.current = { start: Date.now(), method: "card", charge: processingCharge };
         }
       }
       if (stopped) return;
@@ -179,13 +227,13 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
         const p = payment;
         setPhase((prev) => {
           if (prev.name !== "processing") return prev;
-          if (SETTLED.includes(p.status)) return { name: "paid", invoice: prev.invoice, payment: p };
+          if (SETTLED.includes(p.status)) return { name: "paid", invoice: prev.invoice, checkout: prev.checkout, payment: p };
           if (p.status === "failed") return { name: "failed", invoice: prev.invoice };
           return { ...prev, payment: p };
         });
         if (SETTLED.includes(p.status) || p.status === "failed") return;
       }
-      timer = setTimeout(tick, simStart.current !== null ? SIM_POLL_MS : POLL_MS);
+      timer = setTimeout(tick, sim.current ? SIM_POLL_MS : POLL_MS);
     };
 
     void tick();
@@ -193,44 +241,71 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
       stopped = true;
       if (timer) clearTimeout(timer);
     };
-  }, [processingId, preview]);
+  }, [processingId, processingCharge, preview]);
+
+  /** POST /api/checkout (or a fixture). `null` = failed; the error is already shown. */
+  const checkout = useCallback(
+    async (invoice: InvoiceView, method: PayMethod, currency: Currency): Promise<{ data: CheckoutView; simulated: boolean } | null> => {
+      if (preview) return { data: fixtureCheckout(invoice, currency, contractMethod(method)), simulated: true };
+      const res = await startCheckout(invoice.code, method, currency);
+      if (res.ok) return { data: res.data, simulated: false };
+      if (FIXTURES_ENABLED && (res.status === 501 || res.status === null)) {
+        setUsingFixtures(true);
+        return { data: fixtureCheckout(invoice, currency, contractMethod(method)), simulated: true };
+      }
+      setCheckoutError(
+        res.status === 409 || res.status === 410 ? "This code can't be paid any more. Reload to check its status." : "Couldn't start the payment. Please try again.",
+      );
+      return null;
+    },
+    [preview],
+  );
+
+  // Currency toggle: re-quote with checkout so the big amount shows exactly what will be charged.
+  const onCurrency = useCallback(
+    async (currency: Currency) => {
+      setPayCurrency(currency);
+      if (phase.name !== "open" || busy) return;
+      setQuoting(true);
+      setCheckoutError(null);
+      const res = await checkout(phase.invoice, "card", currency);
+      setQuoting(false);
+      setHeld(res ? { checkout: res.data, currency, method: "card", simulated: res.simulated } : null);
+    },
+    [phase, busy, checkout],
+  );
 
   const onPay = useCallback(
     async (method: PayMethod) => {
-      if (phase.name !== "open" || busy) return;
+      if (phase.name !== "open" || busy || quoting) return;
       const invoice = phase.invoice;
+      const currency = payCurrency ?? "USD";
       setBusy(method);
       setCheckoutError(null);
 
-      if (preview) {
-        // Preview: skip the network, run the simulated flow.
-        simStart.current = Date.now();
-      } else {
-        const res = await startCheckout(invoice.code, method);
-        if (res.ok) {
-          simStart.current = null;
-          // TODO SH-A3 / SH-A4: confirm with Stripe (res.data.stripe) or the BNB wallet (res.data.bnb) here.
-          setBusy(null);
-          setPhase({ name: "processing", invoice, paymentId: res.data.paymentId, payment: null });
-          return;
-        }
-        if (!(FIXTURES_ENABLED && (res.status === 501 || res.status === null))) {
-          setBusy(null);
-          setCheckoutError(
-            res.status === 409 || res.status === 410 ? "This code can't be paid any more. Reload to check its status." : "Couldn't start the payment. Please try again.",
-          );
-          return;
-        }
-        setUsingFixtures(true);
-        simStart.current = Date.now();
-      }
+      const reusable =
+        held && held.method === contractMethod(method) && held.currency === currency && Date.parse(held.checkout.quote.expiresAt) > Date.now();
+      const res = reusable ? { data: held.checkout, simulated: held.simulated } : await checkout(invoice, method, currency);
+      if (!res) return setBusy(null);
 
-      const checkout = fixtureCheckout(invoice);
-      await new Promise((r) => setTimeout(r, 600));
+      if (res.simulated) {
+        sim.current = { start: Date.now(), method, charge: res.data.charge };
+        await new Promise((r) => setTimeout(r, 600));
+      } else {
+        sim.current = null;
+        // TODO SH-A3 / SH-A4: confirm with Stripe (res.data.stripe, amount = res.data.charge) or the BNB wallet (res.data.bnb).
+      }
       setBusy(null);
-      setPhase({ name: "processing", invoice, paymentId: checkout.paymentId, payment: fixturePayment("created", method) });
+      setHeld(null);
+      setPhase({
+        name: "processing",
+        invoice,
+        checkout: res.data,
+        paymentId: res.data.paymentId,
+        payment: res.simulated ? fixturePayment("created", method, res.data.charge) : null,
+      });
     },
-    [phase, busy, preview],
+    [phase, busy, quoting, payCurrency, held, checkout],
   );
 
   return (
@@ -241,8 +316,13 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
         now={now}
         busy={busy}
         checkoutError={checkoutError}
+        held={held && held.currency === payCurrency ? held.checkout : null}
+        payCurrency={payCurrency}
+        quoting={quoting}
+        onCurrency={onCurrency}
         onPay={onPay}
         onRetry={() => {
+          setHeld(null);
           if (preview) setPhase(previewPhase(code, "open", fixtureKind));
           else void load();
         }}
@@ -261,11 +341,15 @@ interface BodyProps {
   now: number;
   busy: PayMethod | null;
   checkoutError: string | null;
+  held: CheckoutView | null;
+  payCurrency: Currency | null;
+  quoting: boolean;
+  onCurrency: (c: Currency) => void;
   onPay: (m: PayMethod) => void;
   onRetry: () => void;
 }
 
-function Body({ phase, code, now, busy, checkoutError, onPay, onRetry }: BodyProps) {
+function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quoting, onCurrency, onPay, onRetry }: BodyProps) {
   switch (phase.name) {
     case "loading":
       return (
@@ -284,8 +368,8 @@ function Body({ phase, code, now, busy, checkoutError, onPay, onRetry }: BodyPro
       return (
         <>
           <MerchantHeader name={invoice.merchant.name} verified={invoice.merchant.verified} />
-          <section className={styles.hero}>
-            <Amount money={invoice.total} />
+          <section className={styles.hero} aria-busy={quoting || undefined}>
+            <ChargeAmount invoice={invoice} checkout={held} />
             <p className={styles.meta}>
               {hint ? <span suppressHydrationWarning>{hint}</span> : null}
               {hint ? <span aria-hidden="true"> · </span> : null}
@@ -310,18 +394,19 @@ function Body({ phase, code, now, busy, checkoutError, onPay, onRetry }: BodyPro
               {checkoutError}
             </p>
           ) : null}
-          <PayOptions onPay={onPay} busy={busy} />
+          {payCurrency ? <CurrencyToggle value={payCurrency} onChange={onCurrency} disabled={busy !== null || quoting} busy={quoting} /> : null}
+          <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
         </>
       );
     }
 
     case "processing": {
-      const { invoice, payment } = phase;
+      const { invoice, checkout, payment } = phase;
       return (
         <>
           <MerchantHeader name={invoice.merchant.name} verified={invoice.merchant.verified} />
           <section className={styles.hero}>
-            <Amount money={invoice.total} />
+            <ChargeAmount invoice={invoice} checkout={checkout} payment={payment} />
             <p className={styles.meta} aria-live="polite">
               {payment && payment.status !== "created" ? "Payment received. Settling…" : "Processing your payment…"}
             </p>
@@ -335,7 +420,7 @@ function Body({ phase, code, now, busy, checkoutError, onPay, onRetry }: BodyPro
     }
 
     case "paid": {
-      const { invoice, payment } = phase;
+      const { invoice, checkout, payment } = phase;
       return (
         <>
           <section className={styles.paidHero}>
@@ -345,8 +430,8 @@ function Body({ phase, code, now, busy, checkoutError, onPay, onRetry }: BodyPro
               </svg>
             </div>
             <h1 className={styles.paidTitle}>Paid</h1>
-            <Amount money={payment.local} />
-            <p className={styles.meta}>to {payment.merchantName || invoice.merchant.name}</p>
+            <ChargeAmount invoice={invoice} checkout={checkout} payment={payment} />
+            {payment.charge ? null : <p className={styles.meta}>to {payment.merchantName || invoice.merchant.name}</p>}
           </section>
           <Card>
             <StatusStepper steps={steps(payment.status, payment)} />
