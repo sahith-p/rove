@@ -31,7 +31,7 @@ startServer(agent.deps, { events: agent.events, actions: agent.actions });
 startReminders(agent.deps, { voice: agent.voice });
 setInterval(() => void agent.actions.sweep().catch((err) => log("action sweep failed", err)), 30_000);
 
-log(`store=${config.offline ? "memory (offline)" : "supabase"} cards=${config.mockCards || !setup ? "console" : "spectrum"}`);
+log(`store=${config.offline ? "memory (offline)" : "postgres (DATABASE_URL)"} cards=${config.mockCards || !setup ? "console" : "spectrum"}`);
 if (!setup) {
   log("no Spectrum providers configured (SPECTRUM_PROJECT_ID / USE_TERMINAL_PROVIDER=1): internal HTTP only");
 } else {

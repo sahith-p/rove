@@ -1,22 +1,15 @@
 // Proactive messages (docs/specs/agent.md §6). Owner: Saran · Task: SA-C3.
 // (a) Unpaid invoices: one nudge to the customer after config.reminderAfterMs (CAS on reminded_at → exactly once).
-// (b) Daily recap at config.recapHourSgt (Asia/Singapore): text + voice note to each live merchant with sales today.
-// The recap is the first thing to cut if behind; it is idempotent per merchant per SGT date (processed table).
+// (b) Daily recap at config.recapHour (config.timeZone): text + voice note to each live merchant with sales today.
+// The recap is the first thing to cut if behind; it is idempotent per merchant per local date (processed table).
 
 import { format } from "@rove/shared";
 import type { Deps, Voice } from "./ports";
 import { speakable } from "./voice";
+import { localDate, localHour } from "./time";
 
 const INTERVAL_MS = 10 * 60 * 1000;
 
-/** YYYY-MM-DD in Asia/Singapore. */
-export function sgtDate(d: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Singapore", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
-}
-
-function sgtHour(d: Date): number {
-  return Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Singapore", hour: "2-digit", hourCycle: "h23" }).format(d));
-}
 
 export function startReminders(deps: Deps, m: { voice: Voice }): { stop(): void; runOnce(): Promise<void> } {
   const { store, outbox, builders, config, log } = deps;
@@ -29,7 +22,7 @@ export function startReminders(deps: Deps, m: { voice: Voice }): { stop(): void;
         if (!(await store.markInvoiceReminded(invoice.id))) continue; // someone else got it
         const merchant = await store.getMerchant(invoice.merchantId);
         if (!merchant) continue;
-        await outbox.text(invoice.to, `${merchant.name}: friendly reminder, ${format(invoice.total)}`);
+        await outbox.text(invoice.to, `Hi! Friendly reminder from ${merchant.name}: ${format(invoice.total)} is still open. Tap the card whenever you're ready.`);
         await outbox.cards.send(invoice.to, builders.invoice({ invoice, merchant }));
       } catch (err) {
         log("reminders: nudge failed", invoice.code, err);
@@ -39,8 +32,8 @@ export function startReminders(deps: Deps, m: { voice: Voice }): { stop(): void;
 
   async function recap(): Promise<void> {
     const now = deps.now();
-    if (sgtHour(now) < config.recapHourSgt) return;
-    const date = sgtDate(now);
+    if (localHour(now) < config.recapHour) return;
+    const date = localDate(now);
     for (const merchant of await store.listLiveMerchants()) {
       try {
         const summary = await store.daySummary(merchant.id, date);

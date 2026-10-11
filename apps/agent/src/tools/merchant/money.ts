@@ -5,7 +5,8 @@ import { add, cmp, format, MerchantToolInputs, sub, zero, type DaySummary } from
 import { defineTool, ToolError } from "../../agent/tool";
 import { WorkerError } from "../../ports";
 import type { ToolContext } from "../context";
-import { describeLines, parseAmount, sgtDate } from "../pricing";
+import { localDate } from "../../time";
+import { describeLines, parseAmount } from "../pricing";
 import { personLabel, requireMerchant } from "./util";
 
 const DAY_MS = 24 * 3600 * 1000;
@@ -27,10 +28,10 @@ export function moneyTools(ctx: ToolContext) {
       async ({ range }) => {
         const now = deps.now().getTime();
         if (range !== "7d") {
-          const date = sgtDate(new Date(range === "today" ? now : now - DAY_MS));
+          const date = localDate(new Date(range === "today" ? now : now - DAY_MS));
           return summaryText(`${range === "today" ? "Today" : "Yesterday"} (${date})`, await store.daySummary(merchant.id, date));
         }
-        const days = await Promise.all(Array.from({ length: 7 }, (_, i) => store.daySummary(merchant.id, sgtDate(new Date(now - i * DAY_MS)))));
+        const days = await Promise.all(Array.from({ length: 7 }, (_, i) => store.daySummary(merchant.id, localDate(new Date(now - i * DAY_MS)))));
         const c = merchant.currency;
         const total = days.reduce(
           (acc, d) => ({ count: acc.count + d.count, gross: add(acc.gross, d.gross), refunded: add(acc.refunded, d.refunded), net: add(acc.net, d.net) }),

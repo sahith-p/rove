@@ -5,10 +5,10 @@
 Every open gate (G2b, G3, G3b, G4) waits on items 1 to 3 below. Details are in the Requests rows below.
 
 **Saran: real agent (blocks real cards)**
-- [ ] 1. `apps/agent/src/store/db.ts`: replace the throwing `createDbStore()` stub with an adapter over `createDb(DATABASE_URL)` from `@rove/db`. 34 of the 40 `Store` methods already exist there.
-- [ ] 2. `apps/agent/src/env.ts`: `offline: !env.DATABASE_URL`, not `SUPABASE_URL`, since nobody sets `SUPABASE_URL`.
+- [x] 1. `apps/agent/src/store/db.ts`: replace the throwing `createDbStore()` stub with an adapter over `createDb(DATABASE_URL)` from `@rove/db`. 34 of the 40 `Store` methods already exist there.
+- [x] 2. `apps/agent/src/env.ts`: `offline: !env.DATABASE_URL`, not `SUPABASE_URL`, since nobody sets `SUPABASE_URL`.
 - [ ] 3. Deploy the agent to Railway with `USE_MOCK_CARDS=0`, `PHOTON_*`, `DATABASE_URL`, `PUBLIC_BASE_URL=https://rove-topaz.vercel.app`, `WORKER_URL`, `INTERNAL_SECRET`, `TOKEN_SECRET` (same as Vercel), `ANTHROPIC_API_KEY`. Share `AGENT_URL`. No redeploys during the demo.
-- [ ] 4. Mark finished SA tasks `[x]` in tasks/saran.md.
+- [x] 4. Mark finished SA tasks `[x]` in tasks/saran.md.
 
 **Nithya: worker + data**
 - [x] 1. (Sahith deployed it, 15:50: Railway project `rove`, service `worker`, `WORKER_URL=https://worker-production-b037.up.railway.app`, /healthz ok, real XRPL + DB; `WORKER_URL` set on Vercel. `AGENT_URL` is a placeholder until Saran's agent is up: Saran, deploy as a 2nd service in the same Railway project and tell Sahith the URL.) Deploy the worker to Railway with `USE_MOCK_SETTLEMENT=0`, `AGENT_URL`, `DATABASE_URL`, `INTERNAL_SECRET`, XRPL seeds. Share `WORKER_URL`. Without it Stripe payments stop at `authorized`: no settle, no sale or receipt card.
@@ -112,6 +112,7 @@ Every open gate (G2b, G3, G3b, G4) waits on items 1 to 3 below. Details are in t
 | post-G0 | Saran | All | WhatsApp is dropped: shared docs still mention it (CLAUDE.md, README, docs/00, 01, 03, 04, 05, 06, 08, 09, specs/invoicing-and-qr.md) and `.env.example` still has `SPECTRUM_WHATSAPP_BUSINESS_*` + `WHATSAPP_INVOICE_TEMPLATE` (the agent no longer reads them) | open |
 | post-G0 | Saran | All | Demo phones set in `packages/shared/src/mocks/fixtures.ts`: merchant (phone M) `+14708209753`, customer Maya (phone C) `+19259156406`. With Sahith's OK, `packages/imessage-apps/src/builders.test.ts` now reads the payer from `DEMO_CUSTOMER.phone` instead of the old literal | done |
 | post-G0 | Saran | Nithya | FYI (Saran asked for it to unblock `pnpm check`): your tests now read the demo merchant / Maya phones from `DEMO_MERCHANT.phone` / `DEMO_CUSTOMER.phone` instead of the old `+1555555…` literals (`packages/db/src/{matching,money-path}.test.ts`, `apps/worker/src/{merchants,server}.test.ts`, `apps/worker/src/settle/testkit.ts`, `apps/web/app/api/{checkout,me/bank-accounts,stripe/webhook,withdrawals/[id]}/*.test.ts`). Test-only, no behavior change | done |
+| post-G0 | Saran | Sahith + Nithya | Agent on the real DB (branch `saran-agents`): `createDbStore()` adapts `@rove/db` (`createDb(DATABASE_URL)`), offline only without `DATABASE_URL` (or `AGENT_OFFLINE=1`). Worker errors: `message` goes to the merchant as is. Step-up withdrawals execute only on a `via: "web"` confirm; their card passes `actionId` + `confirmToken`. A rejected execute that also emits `withdrawal.updated failed` sends one message. Until the 4 action helpers land in `@rove/db`, message-id / ref lookups use an in-process index (lost on restart: a late 👍 after a restart is ignored rather than answered "expired"). Free-amount invoices already use one `Payment × 1` line | done |
 
 ## Contract changes (mirror of docs/02 changelog)
 

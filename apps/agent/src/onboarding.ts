@@ -114,9 +114,9 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
     await store.updateShop(merchant.id, { category });
     const next = await save(s, "menu", { ...s.data, category });
     const to = recipientOf(next);
-    await say(to, "Nice.");
+    await say(to, "Nice choice!");
     await setupCard(next, "send");
-    await say(to, "Add your menu here, or just text items like 'chicken rice 5.50'.");
+    await say(to, "Pop your menu in that card, or just text me items like 'chicken rice 5.50, barley 1.50'.");
   }
 
   async function goLive(s: OnboardingState): Promise<void> {
@@ -125,7 +125,7 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
     if (!merchant) return;
     const live = await save(s, s.step, { ...s.data, liveRequested: true });
     const to = recipientOf(live);
-    await say(to, "Creating your shop…");
+    await say(to, "Love it. Setting up your shop now, give me a few seconds…");
     try {
       // The worker (or the mock worker) emits merchant.live; onEvent celebrates.
       await deps.worker.createMerchant({
@@ -141,7 +141,7 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
       const fresh = (await store.getOnboarding(s.phone)) ?? live;
       await save(fresh, fresh.step, { ...fresh.data, liveRequested: false });
       const why = err instanceof WorkerError ? err.message : "the shop service didn't answer";
-      await say(to, `Setup hit a snag: ${why}. I'll keep your menu; text 'retry' to try again.`);
+      await say(to, `Hmm, setup hit a snag: ${why}. Your menu's safe; text 'retry' and I'll try again.`);
     }
   }
 
@@ -149,7 +149,7 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
     await save(s, "done");
     await say(
       recipientOf(s),
-      "Try it: 'invoice +65 9123 4567 2 chicken rice' or 'QR for 6.50'. Share a contact card to save a regular.",
+      "You're all set! Try 'invoice +65 9123 4567 2 chicken rice' or 'QR for 6.50'. And share a contact card with me anytime to save a regular.",
     );
   }
 
@@ -161,7 +161,7 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
     if (!items.length) return false;
     for (const item of items) await store.upsertMenuItem(merchant.id, { name: item.name, price: money(item.price, "SGD") });
     const added = items.map((i) => `${i.name} ${format(money(i.price, "SGD"))}`).join(", ");
-    await say(recipientOf(s), `Added: ${added} ✓`);
+    await say(recipientOf(s), `Added ${added} ✓ Anything else, or say 'done'?`);
     await setupCard(s, "update");
     await goLive(s);
     return true;
@@ -223,10 +223,10 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
       const existing = await store.getOnboarding(from.phone);
       const s = await store.setOnboarding(from.phone, from.channel, "name", existing?.data ?? {});
       const to = recipientOf(s);
-      await say(to, "Hi! I'm Rove. I'll set up your shop in a minute.");
+      await say(to, "Hi! I'm Rove 👋 I'll get your shop taking payments in about a minute.");
       await outbox.contactCard(to);
-      await say(to, "Save me so you can find me.");
-      await say(to, "What's your shop called?");
+      await say(to, "Save my contact so I'm easy to find.");
+      await say(to, "First up: what's your shop called?");
     },
 
     async handle(from, text) {
@@ -238,11 +238,11 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
       const rename = /^(?:change|update|set)\s+(?:the\s+|my\s+)?(?:shop\s+)?name\s+to\s+(.+)$/i.exec(trimmed);
       if (rename) {
         const name = extractShopName(rename[1]!);
-        if (!name) return void (await say(to, "Names need 2–60 characters. What should I call it?"));
+        if (!name) return void (await say(to, "That one's a bit short or long (2–60 characters works). What should I call it?"));
         if (s.data.merchantId) {
           await store.updateShop(s.data.merchantId, { name });
           await save(s, s.step, { ...s.data, name });
-          await say(to, `Renamed to ${name} ✓`);
+          await say(to, `Done, you're now ${name} ✓`);
           if (s.step === "menu") await setupCard({ ...s, data: { ...s.data, name } }, "update");
           return;
         }
@@ -254,11 +254,11 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
         case "start":
         case "name": {
           const name = extractShopName(trimmed);
-          if (!name) return void (await say(to, "What's your shop called? (2–60 characters)"));
+          if (!name) return void (await say(to, "Sorry, I didn't catch that. What's your shop called?"));
           const id = await uniqueSlug(slugify(name), s.phone);
           await store.upsertDraftMerchant({ id, name, phone: s.phone, channel: s.channel, category: null });
           const next = await save(s, "category", { ...s.data, name, merchantId: id });
-          await say(to, `${name} it is. Your shop code is ${id}.`);
+          await say(to, `${name}, love it! Your shop code is ${id}; customers can text it to pay you.`);
           await askCategory(next);
           return;
         }
@@ -274,11 +274,11 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
             const menu = s.data.merchantId ? await store.listMenu(s.data.merchantId) : [];
             if (menu.length) return void (await goLive(s));
           }
-          if (s.data.liveRequested) return void (await say(to, "Still setting up your shop, one moment…"));
+          if (s.data.liveRequested) return void (await say(to, "Still setting things up, nearly there…"));
           if (await addMenuText(s, trimmed)) return;
           const menu = s.data.merchantId ? await store.listMenu(s.data.merchantId) : [];
           if (menu.length && /^\s*(done|that'?s it|finished|ok(ay)?|go live)\s*[.!]*\s*$/i.test(trimmed)) return void (await goLive(s));
-          await say(to, "Text items like 'chicken rice 5.50, barley 1.50', or use the card above.");
+          await say(to, "Text me items like 'chicken rice 5.50, barley 1.50', or use the card above. Say 'done' when you're finished.");
           return;
         }
         case "bank":
@@ -316,21 +316,21 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
       if (event.type === "merchant.live") {
         if (s.step !== "menu" && s.step !== "category") return false;
         const next = await save(s, "bank", { ...s.data, liveRequested: true });
-        await outbox.effect(to, "You're live! 🎉", "confetti");
+        await outbox.effect(to, "You're live! 🎉 Welcome to Rove.", "confetti");
         const shopUrl = deps.links.shop(merchant.id);
         const sticker = await deps.qr.stickerPng({ name: merchant.name, url: shopUrl, verified: true, shopCode: merchant.id });
-        const caption = `Your shop QR. Customers scan it or text 'pay ${merchant.id} 6.50'`;
+        const caption = `Here's your shop QR. Stick it up by the counter: customers scan it, or text 'pay ${merchant.id} 6.50'.`;
         if (sticker) await outbox.image(to, sticker, `${merchant.id}-sticker.png`, caption);
         else await say(to, `Your shop link: ${shopUrl} · shop code ${merchant.id}. Customers open it or text 'pay ${merchant.id} 6.50'.`);
         await outbox.cards.send(to, builders.bank({ merchant, sessionToken: deps.sessionToken(merchant.id, "bank") }));
-        await say(to, "Add your bank so you can withdraw anytime. Bank details stay out of this chat.");
+        await say(to, "Last step: add your bank so you can cash out anytime. Use the secure card, not this chat. Or say 'later'.");
         void next;
         return true;
       }
 
       // bank_account.added
       if (s.step !== "bank") return false;
-      await say(to, `${event.label} saved ✓`);
+      await say(to, `Got it, ${event.label} is saved ✓`);
       await finish(s);
       return true;
     },

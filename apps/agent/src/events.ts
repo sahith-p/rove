@@ -51,7 +51,7 @@ export function createEventsHandler(deps: Deps, m: { actions: ActionsService; on
     await safe("sale card", () =>
       outbox.cards.send(to, builders.sale({ payment, merchant, sessionToken: deps.sessionToken(merchant.id, "sale", payment.id) })),
     );
-    if (e.firstSale) await safe("first sale effect", () => outbox.effect(to, `First sale! 🎉 ${format(e.local)} from ${who}`, "confetti"));
+    if (e.firstSale) await safe("first sale effect", () => outbox.effect(to, `Your first sale! 🎉 ${format(e.local)} from ${who}. Here's to many more.`, "confetti"));
 
     if (!e.payer) return;
     const payer = e.payer;
@@ -64,11 +64,11 @@ export function createEventsHandler(deps: Deps, m: { actions: ActionsService; on
 
   async function paymentFailed(e: EventOf<"payment.failed">) {
     const merchant = await merchantOrNull(e.merchantId);
-    if (merchant) await safe("failed text merchant", () => outbox.text(recipientOf(merchant), "A payment failed; the customer was refunded."));
+    if (merchant) await safe("failed text merchant", () => outbox.text(recipientOf(merchant), "Heads up: a payment didn't go through, so the customer wasn't charged."));
     const payment = await store.getPayment(e.paymentId);
     if (payment?.payer) {
       const payer = payment.payer;
-      await safe("failed text payer", () => outbox.text(payer, "Payment failed, you weren't charged."));
+      await safe("failed text payer", () => outbox.text(payer, "Sorry, that payment didn't go through, and you weren't charged. Want to give it another go?"));
     }
   }
 
@@ -86,7 +86,7 @@ export function createEventsHandler(deps: Deps, m: { actions: ActionsService; on
       );
     }
     const payer = e.payer ?? payment?.payer ?? null;
-    if (payer) await safe("refund text payer", () => outbox.text(payer, `${merchant.name} refunded ${format(e.amount)}.`));
+    if (payer) await safe("refund text payer", () => outbox.text(payer, `Good news: ${merchant.name} refunded you ${format(e.amount)}. It'll show up on your card soon.`));
   }
 
   async function refundFailed(e: EventOf<"refund.failed">) {
@@ -130,13 +130,13 @@ export function createEventsHandler(deps: Deps, m: { actions: ActionsService; on
       await safe("settle withdrawal action", () => m.actions.settle(e.withdrawalId, "done", { bankRef: e.bankRef }));
       const body =
         current.destination.kind === "xrpl_wallet"
-          ? `${amount} sent to your wallet ✓`
-          : `${amount} is in your bank ✓${current.bankRef ? ` (${current.bankRef}, simulated payout)` : " (simulated payout)"}`;
+          ? `${amount} just landed in your wallet ✓`
+          : `${amount} is in your bank 🎉${current.bankRef ? ` (ref ${current.bankRef} · simulated payout)` : " (simulated payout)"}`;
       await safe("withdrawal done text", () => outbox.text(to, body));
     } else if (e.status === "failed" || e.status === "returned" || e.status === "cancelled") {
       await safe("settle withdrawal action", () => m.actions.settle(e.withdrawalId, "failed", { reason: e.failureReason }));
       const reason = current.failureReason ? `: ${current.failureReason}` : "";
-      await safe("withdrawal failed text", () => outbox.text(to, `The withdrawal of ${amount} didn't go through${reason}. The money is back in your balance.`));
+      await safe("withdrawal failed text", () => outbox.text(to, `Your ${amount} withdrawal didn't go through${reason}. Don't worry, the money's back in your balance.`));
     }
   }
 
@@ -144,11 +144,11 @@ export function createEventsHandler(deps: Deps, m: { actions: ActionsService; on
     const merchant = await merchantOrNull(e.merchantId);
     if (!merchant) return;
     const to = recipientOf(merchant);
-    await safe("live effect", () => outbox.effect(to, "You're live! 🎉", "confetti"));
+    await safe("live effect", () => outbox.effect(to, "You're live! 🎉 Welcome to Rove.", "confetti"));
     await safe("sticker", async () => {
       const url = deps.links.shop(merchant.id);
       const png = await deps.qr.stickerPng({ name: merchant.name, url, verified: merchant.credentialStatus === "accepted", shopCode: merchant.id });
-      if (png) await outbox.image(to, png, `${merchant.id}-sticker.png`, `Your shop QR. Customers scan it or text "pay ${merchant.id}".`);
+      if (png) await outbox.image(to, png, `${merchant.id}-sticker.png`, `Here's your shop QR. Stick it up by the counter: customers scan it, or text "pay ${merchant.id}".`);
       else await outbox.text(to, `Your shop link: ${url} · customers can also text "pay ${merchant.id} <amount>".`);
     });
     await safe("bank card", () => outbox.cards.send(to, builders.bank({ merchant, sessionToken: deps.sessionToken(merchant.id, "bank") })));
@@ -165,7 +165,7 @@ export function createEventsHandler(deps: Deps, m: { actions: ActionsService; on
 
   async function bankAdded(e: EventOf<"bank_account.added">) {
     const merchant = await merchantOrNull(e.merchantId);
-    if (merchant) await safe("bank saved text", () => outbox.text(recipientOf(merchant), `${e.label} saved ✓`));
+    if (merchant) await safe("bank saved text", () => outbox.text(recipientOf(merchant), `Got it, ${e.label} is saved ✓ You can withdraw anytime now.`));
   }
 
   async function dispatch(event: RoveEvent): Promise<void> {

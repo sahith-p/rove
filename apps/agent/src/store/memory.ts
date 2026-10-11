@@ -35,11 +35,8 @@ import {
 import { DEMO_CONTACTS, DEMO_CUSTOMER, DEMO_MENU, DEMO_MERCHANT, demoPayment } from "@rove/shared/mocks";
 import type { MockStoreHooks, NewInvoice, OnboardingState, Store } from "../ports";
 import { matchByName, normalize, toE164 } from "../tools/match";
+import { localDate } from "../time";
 
-/** YYYY-MM-DD in Asia/Singapore (UTC+8, no DST). */
-export function sgtDate(d: Date): string {
-  return new Date(d.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 10);
-}
 
 const clone = <T>(v: T): T => structuredClone(v);
 
@@ -440,7 +437,7 @@ export function createMemoryStore(opts: { now: () => Date }): Store {
       let refunded: Money = zero(c);
       let count = 0;
       for (const p of payments.values()) {
-        if (p.merchantId !== merchantId || !settledLike(p) || sgtDate(new Date(p.createdAt)) !== date) continue;
+        if (p.merchantId !== merchantId || !settledLike(p) || localDate(new Date(p.createdAt)) !== date) continue;
         count++;
         gross = add(gross, p.local);
         refunded = add(refunded, p.refunded);
