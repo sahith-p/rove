@@ -115,7 +115,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** Over-limit, no-bank and wallet-without-trust-line cases return clear errors the agent can say.
 
 ### NI-C4 · Withdrawal pipeline: GATE G4 · 90 min
-- [~] nithya/NI-C3-C4-withdrawals
+- [x] 352e89c … 69ab808 (every docs/06 §3 path tested; `withdraw-smoke ahseng 10` walks to completed FAST-487107 with ledger = chain; MOCK_PAYOUT_FAIL → returned + re-credited). Full G4 still needs the phone + agent
 - **Depends:** NI-C3, NI-A5 (mock until then)
 - **Paths:** `apps/worker/src/withdrawals/{execute,partner,auto}.ts`, `apps/worker/scripts/withdraw-smoke.ts`
 - **Do:** §3c state machine with CAS per step: hold → sweep / sendToWallet → debit → partner payout → callback → completed / returned (`withdrawal_return`) / failed (`withdrawal_release`); resume on boot; `withdrawal.updated` per step; nightly auto-withdraw; `PATCH …/auto-withdraw`.
