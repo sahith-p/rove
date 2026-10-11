@@ -11,6 +11,7 @@ import type { Channel, Recipient } from "@rove/shared";
 import { app, attachment, edit, UnsupportedError } from "spectrum-ts";
 import type { Message, Space, SpectrumInstance } from "spectrum-ts";
 import { customizedMiniApp, imessage } from "spectrum-ts/providers/imessage";
+import { cardImageJpeg } from "./cardImage";
 import { whatsappBusiness } from "spectrum-ts/providers/whatsapp-business";
 
 /** Opaque per-transport handle to a sent card. The presenter only stores it and hands it back to `editCard`. */
@@ -84,7 +85,9 @@ const ROVE_MINI_APP = { appName: "Rove", extensionBundleId: "codes.photon.Spectr
 
 function cardContent(url: string, live: boolean, layout?: CardLayout) {
   if (!layout) return app(url, { live });
-  return customizedMiniApp({ ...ROVE_MINI_APP, url, live, layout: { ...layout } });
+  // A static bubble with only text renders as a small strip; give it the Rove picture so it reads as a card.
+  const picture = live ? {} : { image: cardImageJpeg(layout), imageTitle: layout.caption ?? "Rove" };
+  return customizedMiniApp({ ...ROVE_MINI_APP, url, live, layout: { ...layout, ...picture } });
 }
 
 export function createSpectrumTransport(spectrum: SpectrumInstance): CardTransport {
