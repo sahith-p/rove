@@ -42,7 +42,7 @@ export function deliveredSgd(meta: TransactionMetadata, sgd: Asset): Money {
   }
 }
 
-function assertPositiveSgd(local: Money): Money {
+export function assertPositiveSgd(local: Money): Money {
   if (local.currency !== "SGD") throw new Error(`settle: local must be SGD, got ${local.currency}`);
   const m = money(local.amount, "SGD");
   if (toMinor(m) <= 0n) throw new Error("settle: amount must be positive");

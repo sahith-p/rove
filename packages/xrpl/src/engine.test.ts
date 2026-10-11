@@ -34,6 +34,17 @@ test("read-only engine: signing methods throw XrplSigningUnavailableError naming
   assert.equal(engine.explorerUrl("ABC"), "https://testnet.xrpl.org/transactions/ABC");
 });
 
+test("read-only engine: merchant-signed methods fail fast without a SeedStore", async () => {
+  const engine = createXrplSettlement(xrplConfigFromEnv({ ...PUB, XRPL_REDEMPTION_ADDRESS: "rwWhM5W77QdkwQQTANK5irKojJevhh5YhU" }));
+  const m = PUB.XRPL_TREASURY_ADDRESS; // any valid address; nothing is sent
+  const local = money("1.00", "SGD");
+  const isSigning = (e: unknown) => e instanceof XrplSigningUnavailableError;
+  await assert.rejects(engine.refund({ paymentId: "pay_1", merchantAddress: m, local }), isSigning);
+  await assert.rejects(engine.sweepToRedemption({ withdrawalId: "wd_1", merchantAddress: m, local }), isSigning);
+  await assert.rejects(engine.sendToWallet({ withdrawalId: "wd_1", merchantAddress: m, local, address: PUB.XRPL_USD_ISSUER }), isSigning);
+  await assert.rejects(engine.createMerchantAccount({ merchantId: "m1" }), /SeedStore/);
+});
+
 test("createXrplSettlement accepts a SeedStore as the second argument (worker wiring)", () => {
   const engine = createXrplSettlement(xrplConfigFromEnv(PUB), memorySeedStore());
   assert.ok(engine.context.seedStore);

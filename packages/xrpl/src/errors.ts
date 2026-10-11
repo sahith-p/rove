@@ -46,7 +46,7 @@ export class XrplDestinationError extends Error {
   override name = "XrplDestinationError";
   constructor(
     message: string,
-    readonly reason: "no_account" | "no_trust_line" | "trust_line_limit" | "same_account" | "invalid_address",
+    readonly reason: "no_account" | "no_trust_line" | "trust_line_limit" | "same_account" | "invalid_address" | "dest_tag_required",
   ) {
     super(message);
   }
