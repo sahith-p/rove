@@ -30,7 +30,7 @@
 |---|---|---|
 | Pre-written specs/scaffolding allowed? | Sahith | |
 | YZi: does BNB pay-in + XRPL settlement qualify? | Sahith | |
-| Ripple: Credentials on testnet? Testnet RLUSD issuer? | Nithya | |
+| Ripple: Credentials on testnet? Testnet RLUSD issuer? | Nithya | Credentials: **yes**, enabled on testnet (CredentialCreate + CredentialAccept tesSUCCESS, NI-A4). RLUSD issuer: not asked yet |
 
 ## First-hour experiments
 
