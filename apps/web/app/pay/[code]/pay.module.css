@@ -16,7 +16,12 @@
   padding-top: 8px;
 }
 
-.hero[aria-busy="true"] {
+/* The currency toggle sits right under the hero amount, so the payer picks currency first. */
+.hero > .currencyRow {
+  margin-top: 12px;
+}
+
+.hero[aria-busy="true"] > :first-child {
   opacity: 0.5;
   transition: opacity 150ms ease;
 }

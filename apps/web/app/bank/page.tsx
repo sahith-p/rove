@@ -4,7 +4,7 @@
 // The full account number only ever lives in the client form state until it's POSTed; never in the URL or logs.
 import type { Metadata } from "next";
 import { previewMetadata } from "../../lib/og/metadata";
-import { CardFrame, CardLine, CardLink, CardTitle, IconTile } from "../../components";
+import { CardFrame, CardLink, CardTitle } from "../../components";
 import { fullPageHref, isCardMode } from "../../lib/ui/card";
 import { readSession } from "../../lib/ui/session";
 import { BankForm } from "./BankForm";
@@ -42,7 +42,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   if (card) {
     return (
       <CardFrame
-        eyebrow="Payouts"
         demo={DEMO && !session}
         action={
           <CardLink href={fullPageHref("/bank", sp)} icon={<LockIcon size={17} />}>
@@ -50,11 +49,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           </CardLink>
         }
       >
-        <IconTile>
-          <LockIcon size={18} />
-        </IconTile>
         <CardTitle>Add your bank</CardTitle>
-        <CardLine>Goes straight to our payout partner. Rove keeps the last 4.</CardLine>
       </CardFrame>
     );
   }
@@ -94,10 +89,7 @@ function Expired() {
 
 function ExpiredCard() {
   return (
-    <CardFrame eyebrow="Payouts">
-      <IconTile>
-        <LockIcon size={18} />
-      </IconTile>
+    <CardFrame>
       <CardTitle sub="Text Rove ‘add my bank’ for a new one.">Link expired</CardTitle>
     </CardFrame>
   );

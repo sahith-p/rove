@@ -58,19 +58,6 @@
   gap: 10px;
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.demoDot {
-  width: 5px;
-  height: 5px;
-  border: 1px solid var(--muted);
-  border-radius: 50%;
-}
-
 /* The hero area takes what's left and centers its content vertically. */
 .body {
   flex: 1 1 auto;

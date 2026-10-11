@@ -1,0 +1,26 @@
+{
+  "id": "c09-receipts",
+  "description": "customer receipts are their own payments",
+  "as": "customer",
+  "setup": {
+    "payInvoice": {
+      "amount": "12.50"
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "my receipts"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "my_receipts"
+    ],
+    "replyMatches": [
+      "12\\.50"
+    ]
+  }
+}

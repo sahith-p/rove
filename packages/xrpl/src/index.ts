@@ -19,4 +19,6 @@ export * from "./crypto";
 export * from "./queue";
 export * from "./client";
 export * from "./tx";
-export { buildQuote, ammInputForOutput, QUOTE_TTL_MS } from "./quote";
+export { buildQuote, buildPairQuote, ammInputForOutput, chainInputForOutput, routeFor, QUOTE_TTL_MS, HUB, type AmmLeg } from "./quote";
+export { tokenBalance, xsgdBalance } from "./balance";
+export { codeFor, issuerFor, issuerEnvName, issuerEnvNames } from "./config";

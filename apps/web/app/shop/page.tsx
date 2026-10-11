@@ -11,7 +11,6 @@ import {
   Amount,
   CardAmount,
   CardFrame,
-  CardLine,
   CardLink,
   CardTitle,
   IconTile,
@@ -141,7 +140,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
       return (
         <CardFrame eyebrow="My shop" action={<CardLink href={fullPageHref("/shop", sp)}>Open my shop</CardLink>}>
           <AutoRefresh ms={10_000} />
-          <CardTitle sub="We’ll keep trying.">Couldn&rsquo;t load your shop.</CardTitle>
+          <CardTitle>Couldn&rsquo;t load your shop.</CardTitle>
         </CardFrame>
       );
     }
@@ -173,15 +172,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
         }
       >
         <AutoRefresh ms={10_000} />
-        <span className="eyebrow">Available</span>
         <CardAmount money={balance.available} />
-        {reconciled === true ? (
-          <CardLine icon={<ShieldCheck size={14} strokeWidth={1.75} className={styles.ok} />}>
-            Ledger matches XRPL{isPositive(balance.held) ? ` · ${format(balance.held)} held` : ""}
-          </CardLine>
-        ) : isPositive(balance.held) ? (
-          <CardLine>{format(balance.held)} in withdrawals</CardLine>
-        ) : null}
       </CardFrame>
     );
   }

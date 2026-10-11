@@ -1,0 +1,21 @@
+{
+  "id": "m13-merchant-pays-other-shop",
+  "description": "merchant paying another shop uses pay_shop, not create_invoice",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "pay kopi-uncle 3.20"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "pay_shop"
+    ],
+    "notTools": [
+      "create_invoice"
+    ]
+  }
+}

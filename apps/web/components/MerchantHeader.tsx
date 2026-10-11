@@ -1,4 +1,4 @@
-// Shop name (+ "Verified on XRPL") at the top of customer pages. `name` is merchant-written text: render only.
+// Shop name in the display serif (+ "Verified on XRPL") at the top of customer pages. No monogram avatar. `name` is merchant-written text: render only.
 import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import styles from "./MerchantHeader.module.css";
 
@@ -11,7 +11,6 @@ export interface MerchantHeaderProps {
 }
 
 export function MerchantHeader({ name, verified, verifiedHref, className }: MerchantHeaderProps) {
-  const initial = Array.from(name.trim())[0]?.toUpperCase() ?? "?";
   const badge = (
     <>
       <ShieldCheck size={14} strokeWidth={1.75} className={styles.shield} aria-hidden="true" />
@@ -21,9 +20,6 @@ export function MerchantHeader({ name, verified, verifiedHref, className }: Merc
   );
   return (
     <header className={[styles.header, className].filter(Boolean).join(" ")}>
-      <span className={styles.avatar} aria-hidden="true">
-        {initial}
-      </span>
       <div className={styles.text}>
         <div className={styles.name}>{name}</div>
         {verified ? (

@@ -9,6 +9,7 @@ import { TEST_INTERNAL_SECRET, TEST_WEB_CONFIG, useWebTestDeps, type WebTestDeps
 import { createFakeStripe, FAKE_WEBHOOK_SECRET, stripeError, type FakeStripe } from "../fake-stripe";
 import { DUPLICATE_INVOICE_REASON } from "./handle";
 import { POST } from "./route";
+import { DEMO_CUSTOMER } from "@rove/shared/mocks";
 
 const LINES: InvoiceLine[] = [{ menuItemId: "item_chicken_rice", name: "Chicken rice", qty: 2, unit: money("5.50", "SGD") }];
 
@@ -53,7 +54,7 @@ async function startPayment(code: string, payCurrency: Currency = "USD") {
 }
 
 async function newInvoice() {
-  return deps.db.createInvoice({ merchantId: "ahseng", kind: "invoice", to: { phone: "+15555550199", channel: "imessage" }, lines: LINES, total: money("11.00", "SGD") });
+  return deps.db.createInvoice({ merchantId: "ahseng", kind: "invoice", to: { phone: DEMO_CUSTOMER.phone, channel: "imessage" }, lines: LINES, total: money("11.00", "SGD") });
 }
 
 async function paidPayment(wallet: "apple_pay" | "google_pay" | null = null) {

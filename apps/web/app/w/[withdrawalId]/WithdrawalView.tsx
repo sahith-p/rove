@@ -178,7 +178,6 @@ export function WithdrawalView({ withdrawalId, initial, token, actionId, confirm
   }
 
   if (cardHref) {
-    const done = head.tone === "done";
     return (
       <CardFrame
         status={
@@ -193,26 +192,12 @@ export function WithdrawalView({ withdrawalId, initial, token, actionId, confirm
             <Button fullWidth onClick={onConfirm} loading={confirm.kind === "sending"} icon={<Fingerprint size={18} strokeWidth={1.5} />}>
               {confirm.kind === "sending" ? "Confirming…" : "Confirm withdrawal"}
             </Button>
-          ) : (
-            <CardLink href={cardHref} variant="secondary">
-              Details
-            </CardLink>
-          )
+          ) : undefined
         }
       >
         <CardAmount money={view.amount} struck={head.tone === "problem"} />
         <CardDots steps={steps} />
-        {done && view.bankRef ? (
-          <CardLine mono icon={<Landmark size={14} strokeWidth={1.5} />}>
-            {view.bankRef}
-          </CardLine>
-        ) : confirm.kind === "error" ? (
-          <CardLine>{confirm.message}</CardLine>
-        ) : (
-          <CardLine icon={bank ? <Landmark size={14} strokeWidth={1.5} /> : <Wallet size={14} strokeWidth={1.5} />}>
-            {bank ? view.destination.label : `Wallet ${view.destination.label}`} · {feeText}
-          </CardLine>
-        )}
+        {confirm.kind === "error" ? <CardLine>{confirm.message}</CardLine> : null}
       </CardFrame>
     );
   }

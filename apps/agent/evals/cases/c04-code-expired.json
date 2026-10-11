@@ -1,0 +1,28 @@
+{
+  "id": "c04-code-expired",
+  "description": "an expired code gets a one-line answer, no card",
+  "as": "customer",
+  "setup": {
+    "createCode": {
+      "amount": "6.50",
+      "expired": true
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "$code"
+      }
+    }
+  ],
+  "expect": {
+    "claudeCalled": false,
+    "noSends": [
+      "invoice"
+    ],
+    "textMatches": [
+      "expired"
+    ]
+  }
+}

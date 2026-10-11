@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { MeRes, UpdateMenuReq, UpdateShopReq } from "@rove/shared";
 import { Check, ChevronDown, ChevronUp, Clock, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { IconBadge } from "../../components/Bits";
-import { CardFrame, CardLine, CardLink, CardTitle } from "../../components/CardFrame";
+import { CardFrame, CardLink, CardTitle } from "../../components/CardFrame";
 import { Button } from "../../components/Button";
 import { FlagSG } from "../../components/icons";
 import { Notice } from "../../components/Notice";
@@ -327,11 +327,8 @@ export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: 
   // ---------------------------------------------------------------- render
   // Card mode (`?card=1`): shop name + item count + "Edit shop" → the full editor in Safari.
   if (cardHref) {
-    const items = form.rows.length;
-    const category = CATEGORIES.find((c) => c.value === form.category)?.label ?? (form.category === "other" ? form.custom.trim() : "");
     return (
       <CardFrame
-        eyebrow="Shop setup"
         demo={phase.kind === "ready" && phase.demo}
         label="Shop setup"
         action={
@@ -343,20 +340,13 @@ export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: 
         }
       >
         {phase.kind === "loading" ? (
-          <CardTitle sub="Loading your shop…">Your shop</CardTitle>
+          <CardTitle>Your shop</CardTitle>
         ) : phase.kind === "expired" ? (
           <CardTitle sub="Text Rove “edit my shop” for a new one.">This link expired.</CardTitle>
         ) : phase.kind === "error" ? (
-          <CardTitle sub="Couldn’t load it here. Open it to try again.">Your shop</CardTitle>
+          <CardTitle>Your shop</CardTitle>
         ) : (
-          <>
-            <CardTitle>{form.name.trim() || "Name your shop"}</CardTitle>
-            <CardLine icon={<UtensilsCrossed size={14} strokeWidth={1.5} />}>
-              {items === 0 ? "No menu items yet" : `${items} item${items === 1 ? "" : "s"}`}
-              {activeCount < items ? ` · ${activeCount} showing` : ""}
-              {category ? ` · ${category}` : ""}
-            </CardLine>
-          </>
+          <CardTitle>{form.name.trim() || "Name your shop"}</CardTitle>
         )}
       </CardFrame>
     );

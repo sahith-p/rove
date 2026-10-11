@@ -1,0 +1,27 @@
+{
+  "id": "m10-overdraw-wallet",
+  "description": "withdraw more than available to a wallet: refuses with the balance",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "send S$500 to rPEPPER7kfTD9w2To4CQk6UCfuHM9c6GDY"
+      }
+    }
+  ],
+  "expect": {
+    "replyMatches": [
+      "balance|available|only|not enough|insufficient"
+    ],
+    "noSends": [
+      "confirm"
+    ],
+    "workerCalls": [
+      {
+        "method": "executeWithdrawal",
+        "count": 0
+      }
+    ]
+  }
+}

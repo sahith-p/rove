@@ -1,12 +1,11 @@
 // Card mode (`?card=1`, lib/ui/card.ts): the compact layout a page renders LIVE inside an iMessage App card.
 // Fills the webview exactly (100dvh, overflow hidden, never scrolls) and sizes fluidly from ~220px to ~500px tall:
-//   top row (eyebrow · wordmark) → one hero (amount or title) + one detail line → at most one action row.
+//   optional top row (eyebrow · status pill) → one hero (amount or title) → at most one action row. Essentials only.
 // The action usually opens the full page in Safari (`CardLink`); /confirm and the /w step-up act in place.
 import type { ReactNode } from "react";
 import type { Money } from "@rove/shared";
 import { ArrowUpRight } from "lucide-react";
 import { format } from "../lib/ui/format";
-import { Wordmark } from "./Bits";
 import { Button } from "./Button";
 import type { Step } from "./StatusStepper";
 import styles from "./CardFrame.module.css";
@@ -16,7 +15,7 @@ export interface CardFrameProps {
   eyebrow?: ReactNode;
   /** Top-right, before the wordmark: usually a StatusPill. */
   status?: ReactNode;
-  /** Fixture data: shows a tiny dot by the wordmark instead of the full-page "Demo data" notice. */
+  /** Fixture data. Accepted for call-site clarity; cards show no demo marker (essentials only). */
   demo?: boolean;
   /** The action row (one primary button, or Confirm + Cancel). */
   action?: ReactNode;
@@ -25,19 +24,15 @@ export interface CardFrameProps {
   children: ReactNode;
 }
 
-export function CardFrame({ eyebrow, status, demo, action, label, children }: CardFrameProps) {
+export function CardFrame({ eyebrow, status, action, label, children }: CardFrameProps) {
   return (
     <main className={styles.frame} data-card-frame="" aria-label={label}>
-      <header className={styles.top}>
-        <div className={styles.eyebrow}>{eyebrow}</div>
-        <div className={styles.topRight}>
-          {status}
-          <span className={styles.brand}>
-            <Wordmark size="sm" />
-            {demo ? <span className={styles.demoDot} title="Demo data" aria-label="Demo data" role="img" /> : null}
-          </span>
-        </div>
-      </header>
+      {eyebrow || status ? (
+        <header className={styles.top}>
+          <div className={styles.eyebrow}>{eyebrow}</div>
+          {status ? <div className={styles.topRight}>{status}</div> : null}
+        </header>
+      ) : null}
       <div className={styles.body}>{children}</div>
       {action ? <div className={styles.action}>{action}</div> : null}
     </main>

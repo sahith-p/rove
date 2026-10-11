@@ -4,11 +4,10 @@
 // The shop is loaded server-side (so the menu is in the HTML and the card preview has a title); paying is client-side.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CircleAlert, RotateCw, ShieldCheck, ShoppingBag } from "lucide-react";
-import { Button, CardFrame, CardLine, CardLink, CardTitle, StateBlock } from "../../../components";
+import { CircleAlert, RotateCw, ShoppingBag } from "lucide-react";
+import { Button, CardFrame, CardLink, CardTitle, StateBlock } from "../../../components";
 import { fullPageHref, isCardMode, type SearchRecord } from "../../../lib/ui/card";
 import payStyles from "../../pay/[code]/pay.module.css";
-import styles from "./shop.module.css";
 import { loadShop, normalizeShopCode } from "./_data";
 import { ShopClient } from "./ShopClient";
 
@@ -40,23 +39,12 @@ export default async function Page({ params, searchParams }: { params: Params; s
     if (res.kind === "error") {
       return (
         <CardFrame eyebrow="Shop" action={<CardLink href={href}>Open shop</CardLink>}>
-          <CardTitle sub="Check your connection and try again.">Couldn&apos;t load this shop</CardTitle>
+          <CardTitle>Couldn&apos;t load this shop</CardTitle>
         </CardFrame>
       );
     }
-    const items = res.shop.menu.filter((m) => m.active).length;
     return (
       <CardFrame
-        eyebrow={
-          res.shop.verified ? (
-            <>
-              <ShieldCheck size={14} strokeWidth={1.75} className={styles.shield} aria-hidden="true" />
-              <span>Verified on XRPL</span>
-            </>
-          ) : (
-            "Shop"
-          )
-        }
         demo={res.demo}
         label={res.shop.name}
         action={
@@ -66,7 +54,6 @@ export default async function Page({ params, searchParams }: { params: Params; s
         }
       >
         <CardTitle>{res.shop.name}</CardTitle>
-        <CardLine>{items > 0 ? `${items} on the menu · Apple Pay, card or BNB` : "Apple Pay, card or a BNB Chain wallet"}</CardLine>
       </CardFrame>
     );
   }

@@ -15,7 +15,6 @@ import {
   Notice,
   Row,
   Rows,
-  StatusPill,
   StatusStepper,
   type Step,
 } from "../../../components";
@@ -133,16 +132,6 @@ export function ConfirmClient({ actionId, token, summary, expiresAt, initial, fi
             : { title: "Working on it…", sub: "Confirmed by you.", icon: <span className={styles.bigSpinner} />, tone: "neutral" as const };
     return (
       <CardFrame
-        eyebrow={open ? "Rove needs your OK" : "Your request"}
-        status={
-          open ? (
-            <StatusPill tone="pending" icon={<Clock size={13} strokeWidth={1.75} />}>
-              <span className="mono" suppressHydrationWarning>
-                {mmss(left)}
-              </span>
-            </StatusPill>
-          ) : undefined
-        }
         demo={fixtures && (unverified || simulated)}
         label="Confirm request"
         action={
@@ -161,7 +150,7 @@ export function ConfirmClient({ actionId, token, summary, expiresAt, initial, fi
         {open ? (
           <>
             <CardTitle>{summary ?? "Confirm this request"}</CardTitle>
-            <CardLine>{error ?? "Nothing happens until you confirm."}</CardLine>
+            {error ? <CardLine>{error}</CardLine> : null}
           </>
         ) : (
           <div role="status" aria-live="polite" className={styles.cardResult}>

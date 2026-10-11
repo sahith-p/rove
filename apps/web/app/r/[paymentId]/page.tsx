@@ -9,8 +9,6 @@ import {
   Card,
   CardAmount,
   CardFrame,
-  CardLine,
-  CardLink,
   CardTitle,
   IconBadge,
   LineItems,
@@ -90,9 +88,7 @@ export default async function Page({ params, searchParams }: PageProps) {
   if (card && load.kind !== "ok") {
     return (
       <CardFrame eyebrow="Receipt">
-        <CardTitle sub={load.kind === "not_found" ? "Ask the shop to resend it." : "Check your connection."}>
-          {load.kind === "not_found" ? "Receipt not found" : "Couldn’t load this receipt"}
-        </CardTitle>
+        <CardTitle>{load.kind === "not_found" ? "Receipt not found" : "Couldn’t load this receipt"}</CardTitle>
       </CardFrame>
     );
   }
@@ -260,31 +256,20 @@ function ReceiptStatus({ status }: { status: ReceiptData["status"] }) {
   );
 }
 
-/** ?card=1: amount + status, one line of detail, "Receipt" → the full page in Safari. */
-function ReceiptCard({ data, merchant, demo, fullHref }: { data: ReceiptData; merchant: boolean; demo: boolean; fullHref: string }) {
+/** ?card=1: merchant (or "New sale") + amount + status. Essentials only. */
+function ReceiptCard({ data, merchant, demo }: { data: ReceiptData; merchant: boolean; demo: boolean; fullHref: string }) {
   const pending = PENDING.includes(data.status);
   const foreignCharge = data.charge && data.charge.currency !== data.local.currency ? data.charge : null;
   const shown = merchant ? data.local : (foreignCharge ?? data.local);
-  const detail = merchant
-    ? `From ${data.payerName ?? "a customer"} · ${METHOD_LABEL[data.method]}`
-    : foreignCharge
-      ? `${format(data.local)} to the shop · no card FX fees`
-      : `Paid with ${METHOD_LABEL[data.method]}`;
   return (
     <CardFrame
       eyebrow={<span>{merchant ? "New sale" : data.merchantName}</span>}
       status={<ReceiptStatus status={data.status} />}
       demo={demo}
-      label="Receipt"
-      action={
-        <CardLink href={fullHref} variant="secondary">
-          {merchant ? "View sale" : "Receipt"}
-        </CardLink>
-      }
+      label={merchant ? "New sale" : "Receipt"}
     >
       {pending ? <SettlingPoller /> : null}
       <CardAmount money={shown} struck={data.status === "refunded"} />
-      <CardLine>{detail}</CardLine>
     </CardFrame>
   );
 }

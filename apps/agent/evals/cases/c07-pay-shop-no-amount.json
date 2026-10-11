@@ -1,0 +1,27 @@
+{
+  "id": "c07-pay-shop-no-amount",
+  "description": "pay a shop with no amount → menu card",
+  "as": "customer",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "pay ahseng"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "pay_shop"
+    ],
+    "sends": [
+      {
+        "kind": "menu",
+        "to": "customer"
+      }
+    ],
+    "noSends": [
+      "invoice"
+    ]
+  }
+}
