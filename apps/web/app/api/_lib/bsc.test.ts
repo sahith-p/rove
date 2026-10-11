@@ -20,6 +20,8 @@ describe("deposit addresses from the account xpub", () => {
   const xpub = xpubOf(MNEMONIC);
 
   test("match the Anvil vectors", () => {
+    // The worker's keyring (apps/worker/src/bnb/keys.test.ts) produces exactly this xpub from the mnemonic.
+    assert.equal(xpub, "xpub6DyUKdwoLWmUJ4Tn9Bbsdtx7B5Ws18mEN19e5HT52ikE53FiUheSQXrZUNPovqfyKmw4579A1Mm3GXXKM39N64uooBfJ4tNAzFsEbodRTx4");
     ANVIL.forEach((addr, i) => assert.equal(depositAddressAt(xpub, i), addr));
   });
 
