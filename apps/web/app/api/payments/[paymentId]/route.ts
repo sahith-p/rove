@@ -41,8 +41,11 @@ export const GET = route<Ctx>(async (req, { params }) => {
   const merchant = await deps.db.getMerchant(payment.merchantId);
   if (!merchant) throw NOT_FOUND();
 
-  const session = optionalSession(req, ["sale"]);
-  const merchantSale = session !== null && session.ref === payment.id && session.merchantId === payment.merchantId;
+  // The owning merchant sees the payer's name: a `sale` session for this payment, or their `shop` session (/shop links
+  // its receipts with it).
+  const session = optionalSession(req, ["sale", "shop"]);
+  const merchantSale =
+    session !== null && session.merchantId === payment.merchantId && (session.scope === "shop" || session.ref === payment.id);
 
   const [merchantVerifiedFlag, payerName] = await Promise.all([
     merchantVerified(deps, merchant),

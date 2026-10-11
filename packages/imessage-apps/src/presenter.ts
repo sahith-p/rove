@@ -66,7 +66,7 @@ export function createCardPresenter(transport: CardTransport, opts: CardPresente
       const { messageId } = await transport.sendText(to, `${spec.fallbackText}\n${spec.url}`);
       return { messageId, edited: false };
     }
-    const { messageId, handle } = await transport.sendCard(to, spec.url, spec.live);
+    const { messageId, handle } = await transport.sendCard(to, spec.url, spec.live, spec.layout);
     cards.set(cardKey(to, spec), { messageId, handle });
     return { messageId, edited: false };
   }
@@ -79,7 +79,7 @@ export function createCardPresenter(transport: CardTransport, opts: CardPresente
     }
     const known = cards.get(cardKey(to, spec));
     if (!known) return sendNow(to, spec); // e.g. after a restart → new bubble, remembered from now on
-    await transport.editCard(to, known.handle, spec.url, spec.live);
+    await transport.editCard(to, known.handle, spec.url, spec.live, spec.layout);
     return { messageId: known.messageId, edited: true };
   }
 

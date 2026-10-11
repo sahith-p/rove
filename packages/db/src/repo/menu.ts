@@ -51,13 +51,10 @@ export function menuRepo(pool: Pool): MenuRepo {
           return { id: target ?? null, name: it.name.trim(), price: norm(it.price), active: it.active ?? true, sort: i + 1 };
         });
 
-        // Rows not listed are deactivated (old invoices reference them). One that still holds a name the new menu
-        // uses is renamed out of the way; renamed rows get a temporary name first so names can swap freely.
-        const finalKeys = new Set(plan.map((p) => key(p.name)));
+        // Rows not listed are deleted: the merchant removed them in the setup card (hiding is `active: false`).
+        // Invoices and payments keep their own copy of each line in jsonb, so nothing references these rows.
         for (const e of existing) {
-          if (claimed.has(e.id)) continue;
-          const name = finalKeys.has(key(e.name)) ? `${e.name} (old ${e.id.slice(-6)})` : e.name;
-          await q.query(`update menu_items set active = false, name = $2 where id = $1`, [e.id, name]);
+          if (!claimed.has(e.id)) await q.query(`delete from menu_items where id = $1`, [e.id]);
         }
         for (const p of plan) {
           if (p.id && byId.get(p.id)!.name !== p.name) await q.query(`update menu_items set name = '~' || id where id = $1`, [p.id]);

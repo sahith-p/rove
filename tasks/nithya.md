@@ -57,28 +57,28 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** A script walks a payment and a withdrawal through every status and the balance view is right at each step.
 
 ### NI-B2 · `POST /api/checkout` · 60 min
-- [~] nithya/NI-B2-checkout
+- [x] 6c48f09, 4e6e802, 1cc1678 (payer-currency charge, toggle reuse; live sandbox smoke: real USD PI created, reused, confirmed)
 - **Depends:** NI-B1 (mock settlement until G1)
 - **Paths:** `apps/web/app/api/checkout/**`, `apps/web/app/api/_lib/**`
 - **Do:** payments-stripe.md §1: invoice or fixed-QR target, quote, payment row, Stripe PI in the **payer's currency** (§1a: USD = `quote.usd`, SGD = total; idempotencyKey = paymentId); `bnb` branch stubbed until NI-C6.
 - **Done when:** `curl` returns a valid `CheckoutRes` for an invoice code and a fixed-QR basket; Sahith unblocked for SH-A3.
 
 ### NI-B3 · Stripe webhook · 40 min
-- [~] nithya/NI-B2-checkout
+- [x] 7c1c7fe, 61f276a (signature, claim, Apple Pay detection, duplicate-invoice refund; authorizes once)
 - **Depends:** NI-B2
 - **Paths:** `apps/web/app/api/stripe/**`
 - **Do:** §2: raw body + `constructEvent`, `claim`, Apple Pay detection, CAS → authorized, nudge `/internal/settle`.
 - **Done when:** A test payment authorizes once even if the event repeats.
 
 ### NI-B4 · Public read routes · 30 min
-- [~] nithya/NI-B4-B5-reads-me
+- [x] d63a734, 590696f
 - **Depends:** NI-B1
 - **Paths:** `apps/web/app/api/{invoices,shops,payments}/**`
 - **Do:** `InvoicePublicRes`, `ShopPublicRes` (verified cached 60s), `PaymentStatusRes`; no-store.
 - **Done when:** Responses parse with the zod schemas.
 
 ### NI-B5 · Merchant routes: me, shop, menu · 40 min
-- [~] nithya/NI-B4-B5-reads-me
+- [x] 65ed6f9, 1d51d46 (MeRes.reconciled; shop.updated only for changed fields)
 - **Depends:** NI-B1
 - **Paths:** `apps/web/app/api/me/{route.ts,shop,menu}/**`
 - **Do:** Session verification with scope checks; `GET /api/me` (`MeRes`, incl. "ledger matches XRPL" flag); `PUT /api/me/shop`, `PUT /api/me/menu` → emit `shop.updated` to the agent.
@@ -101,7 +101,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** Onboarding (mock engine) gets a live merchant and the event reaches the agent.
 
 ### NI-C2 · Settle job + invoice expiry · 60 min
-- [~] nithya/NI-C2-C5-settle-refunds
+- [x] 893ef3c (settle poller, re-quote on path errors, final failure → Stripe refund + payment.failed; stuck `settling` logged, never re-sent)
 - **Depends:** NI-C1, NI-B1
 - **Paths:** `apps/worker/src/{settle,expiry}.ts`
 - **Do:** `/internal/settle` + 3s poller: CAS authorized → settling → settled, ledger `payment_credit`, invoice paid, contact auto-add, `payment.settled` (with `firstSale`); retries + auto-refund on final failure; expire invoices/QRs.
@@ -122,7 +122,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** `withdraw-smoke` walks to `completed` and the ledger + XRPL balance agree; failure flags behave (docs/06 §3).
 
 ### NI-C5 · Refunds · 45 min
-- [~] nithya/NI-C2-C5-settle-refunds
+- [x] b4120c1 (XRPL exact XSGD → ledger → Stripe in the charge currency; idempotent on actionId; the XRPL refund can't repeat)
 - **Depends:** NI-C2, NI-A5
 - **Paths:** `apps/worker/src/refunds.ts`
 - **Do:** `/internal/refunds` (idempotent on actionId): available check, XRPL merchant → treasury, Stripe refund, ledger `refund_debit`, `refund.completed/failed` (with payer for the customer message).

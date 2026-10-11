@@ -6,10 +6,11 @@
 //             space.send(edit(app(newUrl, { live }), original)) → same bubble, new content (resolves undefined)
 //   WhatsApp: no app cards and no edits; sendCard degrades to the URL as plain text.
 
+import type { CardLayout } from "@rove/shared";
 import type { Channel, Recipient } from "@rove/shared";
 import { app, attachment, edit, UnsupportedError } from "spectrum-ts";
 import type { Message, Space, SpectrumInstance } from "spectrum-ts";
-import { imessage } from "spectrum-ts/providers/imessage";
+import { customizedMiniApp, imessage } from "spectrum-ts/providers/imessage";
 import { whatsappBusiness } from "spectrum-ts/providers/whatsapp-business";
 
 /** Opaque per-transport handle to a sent card. The presenter only stores it and hands it back to `editCard`. */
@@ -19,9 +20,9 @@ export interface CardTransport {
   /** True when the channel renders app cards and can edit them in place. */
   supportsCards(channel: Channel): boolean;
   /** Send `url` as an app card. `handle` must be passed back to `editCard` to change the same bubble. */
-  sendCard(to: Recipient, url: string, live: boolean): Promise<{ messageId: string; handle: CardHandle }>;
+  sendCard(to: Recipient, url: string, live: boolean, layout?: CardLayout): Promise<{ messageId: string; handle: CardHandle }>;
   /** Replace the card behind `handle` with `url` in place. */
-  editCard(to: Recipient, handle: CardHandle, url: string, live: boolean): Promise<void>;
+  editCard(to: Recipient, handle: CardHandle, url: string, live: boolean, layout?: CardLayout): Promise<void>;
   sendText(to: Recipient, body: string): Promise<{ messageId: string }>;
   /** PNG attachment, optionally followed by a caption. `messageId` is the image's id. */
   sendImage(to: Recipient, png: Uint8Array, name: string, caption?: string): Promise<{ messageId: string }>;
@@ -73,6 +74,19 @@ function requireMessage(m: Message | undefined, what: string, to: Recipient): Me
   return m;
 }
 
+
+/**
+ * Rove-branded card. Photon's shared plan only allows its own Spectrum extension on the customized endpoint
+ * (verified 2026-10-11: bundle id + team id below are required), but the app name and bubble text are ours.
+ * Without a layout we fall back to the plain app() card.
+ */
+const ROVE_MINI_APP = { appName: "Rove", extensionBundleId: "codes.photon.Spectrum.MessagesExtension", teamId: "P8XT6232SL" } as const;
+
+function cardContent(url: string, live: boolean, layout?: CardLayout) {
+  if (!layout) return app(url, { live });
+  return customizedMiniApp({ ...ROVE_MINI_APP, url, live, layout: { ...layout } });
+}
+
 export function createSpectrumTransport(spectrum: SpectrumInstance): CardTransport {
   const spaces = new Map<string, Promise<Space>>();
 
@@ -111,23 +125,23 @@ export function createSpectrumTransport(spectrum: SpectrumInstance): CardTranspo
       return channel === "imessage";
     },
 
-    async sendCard(to, url, live) {
+    async sendCard(to, url, live, layout) {
       const space = await spaceFor(to);
       if (to.channel !== "imessage") {
         // No app cards on WhatsApp: the link is the card. Not editable, so there's no useful handle.
         const m = requireMessage(await space.send(url), "card link", to);
         return { messageId: m.id, handle: undefined };
       }
-      const message = requireMessage(await space.send(app(url, { live })), "app card", to);
+      const message = requireMessage(await space.send(cardContent(url, live, layout)), "app card", to);
       const handle: SpectrumCardHandle = { space, message };
       return { messageId: message.id, handle };
     },
 
-    async editCard(to, handle, url, live) {
+    async editCard(to, handle, url, live, layout) {
       if (to.channel !== "imessage") throw UnsupportedError.action("edit", to.channel, "app cards can't be edited on this channel");
       if (!isSpectrumCardHandle(handle)) throw new Error(`editCard: not a Spectrum card handle (${recipientKey(to)})`);
       // Always edit against the ORIGINAL message: Spectrum refreshes its miniAppCardSession on it. edit() resolves undefined.
-      await handle.space.send(edit(app(url, { live }), handle.message));
+      await handle.space.send(edit(cardContent(url, live, layout), handle.message));
     },
 
     async sendText(to, body) {
