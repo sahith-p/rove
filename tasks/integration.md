@@ -5,7 +5,7 @@
 | Gate | Target | Owner(s) | Status | Evidence (command output, tx link, screenshot) |
 |---|---|---|---|---|
 | G0 · Setup (+ WhatsApp template submitted) | 11:50 | all | [ ] | |
-| G1 · `settle:demo` delivers 12.50 XSGD | 12:30 | Nithya | [ ] | |
+| G1 · `settle:demo` delivers 12.50 XSGD | 12:30 | Nithya | [x] | delivered exactly 12.50 XSGD to ahseng: [tx BEBA82CD…](https://testnet.xrpl.org/transactions/BEBA82CDEBA86490C3FFC2A92F28A4D33F9494D9D85233460D314B99962EF977). Live quote S$12.50 → US$9.73 (rate 1.2846) |
 | G2 · Setup card on phone M, edited in place | 13:00 | Sahith + Saran | [ ] | |
 | G2b · Onboarding by chat → live shop + sticker | 13:45 | Saran + Sahith + Nithya | [ ] | |
 | G3 · Invoice by text → Apple Pay → paid, deployed | 14:30 | all | [ ] | |
@@ -55,6 +55,7 @@
 | pre-G0 | Nithya | Saran | `@rove/db` interface is now defined (`packages/db/src/index.ts`: `Db`, `getDb()`; tests use `createTestDb()` from `@rove/db/testing`, an in-process Postgres). Build agent tools against it. Env: `DATABASE_URL` replaces `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` on the agent too | open |
 | pre-G0 | Nithya | Sahith | Vercel env: no signing secrets (`XRPL_*_SEED`, `WALLET_ENCRYPTION_KEY`, `BSC_DEPOSIT_MNEMONIC`); add `DATABASE_URL`, `XRPL_TREASURY_ADDRESS`, `XRPL_CREDENTIAL_ISSUER_ADDRESS`, `BSC_DEPOSIT_XPUB` (docs/09). `MeRes.reconciled` (optional) is the `/shop` "Ledger ✓ matches XRPL" flag, named to match what `/shop` already reads | open |
 | NI-C1 | Nithya | Saran | Worker is up (`apps/worker`, :4001). `POST /internal/merchants` works now on the mock engine: idempotent, upserts the onboarding draft, emits `merchant.live` once; 409 `shop_id_taken` if the id belongs to another phone. Errors from every worker route are `{ error, message }` (422 by default): **say `message` to the merchant as is**. Events: `/internal/events` must return 2xx to mark delivered; 4xx isn't retried; retries/boot replays reuse the same envelope id (dedupe on it) | open |
+| G1 | Nithya | Sahith | `apps/web` now depends on `@rove/xrpl` (added to package.json + next.config transpilePackages; co-owned files, small change). With `USE_MOCK_SETTLEMENT=0` the web quotes from the real testnet AMM (read-only, no seeds). Vercel needs `XRPL_WSS`, `XRPL_USD_ISSUER`, `XRPL_SGD_ISSUER`, `XRPL_TREASURY_ADDRESS`, `XRPL_CREDENTIAL_ISSUER_ADDRESS` (public values; Nithya shares them) | open |
 | pre-G0 | Nithya | Saran | `pay_shop` / invoices: nothing to change (checkout uses the payer phone's country). Pitch line: "pay in your own currency, merchant gets theirs, no card FX" instead of "Rove converts" | open |
 
 ## Contract changes (mirror of docs/02 changelog)
