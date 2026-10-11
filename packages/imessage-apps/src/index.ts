@@ -1,2 +1,4 @@
 export { createCardBuilders } from "./builders";
-export { createSpectrumCardPresenter } from "./presenter";
+export { createSpectrumCardPresenter, createCardPresenter } from "./presenter";
+export { createSpectrumTransport, type CardTransport } from "./transport";
+export { qrPng, codeQrPng, stickerPng } from "./qr";

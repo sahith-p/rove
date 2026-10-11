@@ -1,0 +1,55 @@
+# Source of truth: docs/03-ownership.md
+
+*                                   @sahith-p @NithyaAppannagaari @SaranChockalingam
+
+# Contracts: all three must approve
+/packages/shared/                   @sahith-p @NithyaAppannagaari @SaranChockalingam
+/docs/02-contracts.md               @sahith-p @NithyaAppannagaari @SaranChockalingam
+
+# Sahith: minimal web app + iMessage App cards + QR images + Privy
+/apps/web/app/pay/                  @sahith-p
+/apps/web/app/m/                    @sahith-p
+/apps/web/app/r/                    @sahith-p
+/apps/web/app/setup/                @sahith-p
+/apps/web/app/bank/                 @sahith-p
+/apps/web/app/shop/                 @sahith-p
+/apps/web/app/w/                    @sahith-p
+/apps/web/app/confirm/              @sahith-p
+/apps/web/app/layout.tsx            @sahith-p
+/apps/web/app/page.tsx              @sahith-p
+/apps/web/components/               @sahith-p
+/apps/web/lib/ui/                   @sahith-p
+/packages/imessage-apps/            @sahith-p
+/docs/specs/web-app.md              @sahith-p
+/docs/specs/imessage-apps.md        @sahith-p
+/docs/specs/design.md               @sahith-p
+/docs/07-demo.md                    @sahith-p
+/tasks/sahith.md                    @sahith-p
+
+# Nithya: money movement
+/apps/web/app/api/checkout/         @NithyaAppannagaari
+/apps/web/app/api/stripe/           @NithyaAppannagaari
+/apps/web/app/api/invoices/         @NithyaAppannagaari
+/apps/web/app/api/shops/            @NithyaAppannagaari
+/apps/web/app/api/payments/         @NithyaAppannagaari
+/apps/web/app/api/me/               @NithyaAppannagaari
+/apps/web/app/api/withdrawals/      @NithyaAppannagaari
+/apps/web/app/api/_lib/             @NithyaAppannagaari
+/apps/worker/                       @NithyaAppannagaari
+/packages/db/                       @NithyaAppannagaari
+/packages/xrpl/                     @NithyaAppannagaari
+/docs/specs/withdrawals.md          @NithyaAppannagaari
+/docs/specs/settlement-xrpl.md      @NithyaAppannagaari
+/docs/specs/payments-stripe.md      @NithyaAppannagaari
+/docs/specs/bnb-lane.md             @NithyaAppannagaari @sahith-p
+/tasks/nithya.md                    @NithyaAppannagaari
+
+# Saran: the agent
+/apps/agent/                        @SaranChockalingam
+/apps/web/app/api/actions/          @SaranChockalingam
+/docs/specs/agent.md                @SaranChockalingam
+/docs/specs/onboarding.md           @SaranChockalingam
+/docs/specs/channels.md             @SaranChockalingam
+/docs/specs/voice.md                @SaranChockalingam
+/docs/specs/invoicing-and-qr.md     @SaranChockalingam @NithyaAppannagaari @sahith-p
+/tasks/saran.md                     @SaranChockalingam

@@ -97,11 +97,16 @@ export const CheckoutReq = z.object({
   method: z.enum(["card", "bnb"]),
   /** optional "text me the receipt" */
   payerPhone: E164.optional(),
+  /** Currency the payer is charged in, so the card leg never crosses a currency (no card FX). Page sends the locale
+   *  guess or the user's toggle; omitted → payer phone country (+65 → SGD), else USD. Ignored for bnb (always USD). */
+  payCurrency: CurrencyZ.optional(),
 });
 export const CheckoutRes = z.object({
   paymentId: z.string(),
   local: MoneyZ,
   quote: QuoteZ,
+  /** Exactly what the payer is charged, in their own currency (Apple Pay sheet amount). Always set by the server. */
+  charge: MoneyZ.optional(),
   /** method=card: Stripe Express Checkout (Apple Pay / Google Pay / card) */
   stripe: z.object({ clientSecret: z.string() }).optional(),
   /** method=bnb: send test USDT on BSC testnet to this per-payment deposit address (Privy wallet) */
@@ -113,7 +118,14 @@ export const PaymentStatusRes = z.object({
   paymentId: z.string(),
   status: PaymentStatusZ,
   local: MoneyZ,
+  /** What the payer was charged, in their currency (receipt: "You paid US$9.72"). */
+  charge: MoneyZ.optional(),
   merchantName: z.string(),
+  /** Receipt extras (SH-A6 reads them when present). payerName only with a merchant `sale` session for this payment. */
+  createdAt: z.string().optional(),
+  refunded: MoneyZ.optional(),
+  payerName: z.string().optional(),
+  merchantVerified: z.boolean().optional(),
   lines: z.array(InvoiceLineZ),
   method: z.enum(["apple_pay", "card", "bnb"]),
   settleTxHash: z.string().optional(),
@@ -136,6 +148,8 @@ export const MeRes = z.object({
     verified: z.boolean(),
   }),
   balance: z.object({ available: MoneyZ, held: MoneyZ, total: MoneyZ }),
+  /** Reconciler result: ledger available + held equals the XSGD balance on the merchant's XRPL account ("Ledger ✓ matches XRPL"). */
+  reconciled: z.boolean().optional(),
   menu: z.array(MenuItemViewZ),
   contacts: z.array(z.object({ id: z.string(), name: z.string(), phone: z.string() })),
   openInvoices: z.array(z.object({ code: z.string(), to: z.string().nullable(), total: MoneyZ, createdAt: z.string() })),

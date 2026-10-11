@@ -60,7 +60,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - [ ] status
 - **Depends:** NI-B1 (mock settlement until G1)
 - **Paths:** `apps/web/app/api/checkout/**`, `apps/web/app/api/_lib/**`
-- **Do:** payments-stripe.md §1: invoice or fixed-QR target, quote, payment row, Stripe PI (SGD, idempotencyKey = paymentId); `bnb` branch stubbed until NI-C6.
+- **Do:** payments-stripe.md §1: invoice or fixed-QR target, quote, payment row, Stripe PI in the **payer's currency** (§1a: USD = `quote.usd`, SGD = total; idempotencyKey = paymentId); `bnb` branch stubbed until NI-C6.
 - **Done when:** `curl` returns a valid `CheckoutRes` for an invoice code and a fixed-QR basket; Sahith unblocked for SH-A3.
 
 ### NI-B3 · Stripe webhook · 40 min

@@ -9,3 +9,7 @@ dist
 .DS_Store
 .vercel
 .turbo
+.claude/worktrees/
+.env*
+next-env.d.ts
+*.tsbuildinfo

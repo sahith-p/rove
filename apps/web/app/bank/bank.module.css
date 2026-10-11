@@ -1,0 +1,276 @@
+/* /bank · SH-C1. Uses the globals.css tokens only, so light/dark follow the system. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lockBadge {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--text);
+}
+
+.reassure {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.expired {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 24px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Segmented control */
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.segment {
+  min-height: 40px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.segmentActive {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.12), 0 1px 1px rgba(17, 24, 39, 0.06);
+}
+
+.segment:disabled {
+  cursor: default;
+}
+
+/* Fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--bg);
+  outline: none;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.input::placeholder,
+.prefixInput::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.input:focus,
+.prefixWrap:focus-within {
+  border-color: var(--text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.input[aria-invalid="true"],
+.prefixInvalid {
+  border-color: var(--error);
+}
+
+.input[aria-invalid="true"]:focus,
+.prefixInvalid:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--error) 18%, transparent);
+}
+
+.number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.prefixWrap {
+  display: flex;
+  align-items: stretch;
+  min-height: 52px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--bg);
+  overflow: hidden;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 14px;
+  border-right: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.prefixInput {
+  flex: 1;
+  min-width: 0;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.selectWrap {
+  position: relative;
+}
+
+.selectWrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.placeholder {
+  color: var(--muted);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.error {
+  color: var(--error);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.footnote {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.footnote svg {
+  display: inline-block;
+  margin-right: 5px;
+  vertical-align: -2px;
+}
+
+/* "Replaces your current account" */
+.replacing {
+  padding: 12px 16px;
+}
+
+.replacingLabel {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.replacingValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Success */
+.success {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 22px 20px;
+}
+
+.successBadge {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--success);
+  color: var(--bg);
+}
+
+.successLine {
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.successAccount {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.successDot {
+  color: var(--muted);
+}
+
+.successName {
+  font-weight: 500;
+}

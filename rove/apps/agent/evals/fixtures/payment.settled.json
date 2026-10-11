@@ -1,0 +1,16 @@
+{
+  "id": "evt_fixture_payment_settled_0001",
+  "at": "2026-10-11T19:00:00.000Z",
+  "event": {
+    "type": "payment.settled",
+    "paymentId": "pay_demo0001",
+    "merchantId": "ahseng",
+    "source": "invoice",
+    "invoiceId": "inv_demo0001",
+    "local": { "amount": "12.50", "currency": "SGD" },
+    "payer": { "phone": "+15555550199", "channel": "imessage" },
+    "txHash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "delivered": "12.5",
+    "firstSale": true
+  }
+}

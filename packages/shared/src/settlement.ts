@@ -1,7 +1,7 @@
 // SettlementEngine: everything that touches XRPL. Implemented by packages/xrpl (Nithya).
 // Mock: packages/shared/src/mocks/settlement.mock.ts (USE_MOCK_SETTLEMENT=1).
 
-import type { Money } from "./money";
+import type { Currency, Money } from "./money";
 import type { MerchantId, PaymentId, Quote, WithdrawalId } from "./domain";
 
 export interface SettleResult {
@@ -18,8 +18,9 @@ export interface SettlementEngine {
   /** New merchant: custodial account, trust lines (XSGD, RLUSD), Credential issued + accepted. */
   createMerchantAccount(input: { merchantId: MerchantId }): Promise<{ xrplAddress: string; credentialStatus: "issued" | "accepted" }>;
 
-  /** Treasury → merchant cross-currency Payment: Amount = local XSGD, SendMax = sendMaxUsd RLUSD. */
-  settle(input: { paymentId: PaymentId; merchantAddress: string; local: Money; sendMaxUsd: string }): Promise<SettleResult>;
+  /** Treasury → merchant Payment delivering exactly `local` XSGD. `from` = the payer's currency, i.e. which float pays:
+   *  "USD" (default) = RLUSD through the AMM, SendMax = sendMaxUsd; "SGD" = the treasury's XSGD directly, no swap. */
+  settle(input: { paymentId: PaymentId; merchantAddress: string; local: Money; sendMaxUsd: string; from?: Currency }): Promise<SettleResult>;
 
   /** Merchant XSGD back to the treasury (card refunds are paid to the customer by Stripe). */
   refund(input: { paymentId: PaymentId; merchantAddress: string; local: Money }): Promise<{ txHash: string }>;
