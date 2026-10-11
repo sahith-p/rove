@@ -8,7 +8,7 @@ const env = process.env;
 const flag = (name: string, fallback = false) => (env[name] === undefined ? fallback : env[name] === "1");
 
 export const config = {
-  port: Number(env.AGENT_PORT ?? 4002),
+  port: Number(env.AGENT_PORT ?? env.PORT ?? 4002), // Railway sets PORT
   publicBaseUrl: env.PUBLIC_BASE_URL ?? "http://localhost:3000",
   internalSecret: env.INTERNAL_SECRET ?? "change-me",
   tokenSecret: env.TOKEN_SECRET ?? "change-me",
