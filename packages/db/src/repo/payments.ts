@@ -4,6 +4,7 @@ import { fromMinor, newId, toMinor, type DaySummary, type PaymentStatus } from "
 import type { Param, Pool } from "../executor";
 import type { Db } from "../index";
 import { decimal, dbMoney, linesToDb, norm, normalizePhone, PAYMENT_COLS, toPayment } from "../map";
+import { appendLedgerIn } from "./ledger";
 import { inJson, lockMerchant, merchantCurrency, SetBuilder, sgtDayRange } from "./util";
 
 type PaymentsRepo = Pick<
@@ -150,13 +151,9 @@ export function paymentsRepo(pool: Pool): PaymentsRepo {
         if (!rows[0]) return null;
         const payment = toPayment(rows[0]);
 
-        const credited = await q.query(
-          `insert into ledger_entries (id, merchant_id, kind, amount, currency, ref)
-           values ($1, $2, 'payment_credit', $3::numeric, $4, $5) on conflict (kind, ref) do nothing returning id`,
-          [newId("led"), merchantId, payment.local.amount, payment.local.currency, payment.id],
-        );
+        const credited = await appendLedgerIn(q, { merchantId, kind: "payment_credit", amount: payment.local, ref: payment.id });
         let firstSale = false;
-        if (credited.length) {
+        if (credited) {
           const [c] = await q.query<{ n: number }>(
             `select count(*)::int as n from ledger_entries where merchant_id = $1 and kind = 'payment_credit'`,
             [merchantId],
