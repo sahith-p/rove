@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "seed": "tsx scripts/seed.ts",
     "settle:demo": "tsx scripts/settle-demo.ts",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "engine:demo": "tsx scripts/engine-demo.ts"
   },
   "dependencies": {
     "@rove/shared": "workspace:*",

@@ -93,9 +93,13 @@ export async function ammSourceValue(ctx: EngineContext, local: Money): Promise<
 }
 
 export async function quote(ctx: EngineContext, local: Money, now: () => number = Date.now): Promise<Quote> {
+  // Config problems (missing issuer / treasury address) surface directly, not as a path-find fallback.
+  ctx.usd();
+  ctx.sgd();
+  const treasury = ctx.treasuryAddress();
   let source: string | null = null;
   try {
-    source = (await findUsdToSgdPath(ctx, ctx.treasuryAddress(), local))?.sourceValue ?? null;
+    source = (await findUsdToSgdPath(ctx, treasury, local))?.sourceValue ?? null;
   } catch (err) {
     ctx.log(`quote: ripple_path_find failed (${err instanceof Error ? err.message : String(err)}); using amm_info`);
   }

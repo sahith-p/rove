@@ -79,7 +79,7 @@ create table if not exists payments (
   quote_expires_at      timestamptz,
   charge_amount         numeric(18,2),                         -- what the payer was charged, in their own currency
   charge_currency       text,                                  -- 'USD' | 'SGD' (the card leg never converts)
-  method                text not null check (method in ('apple_pay','card','bnb')),
+  method                text not null check (method in ('apple_pay','card','bnb','ausd')),
   status                text not null default 'created'
                         check (status in ('created','authorized','settling','settled','partially_refunded','refunded','failed')),
   payer_phone           text,
@@ -268,3 +268,7 @@ alter table agent_messages  enable row level security;
 alter table onboarding      enable row level security;
 alter table processed       enable row level security;
 alter table events          enable row level security;
+
+-- AUSD lane: allow the new payment method on databases created before it existed.
+alter table payments drop constraint if exists payments_method_check;
+alter table payments add constraint payments_method_check check (method in ('apple_pay','card','bnb','ausd'));
