@@ -144,7 +144,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 ## Extra: AUSD lane (Agora track)
 
 ### NI-X1 · AUSD gasless pay-in (ERC-3009) + x402 agent payments
-- [x] code done (checkout, `/api/ausd/authorize`, worker relayer, x402 v2); signatures verified against the live AUSD contract. Live run waits on Base Sepolia ETH for the relayer
+- [x] code done (checkout, `/api/ausd/authorize`, worker relayer, x402 v2); **live x402 run passed**: an agent wallet with no gas paid invoice TVXDDR (S$3.00) with 2.33 AUSD, Rove relayed it on Base Sepolia ([tx](https://sepolia.basescan.org/tx/0xbeca45b34b410d3454e4e36838a7f5c3fc85960462919a721e357bcf3448b229)) and settled it to ahseng on XRPL ([tx](https://testnet.xrpl.org/transactions/19678B95D688E9683135C01B22842A7D8A6A3F91D6C59DD926350B413F0B2CDB))
 - **Do:** pay with Agora AUSD on Base Sepolia without gas (payer signs, the worker relays), settle on XRPL like BNB; stretch: an AI agent pays a Rove invoice through x402. Spec: docs/specs/ausd-lane.md
 
 ### NI-X2 · Multi-currency corridors (any currency with a stablecoin)
