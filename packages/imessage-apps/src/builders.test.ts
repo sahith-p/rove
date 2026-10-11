@@ -281,3 +281,14 @@ test("baseUrl with and without trailing slash yields identical URLs", () => {
     assert.ok(!a.url.includes("//", "https://".length), a.url);
   }
 });
+
+test("every card URL carries card=1 (compact in-card layout)", async () => {
+  const { createCardBuilders } = await import("./builders");
+  const { DEMO_MERCHANT, DEMO_MENU, demoInvoice } = await import("@rove/shared/mocks");
+  const b = createCardBuilders({ baseUrl: "https://rove.test" });
+  for (const spec of [
+    b.setup({ merchant: DEMO_MERCHANT, menu: DEMO_MENU, sessionToken: "t" }),
+    b.menu({ merchant: DEMO_MERCHANT, menu: DEMO_MENU }),
+    b.invoice({ invoice: demoInvoice(), merchant: DEMO_MERCHANT }),
+  ]) assert.equal(new URL(spec.url).searchParams.get("card"), "1");
+});

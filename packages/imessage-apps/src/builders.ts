@@ -42,7 +42,7 @@ function isRefunded(status: PaymentStatus): boolean {
 export function createCardBuilders({ baseUrl }: { baseUrl: string }): CardBuilders {
   const l = links(baseUrl);
 
-  return {
+  const builders: CardBuilders = {
     setup({ merchant, menu, sessionToken }) {
       return card({
         kind: "setup",
@@ -167,5 +167,16 @@ export function createCardBuilders({ baseUrl }: { baseUrl: string }): CardBuilde
         updateText,
       });
     },
+  };
+
+  // Every card URL carries card=1 so the page renders its compact, no-scroll card layout inside the iMessage webview.
+  const inCard = <K extends keyof CardBuilders>(k: K) =>
+    ((v: Parameters<CardBuilders[K]>[0]) => {
+      const spec = (builders[k] as (x: typeof v) => CardSpec)(v);
+      return { ...spec, url: withParams(spec.url, { card: "1" }) };
+    }) as CardBuilders[K];
+  return {
+    setup: inCard("setup"), bank: inCard("bank"), shop: inCard("shop"), menu: inCard("menu"), invoice: inCard("invoice"),
+    receipt: inCard("receipt"), sale: inCard("sale"), withdrawal: inCard("withdrawal"), confirm: inCard("confirm"),
   };
 }
