@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { createTestDb } from "@rove/db/testing";
 import { CheckoutRes, money, type InvoiceLine, type Recipient } from "@rove/shared";
+import { setAusdDepsForTests } from "../_lib/ausd";
 import { setWebDepsForTests } from "../_lib/deps";
 import { useWebTestDeps, type WebTestDeps } from "../_lib/testing";
 import { createFakeStripe, stripeError, type FakeStripe } from "../stripe/fake-stripe";
@@ -304,10 +305,19 @@ describe("POST /api/checkout · reuse", () => {
 });
 
 describe("POST /api/checkout · lanes and failures", () => {
-  test("bnb and ausd answer 501 from their own branches, after the target is validated", async () => {
+  test("bnb answers 501 and unconfigured ausd 503 from their own branches, after the target is validated", async () => {
     const inv = await invoice();
     await expectError(byCode(inv.code, { method: "bnb" }), 501, "bnb_not_ready");
-    await expectError(byCode(inv.code, { method: "ausd" }), 501, "ausd_not_ready");
+    // The AUSD lane itself is tested in ../ausd/authorize/authorize.test.ts; without AUSD_PAY_TO it is off.
+    const savedPayTo = process.env.AUSD_PAY_TO;
+    delete process.env.AUSD_PAY_TO;
+    setAusdDepsForTests(null);
+    try {
+      await expectError(byCode(inv.code, { method: "ausd" }), 503, "ausd_not_configured");
+    } finally {
+      if (savedPayTo !== undefined) process.env.AUSD_PAY_TO = savedPayTo;
+      setAusdDepsForTests(null);
+    }
     await expectError(byCode("ZZZZZZ", { method: "bnb" }), 404, "invoice_not_found");
     assert.equal(fake.calls.create.length, 0);
   });
