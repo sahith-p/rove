@@ -16,12 +16,19 @@ export const CATEGORY_OPTIONS = ["Hawker food", "Drinks", "Groceries", "Somethin
 /** "it's called Ah Seng Chicken Rice!" → "Ah Seng Chicken Rice". Null if not a plausible name. */
 export function extractShopName(text: string): string | null {
   let s = text.trim();
+  // "hey rove can i make a store called mac doodles" → "mac doodles": take what follows called/named anywhere.
+  const tail = /\b(?:called|named)\s+(.+)$/i.exec(s);
+  if (tail) s = tail[1]!;
   s = s.replace(
     /^(?:(?:it'?s|it is|its)\s+(?:called\s+)?|(?:my|our|the)\s+shop(?:'s| is| name is)?\s+(?:called\s+)?|(?:shop\s+)?name(?:'s| is)?\s*:?\s*|call\s+it\s+|we'?re\s+(?:called\s+)?|we are\s+(?:called\s+)?|called\s+|i'?m\s+)/i,
     "",
   );
   s = s.replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").replace(/[.!?,;:]+$/g, "").replace(/\s+/g, " ").trim();
   if (s.length < 2 || s.length > 60) return null;
+  // A whole sentence isn't a name: ask again instead of naming the shop "hey rove can i make a store".
+  if (s.split(" ").length > 6 || /^(?:hey|hi|hello|can|could|i want|i'd like|please)\b/i.test(s)) return null;
+  // All lowercase ("mac doodles") → title case ("Mac Doodles").
+  if (s === s.toLowerCase()) s = s.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
   return s;
 }
 
