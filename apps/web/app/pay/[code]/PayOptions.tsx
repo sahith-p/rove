@@ -1,6 +1,7 @@
 "use client";
-// The payment buttons. SH-A3 swaps the Apple Pay placeholder for Stripe's Express Checkout Element and wires card;
-// SH-A4 wires the BNB Chain wallet. The page only needs `onPay(method)`.
+// The payment buttons. The page only needs `onPay(method)`. Apple Pay / card start a card checkout, and the page then
+// swaps these buttons for Stripe's sheet (components/stripe/ExpressPay: Express Checkout Element + card form, SH-A3).
+// SH-A4 wires the BNB Chain wallet.
 import { useEffect, useState } from "react";
 import { Button } from "../../../components";
 import type { PayMethod } from "./_api";

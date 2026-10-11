@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { E164, cmp, isPositive, money, type Currency, type InvoiceLine, type Money, type PaymentStatus } from "@rove/shared";
 import { Amount, Button, Card, LineItems, MerchantHeader, StatusStepper, type Step } from "../../../components";
+import { ExpressPay, clearStripeReturn, readStripeReturn, toIntent, type StripeIntent } from "../../../components/stripe/ExpressPay";
 import { format, shortHash } from "../../../lib/ui/format";
 import { linesTotal } from "../../../lib/ui/lines";
 import { CurrencyToggle, localeCurrency } from "../../pay/[code]/CurrencyToggle";
@@ -172,9 +173,25 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
   const [payCurrency, setPayCurrency] = useState<Currency | null>(null);
   const [held, setHeld] = useState<Held | null>(null);
   const [quoting, setQuoting] = useState(false);
+  /** A live card checkout waiting for the payer in Stripe's sheet (replaces the pay buttons on review). */
+  const [intent, setIntent] = useState<StripeIntent<CheckoutView> | null>(null);
   const sim = useRef<Sim | null>(null);
 
   useEffect(() => setPayCurrency(localeCurrency()), []);
+
+  // Back from a Stripe redirect (3DS): rebuild the order from the payment and resume polling it.
+  useEffect(() => {
+    const back = readStripeReturn();
+    if (!back) return;
+    clearStripeReturn();
+    if (back.status === "failed") return setError("Your payment didn't go through. Try again or use another method.");
+    void getPayment(back.paymentId).then((res) => {
+      if (!res.ok) return setError("Couldn't load your payment. Check the receipt text, or try again.");
+      const p = res.data;
+      const o: Order = { selection: { kind: "amount", amount: p.local.amount }, lines: p.lines, local: p.local };
+      setPhase({ name: "processing", order: o, checkout: null, paymentId: p.paymentId, payment: p });
+    });
+  }, []);
 
   // ------------------------------------------------ derived order
 
@@ -229,6 +246,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
     if (busy) return;
     setError(null);
     setHeld(null);
+    setIntent(null);
     setPhase({ name: "pick" });
   };
 
@@ -237,6 +255,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
     setCart({});
     setAmountText("");
     setHeld(null);
+    setIntent(null);
     setError(null);
     setMode(menu.length > 0 ? "menu" : "amount");
     setPhase({ name: "pick" });
@@ -340,6 +359,8 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
       const res = await checkout(phase.order, "card", currency, p);
       setQuoting(false);
       setHeld(res ? { checkout: res.data, currency, method: "card", phone: p, simulated: res.simulated } : null);
+      // Stripe's sheet is open: swap it to the new currency's PaymentIntent (or close it if that failed).
+      setIntent((prev) => (prev ? toIntent(res, currency, prev.preferCard) : null));
     },
     [phase, busy, phone, checkout],
   );
@@ -373,9 +394,17 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
         merchantName: shop.name,
       };
       await new Promise((r) => setTimeout(r, 600));
+    } else if (contractMethod(method) === "card") {
+      // Live card checkout: stay on review with Stripe's sheet; ExpressPay → onStripePaid moves to processing.
+      sim.current = null;
+      setBusy(null);
+      setHeld(null);
+      const next = toIntent(res, currency, method === "card");
+      if (!next) return setError("Couldn't start the card payment. Please try again.");
+      return setIntent(next);
     } else {
       sim.current = null;
-      // TODO SH-A3 / SH-A4: confirm with Stripe (res.data.stripe, amount = res.data.charge) or the BNB wallet (res.data.bnb).
+      // TODO SH-A4: confirm with the BNB wallet (res.data.bnb).
     }
     setBusy(null);
     setHeld(null);
@@ -386,6 +415,15 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
       paymentId: res.data.paymentId,
       payment: sim.current ? simPayment(sim.current, "created") : null,
     });
+    window.scrollTo({ top: 0 });
+  };
+
+  /** Stripe confirmed the PaymentIntent: poll our payment through the webhook (authorized) and settlement (settled). */
+  const onStripePaid = () => {
+    if (phase.name !== "review" || !intent) return;
+    sim.current = null;
+    setPhase({ name: "processing", order: phase.order, checkout: intent.checkout, paymentId: intent.checkout.paymentId, payment: null });
+    setIntent(null);
     window.scrollTo({ top: 0 });
   };
 
@@ -528,7 +566,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
 
   if (phase.name === "review") {
     const { order: o } = phase;
-    const heldCheckout = held && held.currency === payCurrency ? held.checkout : null;
+    const heldCheckout = intent ? intent.checkout : held && held.currency === payCurrency ? held.checkout : null;
     const phoneInvalid = phoneTouched && phoneCheck === false;
     return (
       <main className={payStyles.page}>
@@ -566,6 +604,7 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
             onChange={(e) => {
               setPhone(e.target.value);
               setHeld(null);
+              setIntent(null);
               if (error) setError(null);
             }}
             onBlur={() => setPhoneTouched(true)}
@@ -587,7 +626,13 @@ export function ShopClient({ shop, demo }: ShopClientProps) {
           </p>
         ) : null}
         {payCurrency ? <CurrencyToggle value={payCurrency} onChange={onCurrency} disabled={busy !== null || quoting} busy={quoting} /> : null}
-        <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+        {intent ? (
+          quoting ? null : (
+            <ExpressPay key={intent.checkout.stripe.clientSecret} intent={intent} onPaid={onStripePaid} onCancel={() => setIntent(null)} />
+          )
+        ) : (
+          <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+        )}
         {footer}
       </main>
     );
