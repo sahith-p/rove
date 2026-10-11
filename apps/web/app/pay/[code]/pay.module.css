@@ -125,7 +125,11 @@
   padding: 4px 8px;
   color: var(--muted);
   font-size: 13px;
+  font-family: inherit;
   text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
 
 .safari:hover {

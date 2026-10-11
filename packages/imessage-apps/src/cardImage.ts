@@ -1,5 +1,5 @@
-// The picture on a static Rove card bubble (customizedMiniApp layout.image): a white square with the title in the
-// serif, the amount large in Geist and the status line. iMessage wants JPEG, so resvg renders RGBA and jpeg-js encodes.
+// The picture on a static Rove card bubble (customizedMiniApp layout.image): a dark square with the title in the
+// serif and the amount large in Geist. iMessage wants JPEG, so resvg renders RGBA and jpeg-js encodes.
 import { fileURLToPath } from "node:url";
 import { Resvg } from "@resvg/resvg-js";
 import jpeg from "jpeg-js";
@@ -7,9 +7,10 @@ import type { CardLayout } from "@rove/shared";
 
 const W = 600;
 const H = 600;
-const INK = "#0a0a0a";
-const MUTED = "#737373";
-const LINE = "#e5e5e5";
+const BG = "#0a0a0a";
+const FG = "#fafafa";
+const SOFT = "#d4d4d4";
+const DIM = "#737373";
 
 let fontFiles: string[] | undefined;
 function fonts(): string[] {
@@ -25,26 +26,24 @@ function esc(s: string): string {
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
-/** Title (caption), hero (trailingCaption, usually the amount), footer (trailingSubcaption or "Tap to open"). */
+/** Dark square: title (caption) in the serif, hero (trailingCaption, usually the amount) large in Geist, the Rove
+ *  wordmark top-right. The bottom band stays empty: iMessage overlays layout.imageTitle there. */
 export function cardImageSvg(layout: CardLayout): string {
-  const title = clip(layout.caption ?? "Rove", 26);
+  const title = clip(layout.caption ?? "Rove", 24);
   const hero = layout.trailingCaption ?? "";
-  const footer = layout.trailingSubcaption ?? (hero ? "Tap to pay" : "Tap to open");
-  const heroSize = hero.length > 9 ? 92 : 112;
+  const heroSize = hero.length > 9 ? 96 : 116;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <rect width="${W}" height="${H}" fill="#ffffff"/>
-  <text x="48" y="96" font-family="Faculty Glyphic" font-size="40" fill="${INK}">${esc(title)}</text>
-  ${hero ? `<text x="48" y="${H / 2 + heroSize / 3}" font-family="Geist" font-weight="600" font-size="${heroSize}" letter-spacing="-3" fill="${INK}">${esc(hero)}</text>` : ""}
-  <line x1="48" y1="${H - 120}" x2="${W - 48}" y2="${H - 120}" stroke="${LINE}" stroke-width="2"/>
-  <text x="48" y="${H - 62}" font-family="Geist" font-weight="500" font-size="30" fill="${MUTED}">${esc(footer)}</text>
-  <text x="${W - 48}" y="${H - 62}" text-anchor="end" font-family="Faculty Glyphic" font-size="34" fill="${INK}">Rove</text>
+  <rect width="${W}" height="${H}" fill="${BG}"/>
+  <text x="${W - 52}" y="92" text-anchor="end" font-family="Faculty Glyphic" font-size="34" fill="${DIM}">Rove</text>
+  <text x="52" y="236" font-family="Faculty Glyphic" font-size="42" fill="${SOFT}">${esc(title)}</text>
+  ${hero ? `<text x="48" y="${236 + 40 + heroSize}" font-family="Geist" font-weight="600" font-size="${heroSize}" letter-spacing="-3" fill="${FG}">${esc(hero)}</text>` : ""}
 </svg>`;
 }
 
 /** JPEG bytes for layout.image. */
 export function cardImageJpeg(layout: CardLayout): Uint8Array<ArrayBuffer> {
   const r = new Resvg(cardImageSvg(layout), {
-    background: "#ffffff",
+    background: BG,
     fitTo: { mode: "original" },
     font: { fontFiles: fonts(), loadSystemFonts: false, defaultFontFamily: "Geist" },
     logLevel: "off",
