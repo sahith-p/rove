@@ -304,9 +304,8 @@ describe("POST /api/checkout · reuse", () => {
 });
 
 describe("POST /api/checkout · lanes and failures", () => {
-  test("bnb and ausd answer 501 from their own branches, after the target is validated", async () => {
+  test("ausd answers 501 from its own branch, after the target is validated (bnb: bnb.test.ts)", async () => {
     const inv = await invoice();
-    await expectError(byCode(inv.code, { method: "bnb" }), 501, "bnb_not_ready");
     await expectError(byCode(inv.code, { method: "ausd" }), 501, "ausd_not_ready");
     await expectError(byCode("ZZZZZZ", { method: "bnb" }), 404, "invoice_not_found");
     assert.equal(fake.calls.create.length, 0);
