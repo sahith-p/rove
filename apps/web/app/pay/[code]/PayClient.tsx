@@ -1,0 +1,510 @@
+"use client";
+// /pay/[code] state machine: loading → open → (checkout) → processing (poll) → paid, plus closed / not found / failed.
+// Amounts only ever come from the API (or fixtures in demo mode), never from the URL.
+// The payer is charged in their own currency (`charge`, payments-stripe.md §1a): SGD total until checkout quotes it.
+import { useCallback, useEffect, useRef, useState } from "react";
+import { PAYMENT_CODE_RE, type Currency, type Money, type PaymentStatus } from "@rove/shared";
+import { Amount, Button, Card, LineItems, MerchantHeader, StatusStepper, type Step } from "../../../components";
+import { format, shortHash } from "../../../lib/ui/format";
+import { contractMethod, getInvoice, getPayment, startCheckout, type PayMethod } from "./_api";
+import {
+  FIXTURES_ENABLED,
+  fixtureCheckout,
+  fixtureInvoice,
+  fixturePayment,
+  simulatedStatus,
+  type CheckoutView,
+  type InvoiceKind,
+  type InvoiceView,
+  type PaymentView,
+  type PreviewState,
+} from "./_fixtures";
+import { CurrencyToggle, localeCurrency } from "./CurrencyToggle";
+import { PayOptions } from "./PayOptions";
+import styles from "./pay.module.css";
+
+type ClosedReason = "expired" | "already_paid" | "cancelled";
+
+type Phase =
+  | { name: "loading" }
+  | { name: "open"; invoice: InvoiceView }
+  | { name: "processing"; invoice: InvoiceView; checkout: CheckoutView | null; paymentId: string; payment: PaymentView | null }
+  | { name: "paid"; invoice: InvoiceView; checkout: CheckoutView | null; payment: PaymentView }
+  | { name: "failed"; invoice: InvoiceView }
+  | { name: "closed"; invoice: InvoiceView; reason: ClosedReason }
+  | { name: "not_found" }
+  | { name: "error" };
+
+/** A checkout result held on the open page (from the currency toggle), reused by the card / Apple Pay buttons. */
+interface Held {
+  checkout: CheckoutView;
+  currency: Currency;
+  method: "card" | "bnb";
+  simulated: boolean;
+}
+
+/** A fixture-mode settlement simulation in progress. */
+interface Sim {
+  start: number;
+  method: PayMethod;
+  charge: Money | undefined;
+}
+
+const POLL_MS = 1000;
+const SIM_POLL_MS = 500;
+const SETTLED: PaymentStatus[] = ["settled", "partially_refunded", "refunded"];
+
+function phaseForInvoice(invoice: InvoiceView, now = Date.now()): Phase {
+  if (invoice.status === "paid") return { name: "closed", invoice, reason: "already_paid" };
+  if (invoice.status === "cancelled") return { name: "closed", invoice, reason: "cancelled" };
+  if (invoice.status === "expired" || Date.parse(invoice.expiresAt) <= now) return { name: "closed", invoice, reason: "expired" };
+  return { name: "open", invoice };
+}
+
+function previewPhase(code: string, state: PreviewState, kind: InvoiceKind): Phase {
+  const invoice = fixtureInvoice(code, kind);
+  const checkout = fixtureCheckout(invoice, "USD", "card");
+  const processing = (status: PaymentStatus): Phase => ({
+    name: "processing",
+    invoice,
+    checkout,
+    paymentId: checkout.paymentId,
+    payment: fixturePayment(status),
+  });
+  switch (state) {
+    case "loading":
+      return { name: "loading" };
+    case "open":
+      return { name: "open", invoice };
+    case "paying":
+      return processing("created");
+    case "settling":
+      return processing("settling");
+    case "paid":
+      return { name: "paid", invoice, checkout, payment: fixturePayment("settled") };
+    case "failed":
+      return { name: "failed", invoice };
+    case "expired":
+      return phaseForInvoice(fixtureInvoice(code, kind, "expired"));
+    case "already_paid":
+      return phaseForInvoice(fixtureInvoice(code, kind, "paid"));
+    case "cancelled":
+      return phaseForInvoice(fixtureInvoice(code, kind, "cancelled"));
+    case "not_found":
+      return { name: "not_found" };
+    case "error":
+      return { name: "error" };
+  }
+}
+
+/** "Expires in 24 min" · "Expires in 3 hr" · "Expires 18 Oct". */
+function expiryHint(iso: string, now: number): string | null {
+  const ms = Date.parse(iso) - now;
+  if (Number.isNaN(ms) || ms <= 0) return null;
+  const min = Math.max(1, Math.floor(ms / 60_000));
+  if (min < 60) return `Expires in ${min} min`;
+  const hr = Math.round(min / 60);
+  if (hr < 48) return `Expires in ${hr} hr`;
+  const date = new Intl.DateTimeFormat("en-SG", { day: "numeric", month: "short", timeZone: "Asia/Singapore" }).format(Date.parse(iso));
+  return `Expires ${date}`;
+}
+
+function steps(status: PaymentStatus | undefined, payment: PaymentView | null): Step[] {
+  const s = status ?? "created";
+  if (s === "failed") {
+    return [
+      { label: "Payment received", state: "failed", detail: "You weren't charged" },
+      { label: "Settling on XRPL", state: "todo" },
+      { label: "Paid", state: "todo" },
+    ];
+  }
+  const settled = SETTLED.includes(s);
+  const received = s !== "created";
+  return [
+    { label: "Payment received", state: received ? "done" : "current", detail: received ? undefined : "Confirming with your bank…" },
+    {
+      label: "Settling on XRPL",
+      state: settled ? "done" : received ? "current" : "todo",
+      detail: payment?.settleTxHash ? shortHash(payment.settleTxHash, 6) : received && !settled ? "A few seconds" : undefined,
+      href: payment?.explorerUrl,
+    },
+    { label: "Paid", state: settled ? "done" : "todo" },
+  ];
+}
+
+/**
+ * The big amount. Before checkout: the invoice total (SGD). After: `charge` in the payer's currency, with
+ * "S$12.50 to Ah Seng · rate 1.2860 · no card FX fees" under it.
+ */
+function ChargeAmount({ invoice, checkout, payment }: { invoice: InvoiceView; checkout: CheckoutView | null; payment?: PaymentView | null }) {
+  const charge = payment?.charge ?? checkout?.charge;
+  if (!charge) return <Amount money={payment?.local ?? invoice.total} />;
+  const local = payment?.local ?? checkout?.local ?? invoice.total;
+  const merchant = payment?.merchantName || invoice.merchant.name;
+  const converted = charge.currency !== local.currency;
+  const sub = converted
+    ? `${format(local)} to ${merchant}${checkout ? ` · rate ${checkout.quote.rate}` : ""} · no card FX fees`
+    : `To ${merchant} · no conversion · no card FX fees`;
+  return <Amount money={charge} sub={sub} />;
+}
+
+export interface PayClientProps {
+  code: string;
+  /** Fixture mode only: render this state without calling the APIs. */
+  preview: PreviewState | null;
+  /** Fixture mode only: invoice kind for fixture data. */
+  fixtureKind: InvoiceKind;
+}
+
+export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
+  const [phase, setPhase] = useState<Phase>(() => (preview ? previewPhase(code, preview, fixtureKind) : { name: "loading" }));
+  const [busy, setBusy] = useState<PayMethod | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [usingFixtures, setUsingFixtures] = useState(preview !== null);
+  const [now, setNow] = useState(() => Date.now());
+  /** null until mounted (locale is a browser thing), then the locale guess or the payer's toggle. */
+  const [payCurrency, setPayCurrency] = useState<Currency | null>(null);
+  const [held, setHeld] = useState<Held | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const sim = useRef<Sim | null>(null);
+
+  useEffect(() => setPayCurrency(localeCurrency()), []);
+
+  const load = useCallback(async () => {
+    if (!PAYMENT_CODE_RE.test(code)) return setPhase({ name: "not_found" });
+    setPhase({ name: "loading" });
+    const res = await getInvoice(code);
+    if (res.ok) return setPhase(phaseForInvoice(res.data));
+    if (res.status === 404) return setPhase({ name: "not_found" });
+    if (FIXTURES_ENABLED) {
+      setUsingFixtures(true);
+      return setPhase(phaseForInvoice(fixtureInvoice(code, fixtureKind)));
+    }
+    setPhase({ name: "error" });
+  }, [code, fixtureKind]);
+
+  useEffect(() => {
+    if (!preview) void load();
+  }, [preview, load]);
+
+  // Tick the expiry hint, and close the page when an open code runs out.
+  const openInvoice = phase.name === "open" ? phase.invoice : null;
+  useEffect(() => {
+    if (!openInvoice) return;
+    const id = setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (Date.parse(openInvoice.expiresAt) <= t) setPhase({ name: "closed", invoice: openInvoice, reason: "expired" });
+    }, 15_000);
+    return () => clearInterval(id);
+  }, [openInvoice]);
+
+  // Poll the payment until it settles or fails. Previews stay frozen.
+  const processingId = phase.name === "processing" ? phase.paymentId : null;
+  const processingCharge = phase.name === "processing" ? phase.checkout?.charge : undefined;
+  useEffect(() => {
+    if (!processingId) return;
+    // A ?state=paying / settling preview stays frozen; a preview that was paid from ?state=open runs the simulation.
+    if (preview && sim.current === null) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const tick = async () => {
+      let payment: PaymentView | null = null;
+      const s = sim.current;
+      if (s) {
+        payment = fixturePayment(simulatedStatus(s.start), s.method, s.charge);
+      } else {
+        const res = await getPayment(processingId);
+        if (res.ok) payment = res.data;
+        else if (FIXTURES_ENABLED && (res.status === 501 || res.status === 404)) {
+          setUsingFixtures(true);
+          sim.current = { start: Date.now(), method: "card", charge: processingCharge };
+        }
+      }
+      if (stopped) return;
+      if (payment) {
+        const p = payment;
+        setPhase((prev) => {
+          if (prev.name !== "processing") return prev;
+          if (SETTLED.includes(p.status)) return { name: "paid", invoice: prev.invoice, checkout: prev.checkout, payment: p };
+          if (p.status === "failed") return { name: "failed", invoice: prev.invoice };
+          return { ...prev, payment: p };
+        });
+        if (SETTLED.includes(p.status) || p.status === "failed") return;
+      }
+      timer = setTimeout(tick, sim.current ? SIM_POLL_MS : POLL_MS);
+    };
+
+    void tick();
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [processingId, processingCharge, preview]);
+
+  /** POST /api/checkout (or a fixture). `null` = failed; the error is already shown. */
+  const checkout = useCallback(
+    async (invoice: InvoiceView, method: PayMethod, currency: Currency): Promise<{ data: CheckoutView; simulated: boolean } | null> => {
+      if (preview) return { data: fixtureCheckout(invoice, currency, contractMethod(method)), simulated: true };
+      const res = await startCheckout(invoice.code, method, currency);
+      if (res.ok) return { data: res.data, simulated: false };
+      if (FIXTURES_ENABLED && (res.status === 501 || res.status === null)) {
+        setUsingFixtures(true);
+        return { data: fixtureCheckout(invoice, currency, contractMethod(method)), simulated: true };
+      }
+      setCheckoutError(
+        res.status === 409 || res.status === 410 ? "This code can't be paid any more. Reload to check its status." : "Couldn't start the payment. Please try again.",
+      );
+      return null;
+    },
+    [preview],
+  );
+
+  // Currency toggle: re-quote with checkout so the big amount shows exactly what will be charged.
+  const onCurrency = useCallback(
+    async (currency: Currency) => {
+      setPayCurrency(currency);
+      if (phase.name !== "open" || busy) return;
+      setQuoting(true);
+      setCheckoutError(null);
+      const res = await checkout(phase.invoice, "card", currency);
+      setQuoting(false);
+      setHeld(res ? { checkout: res.data, currency, method: "card", simulated: res.simulated } : null);
+    },
+    [phase, busy, checkout],
+  );
+
+  const onPay = useCallback(
+    async (method: PayMethod) => {
+      if (phase.name !== "open" || busy || quoting) return;
+      const invoice = phase.invoice;
+      const currency = payCurrency ?? "USD";
+      setBusy(method);
+      setCheckoutError(null);
+
+      const reusable =
+        held && held.method === contractMethod(method) && held.currency === currency && Date.parse(held.checkout.quote.expiresAt) > Date.now();
+      const res = reusable ? { data: held.checkout, simulated: held.simulated } : await checkout(invoice, method, currency);
+      if (!res) return setBusy(null);
+
+      if (res.simulated) {
+        sim.current = { start: Date.now(), method, charge: res.data.charge };
+        await new Promise((r) => setTimeout(r, 600));
+      } else {
+        sim.current = null;
+        // TODO SH-A3 / SH-A4: confirm with Stripe (res.data.stripe, amount = res.data.charge) or the BNB wallet (res.data.bnb).
+      }
+      setBusy(null);
+      setHeld(null);
+      setPhase({
+        name: "processing",
+        invoice,
+        checkout: res.data,
+        paymentId: res.data.paymentId,
+        payment: res.simulated ? fixturePayment("created", method, res.data.charge) : null,
+      });
+    },
+    [phase, busy, quoting, payCurrency, held, checkout],
+  );
+
+  return (
+    <main className={styles.page}>
+      <Body
+        phase={phase}
+        code={code}
+        now={now}
+        busy={busy}
+        checkoutError={checkoutError}
+        held={held && held.currency === payCurrency ? held.checkout : null}
+        payCurrency={payCurrency}
+        quoting={quoting}
+        onCurrency={onCurrency}
+        onPay={onPay}
+        onRetry={() => {
+          setHeld(null);
+          if (preview) setPhase(previewPhase(code, "open", fixtureKind));
+          else void load();
+        }}
+      />
+      <footer className={styles.footer}>
+        {usingFixtures ? <span className={styles.demo}>Demo data</span> : null}
+        <span>Rove · settles on XRPL</span>
+      </footer>
+    </main>
+  );
+}
+
+interface BodyProps {
+  phase: Phase;
+  code: string;
+  now: number;
+  busy: PayMethod | null;
+  checkoutError: string | null;
+  held: CheckoutView | null;
+  payCurrency: Currency | null;
+  quoting: boolean;
+  onCurrency: (c: Currency) => void;
+  onPay: (m: PayMethod) => void;
+  onRetry: () => void;
+}
+
+function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quoting, onCurrency, onPay, onRetry }: BodyProps) {
+  switch (phase.name) {
+    case "loading":
+      return (
+        <div className={styles.loading} aria-busy="true">
+          <div className={`${styles.skeleton} ${styles.skHeader}`} />
+          <div className={`${styles.skeleton} ${styles.skAmount}`} />
+          <div className={`${styles.skeleton} ${styles.skCard}`} />
+          <p className={styles.codeLine}>Code {code}</p>
+          <span className="sr-only">Loading payment…</span>
+        </div>
+      );
+
+    case "open": {
+      const { invoice } = phase;
+      const hint = expiryHint(invoice.expiresAt, now);
+      return (
+        <>
+          <MerchantHeader name={invoice.merchant.name} verified={invoice.merchant.verified} />
+          <section className={styles.hero} aria-busy={quoting || undefined}>
+            <ChargeAmount invoice={invoice} checkout={held} />
+            <p className={styles.meta}>
+              {hint ? <span suppressHydrationWarning>{hint}</span> : null}
+              {hint ? <span aria-hidden="true"> · </span> : null}
+              <span>
+                Code <span className={styles.code}>{invoice.code}</span>
+              </span>
+            </p>
+          </section>
+          {invoice.lines.length > 0 || invoice.note ? (
+            <Card>
+              {invoice.lines.length > 0 ? <LineItems lines={invoice.lines} total={invoice.total} /> : null}
+              {invoice.note ? (
+                <p className={styles.note}>
+                  <span className={styles.noteLabel}>Note</span>
+                  {invoice.note}
+                </p>
+              ) : null}
+            </Card>
+          ) : null}
+          {checkoutError ? (
+            <p className={styles.inlineError} role="alert">
+              {checkoutError}
+            </p>
+          ) : null}
+          {payCurrency ? <CurrencyToggle value={payCurrency} onChange={onCurrency} disabled={busy !== null || quoting} busy={quoting} /> : null}
+          <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+        </>
+      );
+    }
+
+    case "processing": {
+      const { invoice, checkout, payment } = phase;
+      return (
+        <>
+          <MerchantHeader name={invoice.merchant.name} verified={invoice.merchant.verified} />
+          <section className={styles.hero}>
+            <ChargeAmount invoice={invoice} checkout={checkout} payment={payment} />
+            <p className={styles.meta} aria-live="polite">
+              {payment && payment.status !== "created" ? "Payment received. Settling…" : "Processing your payment…"}
+            </p>
+          </section>
+          <Card>
+            <StatusStepper steps={steps(payment?.status, payment)} />
+          </Card>
+          <p className={styles.hintCenter}>You can keep this open. It updates by itself.</p>
+        </>
+      );
+    }
+
+    case "paid": {
+      const { invoice, checkout, payment } = phase;
+      return (
+        <>
+          <section className={styles.paidHero}>
+            <div className={styles.check} aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            </div>
+            <h1 className={styles.paidTitle}>Paid</h1>
+            <ChargeAmount invoice={invoice} checkout={checkout} payment={payment} />
+            {payment.charge ? null : <p className={styles.meta}>to {payment.merchantName || invoice.merchant.name}</p>}
+          </section>
+          <Card>
+            <StatusStepper steps={steps(payment.status, payment)} />
+          </Card>
+          <div className={styles.actions}>
+            <Button fullWidth href={`/r/${encodeURIComponent(payment.paymentId)}`}>
+              Receipt
+            </Button>
+            {payment.explorerUrl ? (
+              <Button fullWidth variant="secondary" href={payment.explorerUrl} target="_blank" rel="noopener noreferrer">
+                View on XRPL ↗
+              </Button>
+            ) : null}
+          </div>
+        </>
+      );
+    }
+
+    case "failed":
+      return (
+        <>
+          <MerchantHeader name={phase.invoice.merchant.name} verified={phase.invoice.merchant.verified} />
+          <StateBlock tone="error" title="Payment failed" line="You weren't charged. Try again or use another method." code={code} />
+          <Button fullWidth onClick={onRetry}>
+            Try again
+          </Button>
+        </>
+      );
+
+    case "closed": {
+      const { invoice, reason } = phase;
+      const what = invoice.kind === "invoice" ? "invoice" : "code";
+      const copy: Record<ClosedReason, { title: string; line: string; tone: "muted" | "success" }> = {
+        expired: { title: "This code has expired", line: `Ask ${invoice.merchant.name} for a new one.`, tone: "muted" },
+        already_paid: { title: "Already paid", line: `This ${what} has been paid. Nothing more to do.`, tone: "success" },
+        cancelled: { title: "Cancelled", line: `${invoice.merchant.name} cancelled this ${what}.`, tone: "muted" },
+      };
+      const c = copy[reason];
+      return (
+        <>
+          <MerchantHeader name={invoice.merchant.name} verified={invoice.merchant.verified} />
+          <StateBlock tone={c.tone} title={c.title} line={c.line} code={invoice.code} amount={format(invoice.total)} />
+        </>
+      );
+    }
+
+    case "not_found":
+      return <StateBlock tone="muted" title="Code not found" line="Check the code, or ask the shop for a new one." code={code} />;
+
+    case "error":
+      return (
+        <>
+          <StateBlock tone="error" title="Couldn't load this payment" line="Check your connection and try again." code={code} />
+          <Button fullWidth variant="secondary" onClick={onRetry}>
+            Try again
+          </Button>
+        </>
+      );
+  }
+}
+
+function StateBlock({ tone, title, line, code, amount }: { tone: "muted" | "success" | "error"; title: string; line: string; code: string; amount?: string }) {
+  const icon = tone === "success" ? "✓" : tone === "error" ? "!" : "–";
+  return (
+    <section className={styles.state} data-tone={tone}>
+      <div className={styles.stateIcon} aria-hidden="true">
+        {icon}
+      </div>
+      <h1 className={styles.stateTitle}>{title}</h1>
+      <p className={styles.stateLine}>{line}</p>
+      <p className={styles.codeLine}>
+        {amount ? `${amount} · ` : null}Code {code}
+      </p>
+    </section>
+  );
+}
