@@ -1,0 +1,85 @@
+/* Stripe Express Checkout + card fallback (SH-A3). Uses the globals.css tokens only. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.express {
+  min-height: 52px;
+}
+
+.express[aria-busy="true"] {
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.hidden {
+  display: none;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chev,
+.chevOpen {
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 150ms ease;
+}
+
+.chevOpen {
+  transform: rotate(90deg);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.error {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--error-soft);
+  color: var(--error);
+  font-size: 15px;
+}
+
+.back {
+  align-self: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 15px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.back:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

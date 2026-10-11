@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PAYMENT_CODE_RE, type Currency, type Money, type PaymentStatus } from "@rove/shared";
 import { Amount, Button, Card, LineItems, MerchantHeader, StatusStepper, type Step } from "../../../components";
+import { ExpressPay, clearStripeReturn, readStripeReturn, toIntent, type StripeIntent } from "../../../components/stripe/ExpressPay";
 import { format, shortHash } from "../../../lib/ui/format";
 import { contractMethod, getInvoice, getPayment, startCheckout, type PayMethod } from "./_api";
 import {
@@ -42,6 +43,9 @@ interface Held {
   method: "card" | "bnb";
   simulated: boolean;
 }
+
+/** A live card checkout waiting for the payer in Stripe's sheet (Apple Pay / Google Pay / Link / card form). */
+type Intent = StripeIntent<CheckoutView>;
 
 /** A fixture-mode settlement simulation in progress. */
 interface Sim {
@@ -166,14 +170,26 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
   const [payCurrency, setPayCurrency] = useState<Currency | null>(null);
   const [held, setHeld] = useState<Held | null>(null);
   const [quoting, setQuoting] = useState(false);
+  const [intent, setIntent] = useState<Intent | null>(null);
   const sim = useRef<Sim | null>(null);
+  /** Back from a Stripe redirect (3DS): resume polling that payment once the invoice has loaded. Read once. */
+  const stripeReturn = useRef<ReturnType<typeof readStripeReturn> | undefined>(undefined);
 
   useEffect(() => setPayCurrency(localeCurrency()), []);
 
   const load = useCallback(async () => {
     if (!PAYMENT_CODE_RE.test(code)) return setPhase({ name: "not_found" });
     setPhase({ name: "loading" });
+    if (stripeReturn.current === undefined) {
+      stripeReturn.current = readStripeReturn();
+      if (stripeReturn.current) clearStripeReturn();
+    }
+    const back = stripeReturn.current; // kept (not consumed) so a double-run effect resumes too; Try again clears it
     const res = await getInvoice(code);
+    if (res.ok && back && back.status !== "failed") {
+      return setPhase({ name: "processing", invoice: res.data, checkout: null, paymentId: back.paymentId, payment: null });
+    }
+    if (res.ok && back) setCheckoutError("Your payment didn't go through. Try again or use another method.");
     if (res.ok) return setPhase(phaseForInvoice(res.data));
     if (res.status === 404) return setPhase({ name: "not_found" });
     if (FIXTURES_ENABLED) {
@@ -271,6 +287,8 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
       const res = await checkout(phase.invoice, "card", currency);
       setQuoting(false);
       setHeld(res ? { checkout: res.data, currency, method: "card", simulated: res.simulated } : null);
+      // Stripe's sheet is open: swap it to the new currency's PaymentIntent (or close it if that failed).
+      setIntent((prev) => (prev ? toIntent(res, currency, prev.preferCard) : null));
     },
     [phase, busy, checkout],
   );
@@ -291,9 +309,17 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
       if (res.simulated) {
         sim.current = { start: Date.now(), method, charge: res.data.charge };
         await new Promise((r) => setTimeout(r, 600));
+      } else if (contractMethod(method) === "card") {
+        // Live card checkout: stay on this page with Stripe's sheet; ExpressPay → onStripePaid moves to processing.
+        sim.current = null;
+        setBusy(null);
+        setHeld(null);
+        const next = toIntent(res, currency, method === "card");
+        if (!next) return setCheckoutError("Couldn't start the card payment. Please try again.");
+        return setIntent(next);
       } else {
         sim.current = null;
-        // TODO SH-A3 / SH-A4: confirm with Stripe (res.data.stripe, amount = res.data.charge) or the BNB wallet (res.data.bnb).
+        // TODO SH-A4: confirm with the BNB wallet (res.data.bnb).
       }
       setBusy(null);
       setHeld(null);
@@ -308,6 +334,14 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
     [phase, busy, quoting, payCurrency, held, checkout],
   );
 
+  /** Stripe confirmed the PaymentIntent: poll our payment through the webhook (authorized) and settlement (settled). */
+  const onStripePaid = useCallback(() => {
+    if (phase.name !== "open" || !intent) return;
+    sim.current = null;
+    setPhase({ name: "processing", invoice: phase.invoice, checkout: intent.checkout, paymentId: intent.checkout.paymentId, payment: null });
+    setIntent(null);
+  }, [phase, intent]);
+
   return (
     <main className={styles.page}>
       <Body
@@ -316,13 +350,18 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
         now={now}
         busy={busy}
         checkoutError={checkoutError}
-        held={held && held.currency === payCurrency ? held.checkout : null}
+        held={intent ? intent.checkout : held && held.currency === payCurrency ? held.checkout : null}
+        intent={intent}
+        onStripePaid={onStripePaid}
+        onStripeCancel={() => setIntent(null)}
         payCurrency={payCurrency}
         quoting={quoting}
         onCurrency={onCurrency}
         onPay={onPay}
         onRetry={() => {
           setHeld(null);
+          setIntent(null);
+          stripeReturn.current = null;
           if (preview) setPhase(previewPhase(code, "open", fixtureKind));
           else void load();
         }}
@@ -347,9 +386,13 @@ interface BodyProps {
   onCurrency: (c: Currency) => void;
   onPay: (m: PayMethod) => void;
   onRetry: () => void;
+  intent: Intent | null;
+  onStripePaid: () => void;
+  onStripeCancel: () => void;
 }
 
-function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quoting, onCurrency, onPay, onRetry }: BodyProps) {
+function Body(props: BodyProps) {
+  const { phase, code, now, busy, checkoutError, held, payCurrency, quoting, onCurrency, onPay, onRetry, intent, onStripePaid, onStripeCancel } = props;
   switch (phase.name) {
     case "loading":
       return (
@@ -395,7 +438,11 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
             </p>
           ) : null}
           {payCurrency ? <CurrencyToggle value={payCurrency} onChange={onCurrency} disabled={busy !== null || quoting} busy={quoting} /> : null}
-          <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+          {intent ? (
+            quoting ? null : <ExpressPay key={intent.checkout.stripe.clientSecret} intent={intent} onPaid={onStripePaid} onCancel={onStripeCancel} />
+          ) : (
+            <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+          )}
         </>
       );
     }
