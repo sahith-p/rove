@@ -1,11 +1,11 @@
-# Saran: the agent (Photon runtime on iMessage + WhatsApp, Claude, onboarding, actions, voice)
+# Saran: the agent (Photon runtime on iMessage, Claude, onboarding, actions, voice)
 
 Specs: [agent](../docs/specs/agent.md) · [onboarding](../docs/specs/onboarding.md) · [channels](../docs/specs/channels.md) · [invoicing-and-qr](../docs/specs/invoicing-and-qr.md) (tools) · [voice](../docs/specs/voice.md) · consumer of [imessage-apps](../docs/specs/imessage-apps.md)
 
 ## Human (you)
 
-- [ ] **H1 (pre-G0)** Photon project · Meta WhatsApp app + test number · Anthropic key · ElevenLabs key + voice (event coupon) · ffmpeg · [docs/09](../docs/09-services-and-keys.md)
-- [ ] **H2 (11:30)** **Submit the `rove_invoice` WhatsApp template** (docs/specs/channels.md). Confirm "hello" from the Photon line reaches phones M and C. Share `SPECTRUM_*` with Sahith.
+- [ ] **H1 (pre-G0)** Photon project · Anthropic key · ElevenLabs key + voice (event coupon) · ffmpeg · [docs/09](../docs/09-services-and-keys.md)
+- [ ] **H2 (11:30)** Confirm "hello" from the Photon line reaches phones M and C. Share `SPECTRUM_*` with Sahith.
 - [ ] **H3 (12:45–13:00)** Gate **G2** with Sahith; test polls + tapback target.
 - [ ] **H4 (14:00)** Deploy agent to Railway; share `AGENT_URL`. **No redeploys during the demo.**
 - [ ] **H5 (15:30)** Gate **G4** on phone M.
@@ -16,7 +16,7 @@ Specs: [agent](../docs/specs/agent.md) · [onboarding](../docs/specs/onboarding.
 - [~] saran/agent
 - **Depends:** G0
 - **Paths:** `apps/agent/src/{index,runtime,personas}.ts`
-- **Do:** agent.md §1: iMessage + WhatsApp + terminal providers, `claim("spectrum:"+id)`, sender → `Recipient`, persona (merchant / onboarding / customer; merchants also get customer tools), content switch (text, voice, reaction, poll_option, contact), **payment-code fast path** (`PAYMENT_CODE_RE` → `pay_code`, no Claude), `space.responding`. Presenter: console mock or Sahith's.
+- **Do:** agent.md §1: iMessage + terminal providers, `claim("spectrum:"+id)`, sender → `Recipient`, persona (merchant / onboarding / customer; merchants also get customer tools), content switch (text, voice, reaction, poll_option, contact), **payment-code fast path** (`PAYMENT_CODE_RE` → `pay_code`, no Claude), `space.responding`. Presenter: console mock or Sahith's.
 - **Done when:** Terminal and phone messages route to the right persona stub; duplicates ignored.
 
 ### SA-A2 · Internal HTTP + events → messages · 60 min
@@ -37,7 +37,7 @@ Specs: [agent](../docs/specs/agent.md) · [onboarding](../docs/specs/onboarding.
 - [~] saran/agent
 - **Depends:** SA-A1, NI-C1, SH-B1 (setup/bank builders; console mock until then)
 - **Paths:** `apps/agent/src/onboarding.ts`
-- **Do:** onboarding.md: contact card share, name, **poll** for category, **setup card**, wait for `shop.updated` or menu text, `/internal/merchants`, confetti + sticker (`qrPng`/`stickerPng` from SH-B6), **bank card**. WhatsApp variant with numbered replies. State in the `onboarding` table.
+- **Do:** onboarding.md: contact card share, name, **poll** for category, **setup card**, wait for `shop.updated` or menu text, `/internal/merchants`, confetti + sticker (`qrPng`/`stickerPng` from SH-B6), **bank card**. State in the `onboarding` table.
 - **Done when:** Gate **G2b**.
 
 ## Lane B: Claude agent + tools
@@ -70,7 +70,7 @@ Specs: [agent](../docs/specs/agent.md) · [onboarding](../docs/specs/onboarding.
 - **Do:** ≥ 22 JSON cases from agent.md §7 (incl. codes, pay-by-text, merchant-as-customer) + runner (`pnpm --filter agent evals`) on the terminal provider + mocks.
 - **Done when:** 100% pass; re-run after prompt changes.
 
-## Lane C: Voice, proactive, WhatsApp
+## Lane C: Voice, proactive
 
 ### SA-C1 · Voice in · 30 min
 - [~] saran/agent
@@ -93,9 +93,5 @@ Specs: [agent](../docs/specs/agent.md) · [onboarding](../docs/specs/onboarding.
 - **Do:** Unpaid invoice nudge after 24h (once), `remind_invoice` backend, 21:00 voice recap (cut first if behind).
 - **Done when:** A backdated invoice gets exactly one reminder.
 
-### SA-C4 · WhatsApp polish · 45 min
-- [ ] status
-- **Depends:** SA-A1, SH-B4 (template send)
-- **Paths:** `apps/agent/src/runtime.ts` (WhatsApp branches), `apps/agent/src/onboarding.ts` (numbered replies)
-- **Do:** channels.md matrix: YES confirmations, numbered choices instead of polls, links instead of cards, template invoices once approved; phone normalization (digits ↔ E.164).
-- **Done when:** A merchant on WhatsApp can onboard, invoice an iMessage customer, and withdraw.
+### SA-C4 · ~~WhatsApp polish~~ · cut
+- [x] cut: WhatsApp dropped (iMessage only)
