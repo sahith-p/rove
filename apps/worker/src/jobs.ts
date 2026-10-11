@@ -5,6 +5,7 @@ import type { WorkerDeps } from "./deps";
 import { startExpiryJob } from "./expiry";
 import { startReconciler } from "./reconcile";
 import { startSettlePoller } from "./settle";
+import { startWithdrawalExpiryJob } from "./withdrawal-expiry";
 import { startAutoWithdrawJob } from "./withdrawals/auto";
 import { startPartnerCallbacks } from "./withdrawals/partner";
 
@@ -16,6 +17,7 @@ export function startJobs(deps: WorkerDeps): () => void {
     startAutoWithdrawJob(deps), // NI-C4
     startBnbWatcher(deps), // NI-C6
     startReconciler(deps), // NI-C7
+    startWithdrawalExpiryJob(deps), // NI-C7: requested withdrawals past their confirmation window → cancelled
   ];
   return () => {
     for (const stop of stoppers) {
