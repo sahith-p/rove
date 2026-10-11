@@ -57,7 +57,7 @@ export async function resolveLines(deps: Deps, merchant: Merchant, items?: ItemR
     currency,
   );
   if (!isPositive(total)) return { problem: "The amount must be more than zero." };
-  const cap = money(deps.config.maxInvoiceSgd, currency);
+  const cap = money(deps.config.maxInvoiceAmount, currency);
   if (cmp(total, cap) > 0) return { problem: `${format(total)} is over the ${format(cap)} limit for one payment.` };
   return { lines, total };
 }

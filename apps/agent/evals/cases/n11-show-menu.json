@@ -1,0 +1,21 @@
+{
+  "id": "n11-show-menu",
+  "description": "show the menu: menu card + items",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "what's on my menu right now?"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "show_menu"
+    ],
+    "replyMatches": [
+      "chicken rice"
+    ]
+  }
+}

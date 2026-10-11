@@ -1,0 +1,24 @@
+{
+  "id": "n06-raw-phone",
+  "description": "invoice to a raw phone number with a free amount",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "invoice +6591234567 for 10"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "create_invoice"
+    ],
+    "sends": [
+      {
+        "kind": "invoice",
+        "contains": "10.00"
+      }
+    ]
+  }
+}

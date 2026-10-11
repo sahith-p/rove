@@ -23,7 +23,7 @@ export function moneyTools(ctx: ToolContext) {
   return [
     defineTool(
       "get_sales",
-      "Sales totals for today, yesterday, or the last 7 days (Singapore time).",
+      "Sales totals for today, yesterday, or the last 7 days (the shop's local time).",
       MerchantToolInputs.get_sales,
       async ({ range }) => {
         const now = deps.now().getTime();

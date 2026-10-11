@@ -1,0 +1,26 @@
+{
+  "id": "n13-remove-item",
+  "description": "remove an item from the menu",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "take add egg off the menu"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "update_menu_item"
+    ],
+    "toolInput": [
+      {
+        "tool": "update_menu_item",
+        "match": {
+          "remove": true
+        }
+      }
+    ]
+  }
+}

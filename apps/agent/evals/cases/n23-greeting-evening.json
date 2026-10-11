@@ -1,0 +1,19 @@
+{
+  "id": "n23-greeting-evening",
+  "description": "greeting at 8:30pm local: no 'morning'",
+  "as": "merchant",
+  "now": "2026-10-13T03:30:00Z",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "hey"
+      }
+    }
+  ],
+  "expect": {
+    "replyNotMatches": [
+      "morning"
+    ]
+  }
+}

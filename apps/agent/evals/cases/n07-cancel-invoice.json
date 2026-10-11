@@ -1,0 +1,26 @@
+{
+  "id": "n07-cancel-invoice",
+  "description": "cancel an open invoice by code",
+  "as": "merchant",
+  "setup": {
+    "invoiceCustomer": {
+      "amount": "9.00"
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "cancel invoice $invoiceCode please"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "cancel_invoice"
+    ],
+    "replyMatches": [
+      "cancel"
+    ]
+  }
+}

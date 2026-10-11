@@ -3,6 +3,7 @@
 // 16 kHz mono WAV with ffmpeg first, and any format STT rejects is converted and retried once.
 // Out: ElevenLabs Text-to-Speech (eleven_flash_v2_5, mp3) → ffmpeg AAC in .m4a so iMessage shows a voice bubble.
 
+import { speakAmounts } from "./currency";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -137,17 +138,11 @@ function shorten(text: string): string {
 }
 
 /**
- * Text → something TTS reads naturally. Amounts: "S$12.50" → "12 dollars 50", "S$5.00" → "5 dollars",
- * "US$3.20" → "3 US dollars 20". Strips emoji and symbols TTS would read out loud.
+ * Text → something TTS reads naturally. Amounts in any registry currency: "S$12.50" → "12 dollars 50",
+ * "€4.20" → "4 euros 20", "US$3.00" → "3 US dollars". Strips emoji and symbols TTS would read out loud.
  */
-export function speakable(text: string): string {
-  return text
-    .replace(/(US|S)\$\s?(\d[\d,]*)(?:\.(\d{1,2}))?/g, (_m, cur: string, whole: string, cents?: string) => {
-      const dollars = whole.replace(/,/g, "");
-      const unit = cur === "US" ? (dollars === "1" ? "US dollar" : "US dollars") : dollars === "1" ? "dollar" : "dollars";
-      const c = cents ? cents.padEnd(2, "0") : "";
-      return c && c !== "00" ? `${dollars} ${unit} ${c}` : `${dollars} ${unit}`;
-    })
+export function speakable(text: string, localCurrency?: string): string {
+  return speakAmounts(text, localCurrency)
     .replace(/••••/g, "ending ")
     .replace(/[✓✔]/g, "")
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "")

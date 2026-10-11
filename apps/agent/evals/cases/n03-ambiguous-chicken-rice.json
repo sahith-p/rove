@@ -1,0 +1,18 @@
+{
+  "id": "n03-ambiguous-chicken-rice",
+  "description": "'a chicken rice' must not become Roasted chicken rice (S$6.00)",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "invoice Maya a chicken rice"
+      }
+    }
+  ],
+  "expect": {
+    "textNotMatches": [
+      "request for S\\$6\\.00"
+    ]
+  }
+}

@@ -148,8 +148,8 @@ export function customerTools(ctx: ToolContext): BetaRunnableTool[] {
           currency,
         );
         if (!isPositive(total)) throw new ToolError("The amount must be more than zero.");
-        if (cmp(total, money(deps.config.maxInvoiceSgd, currency)) > 0) {
-          throw new ToolError(`That's over the ${format(money(deps.config.maxInvoiceSgd, currency))} limit for one payment.`);
+        if (cmp(total, money(deps.config.maxInvoiceAmount, currency)) > 0) {
+          throw new ToolError(`That's over the ${format(money(deps.config.maxInvoiceAmount, currency))} limit for one payment.`);
         }
 
         const invoice = await store.createInvoice({

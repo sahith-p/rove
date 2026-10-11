@@ -1,0 +1,21 @@
+{
+  "id": "n22-greeting-morning",
+  "description": "greeting at 9:30am local: no evening/afternoon",
+  "as": "merchant",
+  "now": "2026-10-12T16:30:00Z",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "hi!"
+      }
+    }
+  ],
+  "expect": {
+    "replyNotMatches": [
+      "evening",
+      "afternoon",
+      "good night"
+    ]
+  }
+}

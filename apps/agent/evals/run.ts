@@ -4,6 +4,11 @@
 //
 //   pnpm --filter agent evals                 all cases
 //   pnpm --filter agent evals --only <id>     one case (repeatable)
+//   pnpm --filter agent evals --repeat 3      run each selected case 3 times, report per-case pass rate
+//   pnpm --filter agent evals --concurrency 4 run up to 4 cases at once (default 1)
+//
+// Every reply in every case must also pass the global reply checks (globalReplyProblems): no markdown, no leaked
+// internal markup, no raw ids (inv_…, pay_…) unless the case sets allowIds, at most 400 characters.
 //
 // Without ANTHROPIC_API_KEY only the cases that never reach Claude run (fast paths, onboarding, confirms);
 // the rest print SKIP.
@@ -49,6 +54,10 @@ const CaseZ = z.object({
   as: z.enum(["merchant", "customer", "stranger"]),
   /** Set false for cases that never reach Claude (they also run without ANTHROPIC_API_KEY). */
   needsClaude: z.boolean().optional(),
+  /** Fixed clock for the whole case (ISO), e.g. to check greetings at a given local time. */
+  now: z.string().optional(),
+  /** Replies may mention raw ids (inv_…, pay_…, act_…) without failing the global check. */
+  allowIds: z.boolean().optional(),
   setup: z
     .object({
       addBank: z.boolean().optional(),
@@ -107,6 +116,17 @@ function partialMatch(actual: unknown, expected: unknown): boolean {
 
 const re = (s: string) => new RegExp(s, "i");
 
+/** Checks every reply must pass: it's a text message from a person, not a system dump. */
+function globalReplyProblems(body: string, allowIds: boolean): string[] {
+  const out: string[] = [];
+  const quote = JSON.stringify(body.length > 160 ? `${body.slice(0, 160)}…` : body);
+  if (/\*\*|^\s*#{1,6}\s|^\s*[-*•]\s/m.test(body)) out.push(`reply has markdown: ${quote}`);
+  if (/antml|<\/?(thinking|reasoning|system|function_calls|invoke|parameter)\b/i.test(body)) out.push(`reply leaks markup: ${quote}`);
+  if (!allowIds && /\b(inv|pay|act|wd|ref|evt|ct|item|bank|led)_[a-z0-9]{4,}/i.test(body)) out.push(`reply shows a raw id: ${quote}`);
+  if (body.length > 400) out.push(`reply is ${body.length} chars (max 400): ${quote}`);
+  return out;
+}
+
 function fill(text: string, vars: Record<string, string>): string {
   return text.replace(/\$(\w+)/g, (m, k: string) => vars[k] ?? m);
 }
@@ -125,7 +145,9 @@ interface Outcome {
 async function runCase(c: Case): Promise<Outcome> {
   const record: RecordedSend[] = [];
   const replies: { body: string; messageId: string }[] = [];
+  const fixedNow = c.now ? new Date(c.now) : null;
   const agent = buildAgent({
+    ...(fixedNow ? { now: () => fixedNow } : {}),
     outbox: createConsoleOutbox({ log: () => {}, record }),
     config: { ...config, offline: true, mockCards: true },
     mockStepDelayMs: 0,
@@ -319,6 +341,7 @@ async function runCase(c: Case): Promise<Outcome> {
     if (n !== count) reasons.push(`worker.${method} called ${n}×, expected ${count}`);
   }
   if (turnResults.some((t) => t.refused)) reasons.push("a turn ended in a refusal");
+  for (const r of replies) reasons.push(...globalReplyProblems(r.body, c.allowIds ?? false));
   return { status: reasons.length ? "FAIL" : "PASS", reasons };
 }
 
@@ -333,32 +356,54 @@ const cases = files.map((f) => {
 });
 
 const argv = process.argv.slice(2);
-const only = argv.flatMap((a, i) => (a === "--only" && argv[i + 1] ? [argv[i + 1]!] : []));
+const flag = (name: string) => argv.flatMap((a, i) => (a === name && argv[i + 1] ? [argv[i + 1]!] : []));
+const only = flag("--only");
+const repeat = Math.max(1, Number(flag("--repeat")[0] ?? 1));
+const concurrency = Math.max(1, Number(flag("--concurrency")[0] ?? 1));
 const selected = only.length ? cases.filter((c) => only.includes(c.id)) : cases;
 const hasKey = Boolean(process.env.ANTHROPIC_API_KEY);
 
+interface Run {
+  c: Case;
+  n: number;
+}
+const runnable = selected.filter((c) => !((c.needsClaude ?? c.expect.claudeCalled !== false) && !hasKey));
+const skipped = selected.filter((c) => !runnable.includes(c));
+for (const c of skipped) console.log(`SKIP  ${c.id}  (needs ANTHROPIC_API_KEY)`);
+
+const queue: Run[] = runnable.flatMap((c) => Array.from({ length: repeat }, (_, n) => ({ c, n: n + 1 })));
+const results = new Map<string, Outcome[]>();
 let pass = 0;
 let fail = 0;
-let skip = 0;
-for (const c of selected) {
-  const needsClaude = c.needsClaude ?? c.expect.claudeCalled !== false;
-  if (needsClaude && !hasKey) {
-    skip++;
-    console.log(`SKIP  ${c.id}  (needs ANTHROPIC_API_KEY)`);
-    continue;
+
+async function worker(): Promise<void> {
+  for (let run = queue.shift(); run; run = queue.shift()) {
+    const { c, n } = run;
+    const started = Date.now();
+    let outcome: Outcome;
+    try {
+      outcome = await runCase(c);
+    } catch (err) {
+      outcome = { status: "FAIL", reasons: [`threw: ${err instanceof Error ? err.message : String(err)}`] };
+    }
+    const ms = Date.now() - started;
+    if (outcome.status === "PASS") pass++;
+    else fail++;
+    results.set(c.id, [...(results.get(c.id) ?? []), outcome]);
+    const tag = repeat > 1 ? ` #${n}` : "";
+    const lines = [`${outcome.status}  ${c.id}${tag}  (${ms} ms)  ${c.description}`, ...outcome.reasons.map((r) => `      - ${r}`)];
+    console.log(lines.join("\n"));
   }
-  const started = Date.now();
-  let outcome: Outcome;
-  try {
-    outcome = await runCase(c);
-  } catch (err) {
-    outcome = { status: "FAIL", reasons: [`threw: ${err instanceof Error ? err.message : String(err)}`] };
-  }
-  const ms = Date.now() - started;
-  if (outcome.status === "PASS") pass++;
-  else fail++;
-  console.log(`${outcome.status}  ${c.id}  (${ms} ms)  ${c.description}`);
-  for (const r of outcome.reasons) console.log(`      - ${r}`);
 }
-console.log(`\n${pass} passed · ${fail} failed · ${skip} skipped · ${selected.length} total`);
+await Promise.all(Array.from({ length: concurrency }, () => worker()));
+
+if (repeat > 1) {
+  console.log("\nPer-case pass rate:");
+  for (const c of runnable) {
+    const rs = results.get(c.id) ?? [];
+    const ok = rs.filter((r) => r.status === "PASS").length;
+    console.log(`  ${ok === rs.length ? "  " : "!!"} ${ok}/${rs.length}  ${c.id}`);
+  }
+}
+console.log(`\n${pass} passed · ${fail} failed · ${skipped.length} skipped · ${runnable.length * repeat + skipped.length} total`);
 process.exit(fail ? 1 : 0);

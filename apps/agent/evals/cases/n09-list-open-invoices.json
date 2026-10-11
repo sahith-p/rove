@@ -1,0 +1,21 @@
+{
+  "id": "n09-list-open-invoices",
+  "description": "list unpaid invoices",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "which invoices are still unpaid?"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "list_invoices"
+    ],
+    "replyMatches": [
+      "6\\.50"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "n05-over-cap",
+  "description": "invoice over the S$500 demo cap is refused",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "invoice Maya 600"
+      }
+    }
+  ],
+  "expect": {
+    "noSends": [
+      "invoice"
+    ],
+    "replyMatches": [
+      "500|limit|max|cap"
+    ]
+  }
+}

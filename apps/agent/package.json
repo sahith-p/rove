@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc -p tsconfig.json",
     "evals": "tsx evals/run.ts",
+    "deploy-smoke": "tsx scripts/deploy-smoke.ts",
     "test": "tsx --test \"src/**/*.test.ts\" \"test/**/*.test.ts\"",
     "test:integration": "tsx --test \"test/**/*.test.ts\""
   },

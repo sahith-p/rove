@@ -1,0 +1,29 @@
+{
+  "id": "n12-update-price",
+  "description": "change a price",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "change barley to 1.80"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "update_menu_item"
+    ],
+    "toolInput": [
+      {
+        "tool": "update_menu_item",
+        "match": {
+          "price": "1.80"
+        }
+      }
+    ],
+    "replyMatches": [
+      "1\\.80"
+    ]
+  }
+}
