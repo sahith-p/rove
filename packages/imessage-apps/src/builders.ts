@@ -209,26 +209,26 @@ export function layoutFor<K extends keyof CardBuilders>(kind: K, v: Parameters<C
   const name = () => clip(a.merchant.name, 28);
   switch (kind) {
     case "setup":
-      return { caption: name(), trailingCaption: "Edit menu", summary };
+      return { caption: name(), trailingCaption: "Edit menu", trailingSubcaption: "Tap to edit", summary };
     case "bank":
-      return { caption: "Add your bank", summary };
+      return { caption: "Add your bank", trailingSubcaption: "Tap to add · secure", summary };
     case "shop":
-      return { caption: name(), summary };
+      return { caption: name(), trailingSubcaption: "Tap to open", summary };
     case "menu":
-      return { caption: name(), trailingCaption: "Menu", summary };
+      return { caption: name(), trailingCaption: "Menu", trailingSubcaption: "Tap to order", summary };
     case "invoice": {
       const inv = a.invoice;
       const status = inv.status === "paid" ? "Paid ✓" : inv.status === "expired" ? "Expired" : inv.status === "cancelled" ? "Cancelled" : undefined;
-      return { caption: name(), trailingCaption: format(inv.total), ...(status ? { trailingSubcaption: status } : {}), summary };
+      return { caption: name(), trailingCaption: format(inv.total), trailingSubcaption: status ?? "Tap to pay", summary };
     }
     case "receipt":
-      return { caption: name(), trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "", summary };
+      return { caption: name(), trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "Receipt", summary };
     case "sale":
-      return { caption: "New sale", trailingCaption: format(a.payment.local), summary };
+      return { caption: "New sale", trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "Received", summary };
     case "withdrawal":
       return { caption: "Withdrawal", trailingCaption: format(a.withdrawal.amount), trailingSubcaption: WITHDRAWAL_PILL[a.withdrawal.status as WithdrawalStatus], summary };
     case "confirm":
-      return { caption: clip(a.summary, 30), trailingCaption: "Confirm", summary };
+      return { caption: clip(a.summary, 30), trailingCaption: "Confirm", trailingSubcaption: "Tap to confirm", summary };
     default:
       return { summary };
   }
