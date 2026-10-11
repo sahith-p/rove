@@ -76,6 +76,8 @@ create table if not exists payments (
   quote_rate            numeric(18,8),
   quote_send_max_usd    numeric(18,6),
   quote_expires_at      timestamptz,
+  charge_amount         numeric(18,2),                         -- what the payer was charged, in their own currency
+  charge_currency       text,                                  -- 'USD' | 'SGD' (the card leg never converts)
   method                text not null check (method in ('apple_pay','card','bnb')),
   status                text not null default 'created'
                         check (status in ('created','authorized','settling','settled','partially_refunded','refunded','failed')),

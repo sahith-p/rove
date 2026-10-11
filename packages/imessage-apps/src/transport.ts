@@ -79,7 +79,14 @@ export function createSpectrumTransport(spectrum: SpectrumInstance): CardTranspo
   async function createSpace(to: Recipient): Promise<Space> {
     if (to.channel === "imessage") {
       const im = imessage(spectrum as unknown as IMessageSpectrum);
-      return im.space.create(await im.user(imessageAddress(to.phone)));
+      // Photon shared-pool lines (Free/Pro) reject space.create() for proactive sends ("Target not allowed for this
+      // project"), but address an existing DM by its chat GUID fine. Verified live on 2026-10-11. Try get, then create.
+      const address = imessageAddress(to.phone);
+      try {
+        return await im.space.get(`any;-;${address}`);
+      } catch {
+        return im.space.create(await im.user(address));
+      }
     }
     const wa = whatsappBusiness(spectrum as unknown as WhatsAppSpectrum);
     return wa.space.create(await wa.user(whatsappAddress(to.phone)));

@@ -24,7 +24,7 @@ Owner: **Nithya** · Code: `packages/xrpl`, `apps/worker` · Contract: `Settleme
 1. `client.fundWallet()` per platform account (skip if `.env.seed` has it and `account_info` works).
 2. **`AccountSet SetFlag: 8` (asfDefaultRipple) on both issuers before any trust line.** Without it tokens can't move through the AMM.
 3. `TrustSet` from TREASURY, LP, REDEMPTION to both issuers.
-4. Mint: issuer → LP (10,000 RLUSD; 12,900 XSGD); issuer → TREASURY (5,000 RLUSD).
+4. Mint: issuer → LP (10,000 RLUSD; 12,900 XSGD); issuer → TREASURY (5,000 RLUSD; 5,000 XSGD float for SGD payers, see payments-stripe.md §1a).
 5. `AMMCreate` from LP: 10,000 RLUSD / 12,900 XSGD, `TradingFee: 30`. xrpl.js `autofill` sets the special AMMCreate fee.
 6. Create demo merchant `ahseng` via `createMerchantAccount()`.
 7. Write `.env.seed`; print explorer links.
@@ -57,6 +57,7 @@ const tx: Payment = {
 };
 const res = await client.submitAndWait(tx, { wallet: treasury, autofill: true });
 ```
+- `from` follows the payer's currency (payments-stripe.md §1a). `"USD"` (default, also BNB) is the transaction above: the only currency change, a swap at market rate through the AMM. `"SGD"` sends the treasury's XSGD directly: same `Amount` and `InvoiceID`, no `SendMax` or `Paths`, so there's no swap at all.
 - Success = `meta.TransactionResult === "tesSUCCESS"`; record `meta.delivered_amount` (must equal `local.amount`). No `tfPartialPayment`.
 - Then: payment `settled`, invoice `paid`, ledger `payment_credit` (ref = paymentId), event `payment.settled`.
 - Errors: `tecPATH_PARTIAL` / `tecPATH_DRY` → re-quote once, retry, then fail + Stripe auto-refund; `tecNO_LINE` → fix merchant trust line; `tefPAST_SEQ` → retry.

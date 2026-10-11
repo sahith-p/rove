@@ -97,11 +97,16 @@ export const CheckoutReq = z.object({
   method: z.enum(["card", "bnb"]),
   /** optional "text me the receipt" */
   payerPhone: E164.optional(),
+  /** Currency the payer is charged in, so the card leg never crosses a currency (no card FX). Page sends the locale
+   *  guess or the user's toggle; omitted → payer phone country (+65 → SGD), else USD. Ignored for bnb (always USD). */
+  payCurrency: CurrencyZ.optional(),
 });
 export const CheckoutRes = z.object({
   paymentId: z.string(),
   local: MoneyZ,
   quote: QuoteZ,
+  /** Exactly what the payer is charged, in their own currency (Apple Pay sheet amount). Always set by the server. */
+  charge: MoneyZ.optional(),
   /** method=card: Stripe Express Checkout (Apple Pay / Google Pay / card) */
   stripe: z.object({ clientSecret: z.string() }).optional(),
   /** method=bnb: send test USDT on BSC testnet to this per-payment deposit address (Privy wallet) */
@@ -113,6 +118,8 @@ export const PaymentStatusRes = z.object({
   paymentId: z.string(),
   status: PaymentStatusZ,
   local: MoneyZ,
+  /** What the payer was charged, in their currency (receipt: "You paid US$9.72"). */
+  charge: MoneyZ.optional(),
   merchantName: z.string(),
   lines: z.array(InvoiceLineZ),
   method: z.enum(["apple_pay", "card", "bnb"]),
