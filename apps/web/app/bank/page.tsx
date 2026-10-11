@@ -3,17 +3,21 @@
 // Must work in Safari AND inside Messages (Spectrum iMessage App card). Mobile-first, no navigation.
 // The full account number only ever lives in the client form state until it's POSTed; never in the URL or logs.
 import type { Metadata } from "next";
+import { previewMetadata } from "../../lib/og/metadata";
 import { readSession } from "../../lib/ui/session";
 import { BankForm } from "./BankForm";
 import { LockIcon } from "./icons";
 import styles from "./bank.module.css";
 
-export const metadata: Metadata = {
-  title: "Add your bank · Rove",
-  robots: { index: false, follow: false },
-  // The session token is in the URL; don't leak it to anything this page links to.
-  referrer: "no-referrer",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return previewMetadata({
+    title: "Add your bank · Rove",
+    description: "Securely add the bank account Rove pays out to. Rove only keeps the last 4 digits.",
+    robots: { index: false, follow: false },
+    // The session token is in the URL; don't leak it to anything this page links to.
+    referrer: "no-referrer",
+  });
+}
 
 const DEMO = process.env.NEXT_PUBLIC_DEMO_FIXTURES === "1";
 
