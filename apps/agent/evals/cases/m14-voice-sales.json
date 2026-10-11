@@ -1,0 +1,26 @@
+{
+  "id": "m14-voice-sales",
+  "description": "voice note asking about today: get_sales",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "voice",
+        "transcript": "how much did I make today?"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "get_sales"
+    ],
+    "toolInput": [
+      {
+        "tool": "get_sales",
+        "match": {
+          "range": "today"
+        }
+      }
+    ]
+  }
+}

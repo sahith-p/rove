@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, test } from "node:test";
 import type { Db } from "@rove/db";
 import { createTestDb } from "@rove/db/testing";
 import { AddBankAccountRes, SESSION_HEADER, TOKEN_TTL_SEC, type BeneficiaryInput, type PayoutPartner } from "@rove/shared";
-import { createMockPayoutPartner } from "@rove/shared/mocks";
+import { DEMO_MERCHANT, createMockPayoutPartner } from "@rove/shared/mocks";
 import { setWebDepsForTests } from "../../_lib/deps";
 import { sessionToken, useWebTestDeps, type WebTestDeps } from "../../_lib/testing";
 import { POST } from "./route";
@@ -25,7 +25,7 @@ let h: Harness;
 
 async function setup(payouts: PayoutPartner = createMockPayoutPartner(20)): Promise<Harness> {
   const db = await createTestDb();
-  await db.upsertDraftMerchant({ id: MERCHANT, name: "Ah Seng Chicken Rice", phone: "+15555550100", channel: "imessage" });
+  await db.upsertDraftMerchant({ id: MERCHANT, name: "Ah Seng Chicken Rice", phone: DEMO_MERCHANT.phone, channel: "imessage" });
   await db.upsertDraftMerchant({ id: "otherco", name: "Other Co", phone: "+15555550111", channel: "whatsapp" });
   const dbCalls: unknown[][] = [];
   const partnerCalls: BeneficiaryInput[] = [];

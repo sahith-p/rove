@@ -1,0 +1,35 @@
+{
+  "id": "c06-pay-shop-items",
+  "description": "pay a shop by text with menu items, priced from the DB",
+  "as": "customer",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "pay ahseng 2 chicken rice"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "pay_shop"
+    ],
+    "toolInput": [
+      {
+        "tool": "pay_shop",
+        "match": {
+          "shop": "ahseng"
+        }
+      }
+    ],
+    "textMatches": [
+      "11\\.00"
+    ],
+    "sends": [
+      {
+        "kind": "invoice",
+        "to": "customer"
+      }
+    ]
+  }
+}
