@@ -1,0 +1,159 @@
+/* /confirm/[actionId] (SH-B5). Tokens from app/globals.css. Fits a ~375px iMessage App card. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 8px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Two-tone headline: dark line, gray line. */
+.headline {
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.headlineSub {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.timerCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.timerIcon {
+  display: inline-flex;
+  color: var(--muted);
+}
+
+.timerIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.timerText {
+  color: var(--muted);
+}
+
+.timer {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hint {
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.security {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.security svg {
+  flex: none;
+}
+
+.resultBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.result h2 {
+  margin-top: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+.badgeSuccess {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.badgeError {
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+.badgeBusy {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.badgeMuted {
+  background: var(--card);
+  color: var(--muted);
+}
+
+.bigSpinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bigSpinner {
+    animation-duration: 2s;
+  }
+}
