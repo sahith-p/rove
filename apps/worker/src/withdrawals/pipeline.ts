@@ -61,10 +61,21 @@ export async function emitUpdate(deps: WorkerDeps, w: Withdrawal): Promise<void>
   });
 }
 
-/** CAS + emit. Null (and no event) when the withdrawal wasn't in `from`. */
-async function move(deps: WorkerDeps, w: Withdrawal, from: WithdrawalStatus[], to: WithdrawalStatus, patch?: WithdrawalPatch) {
+/**
+ * CAS, then `book` (the step's ledger entry), then emit: by the time the agent hears about a status, the ledger already
+ * matches the chain. Null (nothing booked, no event) when the withdrawal wasn't in `from`.
+ */
+async function move(
+  deps: WorkerDeps,
+  w: Withdrawal,
+  from: WithdrawalStatus[],
+  to: WithdrawalStatus,
+  patch?: WithdrawalPatch,
+  book?: () => Promise<unknown>,
+) {
   const next = await deps.db.transitionWithdrawal(w.id, from, to, patch);
   if (!next) return null;
+  if (book) await book();
   pipelineLog(deps).info(`withdrawal ${to}`, {
     id: w.id,
     merchantId: w.merchantId,
@@ -142,7 +153,7 @@ async function sendOnchain(deps: WorkerDeps, w: Withdrawal): Promise<boolean> {
 
   let settled: Withdrawal | null;
   try {
-    settled = await move(deps, pending, ["onchain_pending"], "onchain_settled", { sweepTxHash: txHash });
+    settled = await move(deps, pending, ["onchain_pending"], "onchain_settled", { sweepTxHash: txHash }, () => debit(deps, w));
   } catch (err) {
     // The XSGD left but we couldn't record it: the row stays onchain_pending without a hash, which resume treats as
     // "needs a human" rather than sending again. Log the hash so they can finish it by hand.
@@ -153,9 +164,12 @@ async function sendOnchain(deps: WorkerDeps, w: Withdrawal): Promise<boolean> {
     log.error("on-chain transfer validated but the withdrawal had moved on: MANUAL REVIEW", { id: w.id, tx: txHash });
     return false;
   }
-  await deps.db.appendLedger({ merchantId: w.merchantId, kind: "withdrawal_debit", amount: w.amount, ref: w.id });
   return true;
 }
+
+/** −held: the XSGD left the merchant's account. Idempotent on (withdrawal_debit, id). */
+const debit = (deps: WorkerDeps, w: Withdrawal) =>
+  deps.db.appendLedger({ merchantId: w.merchantId, kind: "withdrawal_debit", amount: w.amount, ref: w.id });
 
 /** Failure before any XSGD left: CAS to failed, then release the hold. */
 async function fail(deps: WorkerDeps, w: Withdrawal, from: WithdrawalStatus[], reason: string, err: unknown): Promise<void> {
@@ -181,8 +195,7 @@ export function onchainFailureReason(err: unknown, w: Pick<Withdrawal, "destinat
  */
 async function settleOrFlagOnchain(deps: WorkerDeps, w: Withdrawal): Promise<boolean> {
   if (w.sweepTxHash) {
-    const settled = await move(deps, w, ["onchain_pending"], "onchain_settled", { sweepTxHash: w.sweepTxHash });
-    if (settled) await deps.db.appendLedger({ merchantId: w.merchantId, kind: "withdrawal_debit", amount: w.amount, ref: w.id });
+    await move(deps, w, ["onchain_pending"], "onchain_settled", { sweepTxHash: w.sweepTxHash }, () => debit(deps, w));
     return true;
   }
   pipelineLog(deps).error(
@@ -197,8 +210,8 @@ async function settleOrFlagOnchain(deps: WorkerDeps, w: Withdrawal): Promise<boo
 /** onchain_settled: make sure the debit is booked, then wallet → completed, bank → create the payout. */
 async function afterOnchain(deps: WorkerDeps, w: Withdrawal): Promise<boolean> {
   const log = pipelineLog(deps);
-  // Idempotent: normally a no-op (booked right after the transfer); covers a crash between the CAS and the append.
-  await deps.db.appendLedger({ merchantId: w.merchantId, kind: "withdrawal_debit", amount: w.amount, ref: w.id });
+  // Idempotent: normally a no-op (booked with the onchain_settled CAS); covers a crash between the CAS and the append.
+  await debit(deps, w);
 
   if (w.destination.kind === "xrpl_wallet") {
     await move(deps, w, ["onchain_settled"], "completed");
@@ -280,12 +293,13 @@ export async function applyPayout(deps: WorkerDeps, s: PartnerPayoutStatus): Pro
   }
   const returned = await returnToMerchant(deps, w, merchant);
   if (!returned) return;
-  const next = await move(deps, w, AFTER_SWEEP, "returned", { partnerPayoutId: s.partnerPayoutId, failureReason: RETURNED_REASON });
+  const next = await move(deps, w, AFTER_SWEEP, "returned", { partnerPayoutId: s.partnerPayoutId, failureReason: RETURNED_REASON }, () =>
+    deps.db.appendLedger({ merchantId: w.merchantId, kind: "withdrawal_return", amount: returned.delivered, ref: w.id }),
+  );
   if (!next) {
     log.error("return transfer sent but the withdrawal had moved on: MANUAL REVIEW (possible double return)", { id: w.id, tx: returned.txHash });
     return;
   }
-  await deps.db.appendLedger({ merchantId: w.merchantId, kind: "withdrawal_return", amount: returned.delivered, ref: w.id });
   log.warn("payout bounced; XSGD returned to the merchant", { id: w.id, partnerReason: s.failureReason, tx: returned.txHash });
 }
 

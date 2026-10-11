@@ -54,7 +54,7 @@ describe("PUT /api/me/shop", () => {
   });
 
   test("invalid bodies → 400", async () => {
-    for (const body of [{ name: "A" }, { name: "  A  " }, { currency: "USD" }, { category: "x".repeat(41) }, "not json"]) {
+    for (const body of [{ name: "A" }, { name: "  A  " }, { currency: "JPY" }, { category: "x".repeat(41) }, "not json"]) {
       const res = await call(body, setup());
       assert.equal(res.status, 400, JSON.stringify(body));
     }

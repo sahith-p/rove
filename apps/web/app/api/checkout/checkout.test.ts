@@ -333,6 +333,6 @@ describe("POST /api/checkout · lanes and failures", () => {
     const r = await checkout({ target: { source: "invoice" }, method: "card" });
     assert.equal(r.status, 400);
     assert.equal(r.body.error, "invalid_body");
-    await expectError(byCode("K7Q2MX", { payCurrency: "EUR" }), 400, "invalid_body");
+    await expectError(byCode("K7Q2MX", { payCurrency: "JPY" }), 400, "invalid_body"); // not in the currency registry
   });
 });

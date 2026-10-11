@@ -1,7 +1,10 @@
 // Money is always a decimal string + currency. Never use JS floats for amounts.
 // All arithmetic goes through bigint minor units.
+// Currencies, decimals and symbols come from the registry (currencies.ts).
 
-export type Currency = "SGD" | "USD";
+import { CURRENCY_CODES, currencyInfo, type Currency } from "./currencies";
+
+export type { Currency };
 
 export interface Money {
   /** Decimal string, e.g. "6.50". Up to `DECIMALS[currency]` places. */
@@ -9,9 +12,9 @@ export interface Money {
   currency: Currency;
 }
 
-export const DECIMALS: Record<Currency, number> = { SGD: 2, USD: 2 };
+export const DECIMALS = Object.fromEntries(CURRENCY_CODES.map((c) => [c, currencyInfo(c).decimals])) as Record<Currency, number>;
 
-const SYMBOL: Record<Currency, string> = { SGD: "S$", USD: "US$" };
+const SYMBOL = Object.fromEntries(CURRENCY_CODES.map((c) => [c, currencyInfo(c).symbol])) as Record<Currency, string>;
 
 const DECIMAL_RE = /^\d+(\.\d+)?$/;
 
