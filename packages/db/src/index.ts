@@ -38,6 +38,8 @@ import type {
   WithdrawalId,
   WithdrawalStatus,
 } from "@rove/shared";
+import { postgresPool } from "./executor";
+import { makeDb } from "./impl";
 
 // ------------------------------------------------------------------ inputs
 
@@ -278,9 +280,19 @@ export interface Db {
 /** Unique-constraint conflicts that callers handle (e.g. a second authorization for the same invoice). */
 export { DbConflictError } from "./errors";
 
-/** Postgres over `DATABASE_URL` (Supabase transaction pooler in deploys). */
-export function createDb(_opts: { url?: string } = {}): Db {
-  throw new Error("not implemented: NI-B1");
+/**
+ * Postgres over `DATABASE_URL` (Supabase transaction pooler in deploys). `max` caps this process's connections
+ * (default 5). `close()` ends the pool.
+ */
+export function createDb(opts: { url?: string; max?: number } = {}): Db {
+  const url = opts.url ?? process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      "@rove/db: DATABASE_URL is not set. Use the Supabase transaction pooler URL (Connect → Transaction pooler, port 6543). " +
+        "Tests should use createTestDb() from @rove/db/testing instead.",
+    );
+  }
+  return makeDb(postgresPool(url, { max: opts.max }));
 }
 
 let shared: Db | undefined;
