@@ -2,7 +2,7 @@
 // /pay/[code] state machine: loading → open → (checkout) → processing (poll) → paid, plus closed / not found / failed.
 // Amounts only ever come from the API (or fixtures in demo mode), never from the URL.
 // The payer is charged in their own currency (`charge`, payments-stripe.md §1a): SGD total until checkout quotes it.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PAYMENT_CODE_RE, type Currency, type Money, type PaymentStatus } from "@rove/shared";
 import { ArrowUpRight, Check, CircleAlert, Clock, Receipt, RotateCw, SearchX, X } from "lucide-react";
 import {
@@ -18,6 +18,7 @@ import {
   StatusStepper,
   type Step,
 } from "../../../components";
+import type { CryptoHandlers, CryptoMethod } from "../../../components/privy/lazy";
 import { ExpressPay, clearStripeReturn, readStripeReturn, toIntent, type StripeIntent } from "../../../components/stripe/ExpressPay";
 import { format, shortHash } from "../../../lib/ui/format";
 import { contractMethod, getInvoice, getPayment, startCheckout, type PayMethod } from "./_api";
@@ -126,7 +127,15 @@ function expiryHint(iso: string, now: number): string | null {
   return `Expires ${date}`;
 }
 
-function steps(status: PaymentStatus | undefined, payment: PaymentView | null): Step[] {
+/** What "Payment received" waits on, by lane. */
+function waitingDetail(checkout: CheckoutView | null, payment: PaymentView | null): string {
+  const method = payment?.method ?? (checkout?.bnb ? "bnb" : checkout?.ausd ? "ausd" : "card");
+  if (method === "bnb") return "Waiting for BNB Chain confirmations…";
+  if (method === "ausd") return "Relaying your AUSD on Base…";
+  return "Confirming with your bank…";
+}
+
+function steps(status: PaymentStatus | undefined, payment: PaymentView | null, checkout: CheckoutView | null = null): Step[] {
   const s = status ?? "created";
   if (s === "failed") {
     return [
@@ -138,7 +147,7 @@ function steps(status: PaymentStatus | undefined, payment: PaymentView | null): 
   const settled = SETTLED.includes(s);
   const received = s !== "created";
   return [
-    { label: "Payment received", state: received ? "done" : "current", detail: received ? undefined : "Confirming with your bank…" },
+    { label: "Payment received", state: received ? "done" : "current", detail: received ? undefined : waitingDetail(checkout, payment) },
     {
       label: "Settling on XRPL",
       state: settled ? "done" : received ? "current" : "todo",
@@ -341,8 +350,8 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
         if (!next) return setCheckoutError("Couldn't start the card payment. Please try again.");
         return setIntent(next);
       } else {
+        // Crypto methods go through PayOptions' `crypto` handlers (components/privy), not onPay.
         sim.current = null;
-        // TODO SH-A4: confirm with the BNB wallet (res.data.bnb).
       }
       setBusy(null);
       setHeld(null);
@@ -355,6 +364,30 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
       });
     },
     [phase, busy, quoting, payCurrency, held, checkout],
+  );
+
+  /** Crypto lanes (SH-A4): the buttons in components/privy run the wallet steps; the page owns checkout and polling. */
+  const crypto = useMemo<CryptoHandlers>(
+    () => ({
+      start: async (method: CryptoMethod) => {
+        if (phase.name !== "open") return null;
+        const invoice = phase.invoice;
+        setCheckoutError(null);
+        const res = await checkout(invoice, method, "USD");
+        if (!res) return null;
+        if (!res.simulated) return res.data;
+        // Demo mode (no backend): no wallet step, just run the simulated settlement.
+        sim.current = { start: Date.now(), method, charge: res.data.charge };
+        setPhase({ name: "processing", invoice, checkout: res.data, paymentId: res.data.paymentId, payment: fixturePayment("created", method, res.data.charge) });
+        return null;
+      },
+      submitted: (c: CheckoutView) => {
+        sim.current = null;
+        setHeld(null);
+        setPhase((prev) => (prev.name === "open" ? { name: "processing", invoice: prev.invoice, checkout: c, paymentId: c.paymentId, payment: null } : prev));
+      },
+    }),
+    [phase, checkout],
   );
 
   /** Stripe confirmed the PaymentIntent: poll our payment through the webhook (authorized) and settlement (settled). */
@@ -377,6 +410,7 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
         intent={intent}
         onStripePaid={onStripePaid}
         onStripeCancel={() => setIntent(null)}
+        crypto={crypto}
         payCurrency={payCurrency}
         quoting={quoting}
         onCurrency={onCurrency}
@@ -411,10 +445,11 @@ interface BodyProps {
   intent: Intent | null;
   onStripePaid: () => void;
   onStripeCancel: () => void;
+  crypto: CryptoHandlers;
 }
 
 function Body(props: BodyProps) {
-  const { phase, code, now, busy, checkoutError, held, payCurrency, quoting, onCurrency, onPay, onRetry, intent, onStripePaid, onStripeCancel } = props;
+  const { phase, code, now, busy, checkoutError, held, payCurrency, quoting, onCurrency, onPay, onRetry, intent, onStripePaid, onStripeCancel, crypto } = props;
   switch (phase.name) {
     case "loading":
       return (
@@ -472,7 +507,7 @@ function Body(props: BodyProps) {
             {intent ? (
               quoting ? null : <ExpressPay key={intent.checkout.stripe.clientSecret} intent={intent} onPaid={onStripePaid} onCancel={onStripeCancel} />
             ) : (
-              <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+              <PayOptions onPay={onPay} busy={busy} disabled={quoting} crypto={crypto} />
             )}
           </div>
         </>
@@ -491,7 +526,7 @@ function Body(props: BodyProps) {
             <p className={styles.statusLine} aria-live="polite">
               {payment && payment.status !== "created" ? "Payment received. Settling…" : "Processing your payment…"}
             </p>
-            <StatusStepper steps={steps(payment?.status, payment)} />
+            <StatusStepper steps={steps(payment?.status, payment, checkout)} />
           </Card>
           <p className={styles.hintCenter}>You can keep this open. It updates by itself.</p>
         </>

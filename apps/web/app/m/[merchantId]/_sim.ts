@@ -31,10 +31,10 @@ function demoId(): string {
 }
 
 /** What checkout would return: USD payers (and every BNB payer) pay the USD quote; SGD payers pay the local total. */
-export function simCheckout(local: Money, payCurrency: Currency, method: "card" | "bnb"): CheckoutView {
+export function simCheckout(local: Money, payCurrency: Currency, method: "card" | "bnb" | "ausd"): CheckoutView {
   const usd = toUsd(local);
   const sendMax = fromMinor((toMinor(usd) * 101n + 99n) / 100n, "USD");
-  const charge = method === "bnb" || payCurrency === "USD" ? usd : local;
+  const charge = method !== "card" || payCurrency === "USD" ? usd : local;
   return CheckoutRes.parse({
     paymentId: demoId(),
     local,
