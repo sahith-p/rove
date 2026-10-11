@@ -61,6 +61,20 @@ describe("PUT /api/me/shop", () => {
     assert.deepEqual(deps.events, []);
   });
 
+  test("currency: any enabled one before the XRPL account exists (country follows); after that → 409 currency_locked", async () => {
+    assert.equal((await call({ currency: "EUR" }, setup())).status, 204);
+    const m = await deps.db.getMerchant("ahseng");
+    assert.deepEqual([m?.currency, m?.country], ["EUR", "DE"]);
+    assert.deepEqual(deps.events, [{ type: "shop.updated", merchantId: "ahseng", fields: ["currency"] }]);
+
+    await deps.db.setMerchantXrpl("ahseng", { xrplAddress: "rTESTAHSENG", xrplSeedEnc: "enc:test", credentialStatus: "accepted" });
+    const res = await call({ currency: "SGD" }, setup());
+    assert.equal(res.status, 409);
+    assert.equal(((await res.json()) as { error: string }).error, "currency_locked");
+    assert.equal((await deps.db.getMerchant("ahseng"))?.currency, "EUR");
+    assert.equal((await call({ name: "Café Ah Seng", currency: "EUR" }, setup())).status, 204, "the same currency is fine");
+  });
+
   test("a session for a shop that no longer exists → 404", async () => {
     const res = await call({ name: "Ghost Shop" }, token({ merchantId: "ghost", scope: "setup" }));
     assert.equal(res.status, 404);

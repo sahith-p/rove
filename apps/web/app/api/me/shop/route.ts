@@ -1,6 +1,7 @@
 // PUT /api/me/shop (setup scope) UpdateShopReq → 204, emits shop.updated with the fields that actually changed
 // Owner: Nithya · Task: NI-B5 · Spec: docs/specs/payments-stripe.md §5, docs/specs/web-app.md · Schemas: @rove/shared api.ts
 // The setup page sends name + category + currency on every save; only real changes reach the agent.
+// Currency: any enabled one while the shop has no XRPL account yet; after that a change → 409 currency_locked.
 
 import { UpdateShopReq, type Merchant } from "@rove/shared";
 import { getWebDeps } from "../../_lib/deps";
@@ -27,6 +28,15 @@ export const PUT = route(async (req) => {
   const deps = getWebDeps();
   const before = await deps.db.getMerchant(session.merchantId);
   if (!before) throw new HttpError(404, "merchant_not_found", "We couldn't find your shop. Text Rove for a new link.");
+  // Once the custodial XRPL account exists, it trusts only the original currency's stablecoin and the ledger is in that
+  // currency, so switching would strand settlements (corridors.md §7). Before that, any enabled currency is fine.
+  if (patch.currency !== undefined && patch.currency !== before.currency && before.xrplAddress) {
+    throw new HttpError(
+      409,
+      "currency_locked",
+      `Your shop already takes payments in ${before.currency}. Changing the currency after setup isn't supported yet.`,
+    );
+  }
   const after = await deps.db.updateShop(before.id, patch);
   if (!after) throw new HttpError(404, "merchant_not_found", "We couldn't find your shop. Text Rove for a new link.");
 

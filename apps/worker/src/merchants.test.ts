@@ -35,6 +35,20 @@ describe("POST /internal/merchants (createMerchant)", () => {
     assert.equal(deps.events.length, 1, "no second merchant.live");
   });
 
+  test("an EUR shop gets an EUR account (trust lines to its currency) and the registry's default country", async () => {
+    const fake = createFakeDb();
+    const { engine, counts } = createFastSettlement();
+    const deps = await createTestDeps({ db: fake.db, settlement: engine });
+
+    await createMerchant(deps, { ...body, id: "cafe-berlin", name: "Café Berlin", phone: "+4915112345678", currency: "EUR", category: "cafe" });
+    assert.deepEqual(counts.currencies, ["EUR"]);
+    assert.deepEqual([fake.merchants.get("cafe-berlin")?.currency, fake.merchants.get("cafe-berlin")?.country], ["EUR", "DE"]);
+
+    await createMerchant(deps, { ...body, id: "kaffeehaus", name: "Kaffeehaus", phone: "+4366400001111", currency: "EUR", category: "cafe", country: "AT" });
+    assert.deepEqual(counts.currencies, ["EUR", "EUR"]);
+    assert.equal(fake.merchants.get("kaffeehaus")?.country, "AT");
+  });
+
   test("concurrent calls share one run", async () => {
     const fake = createFakeDb();
     const { engine, counts } = createFastSettlement();

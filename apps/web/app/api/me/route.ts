@@ -24,11 +24,16 @@ function sameAmount(a: Money, b: Money): boolean {
   return a.currency === b.currency && toUnits(a.amount, 18) === toUnits(b.amount, 18);
 }
 
-/** The merchant's XSGD on XRPL, or null when unknown (no account, engine error, timeout). Never throws. */
+/** The merchant's stablecoin on XRPL in their currency (XSGD, EUR, …), or null when unknown (no account, engine error,
+ *  timeout). Never throws. */
 async function xrplBalance(deps: Pick<WebDeps, "settlement">, merchant: Merchant): Promise<Money | null> {
   if (!merchant.xrplAddress) return null;
   try {
-    return await withTimeout(deps.settlement.balance({ merchantAddress: merchant.xrplAddress }), RECONCILE_TIMEOUT_MS, "balance");
+    return await withTimeout(
+      deps.settlement.balance({ merchantAddress: merchant.xrplAddress, currency: merchant.currency }),
+      RECONCILE_TIMEOUT_MS,
+      "balance",
+    );
   } catch (err) {
     console.warn(`[api] /api/me: XRPL balance for ${merchant.id} unavailable; omitting reconciled:`, err instanceof Error ? err.message : err);
     return null;

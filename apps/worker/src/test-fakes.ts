@@ -2,7 +2,7 @@
 // anything bigger should use createTestDeps() (real SQL via PGlite) once NI-B1 lands.
 
 import type { Db, NewDraftMerchant } from "@rove/db";
-import type { BankAccount, CredentialStatus, EventEnvelope, Merchant, SettlementEngine } from "@rove/shared";
+import { defaultCountryFor, type BankAccount, type CredentialStatus, type Currency, type EventEnvelope, type Merchant, type SettlementEngine } from "@rove/shared";
 import { createMockSettlement } from "@rove/shared/mocks";
 
 export interface FakeDb {
@@ -42,7 +42,7 @@ export function createFakeDb(): FakeDb {
             phone: m.phone,
             channel: m.channel,
             category: m.category ?? null,
-            country: "SG" as const,
+            country: m.country ?? defaultCountryFor(m.currency ?? "SGD") ?? "SG",
             currency: m.currency ?? "SGD",
             xrplAddress: null,
             credentialStatus: "none" as CredentialStatus,
@@ -95,11 +95,12 @@ export function createFakeDb(): FakeDb {
 /** Mock engine without the 800ms sleep, counting createMerchantAccount calls. `onCreate` runs inside it (seed store). */
 export function createFastSettlement(onCreate?: (merchantId: string, address: string) => Promise<void>) {
   const base = createMockSettlement();
-  const counts = { createMerchantAccount: 0 };
+  const counts = { createMerchantAccount: 0, currencies: [] as (Currency | undefined)[] };
   const engine: SettlementEngine = {
     ...base,
-    async createMerchantAccount({ merchantId }) {
+    async createMerchantAccount({ merchantId, currency }) {
       counts.createMerchantAccount++;
+      counts.currencies.push(currency);
       const xrplAddress = `rFAKE${merchantId.toUpperCase().replace(/[^A-Z0-9]/g, "")}${counts.createMerchantAccount}`;
       await onCreate?.(merchantId, xrplAddress);
       return { xrplAddress, credentialStatus: "accepted" };
