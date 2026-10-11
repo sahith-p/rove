@@ -1,0 +1,34 @@
+{
+  "id": "m05-withdraw-propose",
+  "description": "withdraw everything: proposes, asks to confirm, executes nothing",
+  "as": "merchant",
+  "setup": {
+    "addBank": true
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "withdraw everything"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "propose_withdrawal"
+    ],
+    "replyMatches": [
+      "👍|confirm|YES"
+    ],
+    "workerCalls": [
+      {
+        "method": "createWithdrawal",
+        "count": 1
+      },
+      {
+        "method": "executeWithdrawal",
+        "count": 0
+      }
+    ]
+  }
+}

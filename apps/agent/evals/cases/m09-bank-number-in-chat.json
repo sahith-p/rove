@@ -1,0 +1,24 @@
+{
+  "id": "m09-bank-number-in-chat",
+  "description": "bank number pasted in chat: not echoed; bank card sent",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "my account number is 123456789, DBS, please withdraw there"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "open_bank_setup"
+    ],
+    "replyNotMatches": [
+      "123456789"
+    ],
+    "textNotMatches": [
+      "123456789"
+    ]
+  }
+}

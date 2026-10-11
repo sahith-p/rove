@@ -1,0 +1,35 @@
+{
+  "id": "m01-menu-add",
+  "description": "merchant adds two menu items with exact prices",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "add chicken rice 5.50 and barley 1.50"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "add_menu_items"
+    ],
+    "toolInput": [
+      {
+        "tool": "add_menu_items",
+        "match": {
+          "items": [
+            {
+              "name": "chicken rice",
+              "price": "5.50"
+            },
+            {
+              "name": "barley",
+              "price": "1.50"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

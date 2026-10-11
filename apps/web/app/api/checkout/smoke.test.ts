@@ -12,6 +12,7 @@ import { setWebDepsForTests } from "../_lib/deps";
 import { TEST_WEB_CONFIG, useWebTestDeps, type WebTestDeps } from "../_lib/testing";
 import { POST as webhookPOST } from "../stripe/webhook/route";
 import { POST } from "./route";
+import { DEMO_CUSTOMER } from "@rove/shared/mocks";
 
 const key = process.env.STRIPE_SECRET_KEY ?? "";
 const enabled = /^sk_test_.+/.test(key);
@@ -63,7 +64,7 @@ describe("Stripe sandbox smoke (NI-B2 + NI-B3)", { skip: enabled ? false : "STRI
     deps.db.createInvoice({
       merchantId: "ahseng",
       kind: "invoice",
-      to: { phone: "+15555550199", channel: "imessage" },
+      to: { phone: DEMO_CUSTOMER.phone, channel: "imessage" },
       lines: [{ menuItemId: "item_chicken_rice", name: "Chicken rice", qty: 2, unit: money("5.50", "SGD") }, { menuItemId: "item_barley", name: "Barley drink", qty: 1, unit: money("1.50", "SGD") }],
       total: money("12.50", "SGD"),
     });

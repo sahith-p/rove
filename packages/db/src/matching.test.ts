@@ -5,10 +5,16 @@ import { after, before, describe, it } from "node:test";
 import type { Db } from "./index";
 import { levenshtein, matchName, normalizeName } from "./match";
 import { liveMerchant, openTestDb } from "./testkit";
+import { DEMO_CUSTOMER, DEMO_MERCHANT } from "@rove/shared/mocks";
+
+/** A US demo number split the way people type it: "+14708209753" → ["470", "820", "9753"]. */
+const usParts = (e164: string) => [e164.slice(2, 5), e164.slice(5, 8), e164.slice(8)] as const;
+const usLocal = (e164: string) => usParts(e164).join(" ");
+const usDialed = (e164: string) => { const [a, b, c] = usParts(e164); return `+1 (${a}) ${b}-${c}`; };
 
 let db: Db;
 before(async () => {
-  ({ db } = await openTestDb({ demo: true })); // ahseng (live, +15555550100) with DEMO_MENU and Maya
+  ({ db } = await openTestDb({ demo: true })); // ahseng (live, DEMO_MERCHANT.phone) with DEMO_MENU and Maya
   await liveMerchant(db, "kopi-uncle", "Kopi Uncle", "+6591234567");
   await liveMerchant(db, "ahsengnoodle", "Ah Seng Noodles", "+6598765432");
   await db.upsertDraftMerchant({ id: "draftshop", name: "Draft Kitchen", phone: "+6597770000", channel: "whatsapp" });
@@ -85,8 +91,8 @@ describe("findShop", () => {
     assert.equal((await shop("+65 9123 4567")).merchant, "kopi-uncle");
     assert.equal((await shop("6591234567")).merchant, "kopi-uncle");
     assert.equal((await shop("9123-4567")).merchant, "kopi-uncle"); // local SG number
-    assert.equal((await shop("+1 (555) 555-0100")).merchant, "ahseng");
-    assert.equal((await shop("555 555 0100")).merchant, "ahseng"); // US number without +1
+    assert.equal((await shop(usDialed(DEMO_MERCHANT.phone))).merchant, "ahseng");
+    assert.equal((await shop(usLocal(DEMO_MERCHANT.phone))).merchant, "ahseng"); // US number without +1
     assert.deepEqual(await shop("+65 9000 0000"), { merchant: null, candidates: [] });
   });
 
@@ -126,8 +132,8 @@ describe("contacts", () => {
     assert.deepEqual(await by("tan"), { contact: "John Tan", suggestions: [] });
     assert.deepEqual(await by("jon tan"), { contact: "John Tan", suggestions: [] });
     assert.deepEqual(await by("Jhon"), { contact: null, suggestions: ["+6592223333"] });
-    assert.deepEqual(await by("maya"), { contact: null, suggestions: ["+15555550199", "+6591110000"] }); // two Mayas: ask
-    assert.deepEqual(await by("+1 555 555 0199"), { contact: "Maya", suggestions: [] });
+    assert.deepEqual(await by("maya"), { contact: null, suggestions: [DEMO_CUSTOMER.phone, "+6591110000"] }); // two Mayas: ask
+    assert.deepEqual(await by(`+1 ${usLocal(DEMO_CUSTOMER.phone)}`), { contact: "Maya", suggestions: [] });
     assert.deepEqual(await by("zzz"), { contact: null, suggestions: [] });
   });
 

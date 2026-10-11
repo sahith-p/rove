@@ -1,0 +1,25 @@
+{
+  "id": "m17-what-can-you-do",
+  "description": "capabilities question: short answer, no money tools, no markdown",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "what can you do?"
+      }
+    }
+  ],
+  "expect": {
+    "notTools": [
+      "create_invoice",
+      "propose_withdrawal",
+      "propose_refund",
+      "create_one_time_qr"
+    ],
+    "replyNotMatches": [
+      "\\*\\*",
+      "^#"
+    ]
+  }
+}

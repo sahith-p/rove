@@ -1,0 +1,27 @@
+{
+  "id": "m15-voice-invoice",
+  "description": "voice note invoice behaves like text",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "voice",
+        "transcript": "invoice Maya two chicken rice"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "create_invoice"
+    ],
+    "replyMatches": [
+      "11\\.00"
+    ],
+    "sends": [
+      {
+        "kind": "invoice",
+        "to": "customer"
+      }
+    ]
+  }
+}

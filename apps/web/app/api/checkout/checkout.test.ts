@@ -2,16 +2,18 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { createTestDb } from "@rove/db/testing";
 import { CheckoutRes, money, type InvoiceLine, type Recipient } from "@rove/shared";
+import { setAusdDepsForTests } from "../_lib/ausd";
 import { setWebDepsForTests } from "../_lib/deps";
 import { useWebTestDeps, type WebTestDeps } from "../_lib/testing";
 import { createFakeStripe, stripeError, type FakeStripe } from "../stripe/fake-stripe";
 import { POST } from "./route";
 import { payerCurrency } from "./target";
+import { DEMO_CUSTOMER } from "@rove/shared/mocks";
 
 // createTestDb({ demo: true }): live merchant "ahseng" with item_chicken_rice 5.50, item_roasted 6.00, item_egg 1.00,
 // item_barley 1.50 (SGD). Mock settlement: 1.2900 SGD per USD, so S$12.50 → US$9.69.
 
-const MAYA: Recipient = { phone: "+15555550199", channel: "imessage" };
+const MAYA: Recipient = { phone: DEMO_CUSTOMER.phone, channel: "imessage" };
 const SG_PAYER: Recipient = { phone: "+6591234567", channel: "whatsapp" };
 const LINES: InvoiceLine[] = [
   { menuItemId: "item_chicken_rice", name: "Chicken rice", qty: 2, unit: money("5.50", "SGD") },
@@ -304,10 +306,18 @@ describe("POST /api/checkout · reuse", () => {
 });
 
 describe("POST /api/checkout · lanes and failures", () => {
-  test("bnb and ausd answer 501 from their own branches, after the target is validated", async () => {
+  test("unconfigured ausd answers 503 from its own branch, after the target is validated (bnb: bnb.test.ts)", async () => {
     const inv = await invoice();
-    await expectError(byCode(inv.code, { method: "bnb" }), 501, "bnb_not_ready");
-    await expectError(byCode(inv.code, { method: "ausd" }), 501, "ausd_not_ready");
+    // The AUSD lane itself is tested in ../ausd/authorize/authorize.test.ts; without AUSD_PAY_TO it is off.
+    const savedPayTo = process.env.AUSD_PAY_TO;
+    delete process.env.AUSD_PAY_TO;
+    setAusdDepsForTests(null);
+    try {
+      await expectError(byCode(inv.code, { method: "ausd" }), 503, "ausd_not_configured");
+    } finally {
+      if (savedPayTo !== undefined) process.env.AUSD_PAY_TO = savedPayTo;
+      setAusdDepsForTests(null);
+    }
     await expectError(byCode("ZZZZZZ", { method: "bnb" }), 404, "invoice_not_found");
     assert.equal(fake.calls.create.length, 0);
   });

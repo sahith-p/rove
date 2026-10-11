@@ -1,0 +1,19 @@
+{
+  "id": "s01-onboarding-start",
+  "description": "a stranger saying hi starts onboarding and is asked for the shop name",
+  "as": "stranger",
+  "needsClaude": false,
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "hi"
+      }
+    }
+  ],
+  "expect": {
+    "textMatches": [
+      "shop called|name of your shop|what.?s your shop"
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "c08-pay-shop-amount",
+  "description": "pay a shop a free amount",
+  "as": "customer",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "pay ahseng 6.50"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "pay_shop"
+    ],
+    "toolInput": [
+      {
+        "tool": "pay_shop",
+        "match": {
+          "amount": "6.50"
+        }
+      }
+    ],
+    "sends": [
+      {
+        "kind": "invoice",
+        "to": "customer"
+      }
+    ]
+  }
+}

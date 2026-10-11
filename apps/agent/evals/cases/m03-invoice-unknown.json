@@ -1,0 +1,21 @@
+{
+  "id": "m03-invoice-unknown",
+  "description": "unknown contact: asks for the number, no invoice sent",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "invoice Bob 10"
+      }
+    }
+  ],
+  "expect": {
+    "replyMatches": [
+      "number|phone"
+    ],
+    "noSends": [
+      "invoice"
+    ]
+  }
+}
