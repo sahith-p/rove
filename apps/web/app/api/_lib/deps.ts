@@ -59,17 +59,10 @@ export function xrplExplorerUrl(txHash: string): string {
   return `https://testnet.xrpl.org/transactions/${txHash}`;
 }
 
-/**
- * Real read-only engine, loaded on first use so routes that don't touch XRPL keep working.
- * TODO(NI-A3/NI-A4): apps/web needs `"@rove/xrpl": "workspace:*"` in package.json and "@rove/xrpl" in next.config
- * transpilePackages (requested from the owners). Then replace the throw with:
- *   const { createXrplSettlement, xrplConfigFromEnv } = await import("@rove/xrpl");
- *   return createXrplSettlement(xrplConfigFromEnv());   // no SeedStore: the web can't sign
- */
+/** Read-only XRPL engine for the web: quote, verified badge, balance. No SeedStore, so it can't sign anything. */
 async function loadXrplReadOnly(): Promise<WebSettlement> {
-  throw new Error(
-    "Real XRPL settlement isn't wired into apps/web yet (needs @rove/xrpl as a web dependency, NI-A3). Set USE_MOCK_SETTLEMENT=1.",
-  );
+  const { createXrplSettlement, xrplConfigFromEnv } = await import("@rove/xrpl");
+  return createXrplSettlement(xrplConfigFromEnv());
 }
 
 function lazyXrplSettlement(): WebSettlement {

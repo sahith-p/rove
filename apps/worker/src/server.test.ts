@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import type { SettlementEngine } from "@rove/shared";
-import { UserFacingError } from "./errors";
+import { notImplemented, UserFacingError } from "./errors";
 import { createLogger } from "./log";
 import { createServer } from "./server";
 import { createFakeDb, createFastSettlement } from "./test-fakes";
@@ -93,8 +93,15 @@ describe("validation", () => {
 
 describe("error mapping", () => {
   test("stubbed handlers answer 501 not_implemented", async () => {
-    const { server } = await app();
-    const res = await server.request("/internal/settle", post("/internal/settle", { paymentId: "pay_1" }));
+    // Independent of which routes are still stubs: any handler throwing notImplemented() maps to 501.
+    const stubbed: SettlementEngine = {
+      ...createFastSettlement().engine,
+      createMerchantAccount: async () => {
+        throw notImplemented("NI-XX", "This step");
+      },
+    };
+    const { server } = await app({ settlement: stubbed });
+    const res = await server.request("/internal/merchants", post("/internal/merchants", merchantBody));
     assert.equal(res.status, 501);
     const json = await read(res);
     assert.equal(json.error, "not_implemented");

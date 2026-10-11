@@ -110,3 +110,5 @@ Session = `x-rove-session: <signToken(MerchantSessionPayload)>`, which the page 
 | G0 | Initial contracts (messaging-first design) | — |
 | proposed | Charge the payer in their own currency (no card FX): optional `CheckoutReq.payCurrency`, `CheckoutRes.charge`, `PaymentStatusRes.charge`, `Payment.charge`, `SettlementEngine.settle({ from })`; `payments.charge_amount/charge_currency`. See payments-stripe.md §1a | Nithya (proposer); needs one more owner |
 | proposed | Optional `MeRes.reconciled` (the "Ledger ✓ matches XRPL" flag; name matches what SH-C3 `/shop` already reads) · optional `PaymentStatusRes.createdAt/refunded/payerName/merchantVerified` (Sahith 14:20 request) | Nithya (proposer); needs one more owner |
+| proposed | AUSD lane (Agora track): `"ausd"` in `CheckoutReq.method`, `PaymentStatusRes.method`, `PaymentMethod`; optional `CheckoutRes.ausd` (ERC-3009 authorization to sign); new `AusdAuthorizeReq` + `ROUTES.ausdAuthorize`; payments method check updated | Nithya (proposer); needs one more owner |
+| 14:45 | `CardBuilders.withdrawal` input: optional `actionId`, `confirmToken` (step-up link) | Sahith (optional field) |

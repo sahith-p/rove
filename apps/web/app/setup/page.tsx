@@ -2,14 +2,20 @@
 // Owner: Sahith · Task: SH-B2 · Spec: docs/specs/web-app.md, docs/specs/onboarding.md (step 4)
 // Must work in Safari AND inside Messages (Spectrum iMessage App card). Mobile-first, no navigation.
 import type { Metadata } from "next";
+import { previewMetadata } from "../../lib/og/metadata";
 import { readSession } from "../../lib/ui/session";
 import { fixtureSetup } from "./_fixtures";
 import { Expired, SetupApp } from "./SetupApp";
 
-export const metadata: Metadata = {
-  title: "Set up your shop · Rove",
-  description: "Edit your shop name, category and menu.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return previewMetadata({
+    title: "Set up your shop · Rove",
+    description: "Edit your shop name, category and menu.",
+    robots: { index: false, follow: false },
+    // The session token is in the URL; don't leak it to anything this page links to.
+    referrer: "no-referrer",
+  });
+}
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
