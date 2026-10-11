@@ -4,11 +4,12 @@ import { createSeedStore } from "./deps";
 import { createMerchant, MOCK_SEED_PLACEHOLDER } from "./merchants";
 import { createFakeDb, createFastSettlement } from "./test-fakes";
 import { createTestDeps, TEST_CONFIG } from "./testing";
+import { DEMO_MERCHANT } from "@rove/shared/mocks";
 
 const body = {
   id: "ahseng",
   name: "Ah Seng Chicken Rice",
-  phone: "+15555550100",
+  phone: DEMO_MERCHANT.phone,
   channel: "imessage" as const,
   currency: "SGD" as const,
   category: "hawker",

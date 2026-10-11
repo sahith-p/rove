@@ -6,7 +6,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 
 - [~] **H1 (pre-G0)** done: Stripe sandbox keys, Supabase project `rove` + schema, `INTERNAL_SECRET`, `WALLET_ENCRYPTION_KEY`. Left: Railway, BNB faucet, `BSC_DEPOSIT_MNEMONIC`. · Stripe test keys · Supabase + run `packages/db/schema.sql` · Railway (worker + agent services) · BNB testnet faucet · `INTERNAL_SECRET`, `WALLET_ENCRYPTION_KEY`, `BSC_DEPOSIT_MNEMONIC` · [docs/09](../docs/09-services-and-keys.md)
 - [~] **H2 (11:30)** Credentials: enabled on testnet (verified in NI-A4). RLUSD testnet issuer: still to ask. · Ripple table: Credentials on testnet? testnet RLUSD issuer? Log answers.
-- [ ] **H3 (12:00)** Stripe → Payment method domains → add the Vercel domain (Apple Pay).
+- [x] **H3 (12:00)** done via the Stripe API: Apple Pay active on rove-topaz.vercel.app · Stripe → Payment method domains → add the Vercel domain (Apple Pay).
 - [~] **H4 (12:30)** G1 passed; flip `USE_MOCK_SETTLEMENT=0` when the worker deploys. · Gate **G1**, then `USE_MOCK_SETTLEMENT=0`.
 - [ ] **H5 (14:00)** Deploy worker to Railway; share `WORKER_URL`.
 
@@ -108,14 +108,14 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** Gate **G3** money path with the real engine; duplicates don't double-settle.
 
 ### NI-C3 · Create withdrawal (limits, fee, step-up) · 40 min
-- [~] nithya/NI-C3-C4-withdrawals
+- [x] 1974c49, cab4666 (limits, fee, step-up rules, wallet trust-line pre-check)
 - **Depends:** NI-C1, NI-B1
 - **Paths:** `apps/worker/src/withdrawals/create.ts`
 - **Do:** withdrawals.md §3a: validate amount vs available + `WITHDRAWAL_LIMITS`, destination (default bank / wallet trust line), fee, `needs_step_up` → `requested` → `InternalCreateWithdrawalRes`.
 - **Done when:** Over-limit, no-bank and wallet-without-trust-line cases return clear errors the agent can say.
 
 ### NI-C4 · Withdrawal pipeline: GATE G4 · 90 min
-- [~] nithya/NI-C3-C4-withdrawals
+- [x] 352e89c … 69ab808 (every docs/06 §3 path tested; `withdraw-smoke ahseng 10` walks to completed FAST-487107 with ledger = chain; MOCK_PAYOUT_FAIL → returned + re-credited). Full G4 still needs the phone + agent
 - **Depends:** NI-C3, NI-A5 (mock until then)
 - **Paths:** `apps/worker/src/withdrawals/{execute,partner,auto}.ts`, `apps/worker/scripts/withdraw-smoke.ts`
 - **Do:** §3c state machine with CAS per step: hold → sweep / sendToWallet → debit → partner payout → callback → completed / returned (`withdrawal_return`) / failed (`withdrawal_release`); resume on boot; `withdrawal.updated` per step; nightly auto-withdraw; `PATCH …/auto-withdraw`.

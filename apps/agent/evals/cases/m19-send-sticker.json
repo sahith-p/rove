@@ -1,0 +1,21 @@
+{
+  "id": "m19-send-sticker",
+  "description": "fixed QR sticker + shop code",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "send my QR sticker"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "get_fixed_qr"
+    ],
+    "textMatches": [
+      "ahseng"
+    ]
+  }
+}

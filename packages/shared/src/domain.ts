@@ -47,9 +47,11 @@ export interface Merchant {
   phone: string;
   channel: Channel;
   category: string | null; // "hawker", "cafe", ...
-  country: "SG";
+  /** ISO 3166-1 alpha-2, e.g. "SG", "DE" (currencies.ts maps it to a currency). */
+  country: string;
+  /** The merchant's own currency: their balance is held as its stablecoin (SGD → XSGD, EUR → the euro stablecoin, …). */
   currency: Currency;
-  /** Custodial XRPL account holding the merchant's XSGD balance (keys held by the platform in the demo). */
+  /** Custodial XRPL account holding the merchant's balance in their currency's stablecoin (XSGD for SGD shops; keys held by the platform in the demo). */
   xrplAddress: string | null;
   credentialStatus: CredentialStatus;
   autoWithdraw: AutoWithdraw;
@@ -139,10 +141,14 @@ export type PaymentStatus =
 
 export interface Quote {
   local: Money; // merchant receives, e.g. S$6.50
-  usd: Money; // USD the treasury spends on XRPL
-  rate: string; // local per 1 USD
-  sendMaxUsd: string; // quote + slippage cap for the path payment
+  usd: Money; // USD the treasury spends on XRPL (from = USD); for another payer currency, the sale's USD value at the RLUSD hub
+  rate: string; // local per 1 unit of the payer currency (`pay.currency`; USD when `pay` is absent)
+  sendMaxUsd: string; // quote + slippage cap for the path payment (USD)
   expiresAt: string;
+  /** What the payer-currency float spends on XRPL (= the card charge in that currency). Set by quote({ from }); equals `usd` for USD. */
+  pay?: Money;
+  /** `pay` + slippage cap, in `pay.currency`: the SendMax for settle({ from, sendMax }). Equals `pay` when no swap is needed. */
+  sendMax?: string;
 }
 
 export interface Payment {

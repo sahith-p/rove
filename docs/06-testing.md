@@ -21,7 +21,7 @@ Every piece is testable alone with mocks, every seam has one command, and the de
 | Cards (G2) | `pnpm --filter @rove/imessage-apps card-smoke` | setup card on phone M, edited in place |
 | Worker → agent | `curl -X POST $AGENT_URL/internal/events -H "authorization: Bearer $INTERNAL_SECRET" -H 'content-type: application/json' -d @apps/agent/evals/fixtures/payment.settled.json` | sale card + receipt card; resending does nothing |
 | Webhook → worker | a real test payment or `stripe trigger payment_intent.succeeded` (with metadata) | payment `settled`, ledger `payment_credit`, invoice `paid` |
-| Withdrawal (G4) | `pnpm --filter worker tsx scripts/withdraw-smoke.ts ahseng 10` (mock or real) | statuses walk to `completed`; ledger available −10, held 0; reconciler OK |
+| Withdrawal (G4) | `pnpm --filter worker withdraw-smoke ahseng 10` (mock or real) | statuses walk to `completed`; ledger available −10, held 0; reconciler OK |
 | BNB (G3b) | pay a one-time QR from the Privy demo wallet | `authorized` after 3 confirmations → settled |
 | Confirm | 👍 on a confirm text / YES on WhatsApp | exactly one worker execute call |
 

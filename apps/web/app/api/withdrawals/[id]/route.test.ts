@@ -6,6 +6,7 @@ import { money, SESSION_HEADER, WithdrawalRes, type Withdrawal } from "@rove/sha
 import { setWebDepsForTests } from "../../_lib/deps";
 import { sessionToken, useWebTestDeps, type WebTestDeps } from "../../_lib/testing";
 import { GET } from "./route";
+import { DEMO_MERCHANT } from "@rove/shared/mocks";
 
 const OWNER = "ahseng";
 const OTHER = "otherco";
@@ -18,7 +19,7 @@ let h: Harness;
 
 async function setup(): Promise<Harness> {
   const db = await createTestDb();
-  await db.upsertDraftMerchant({ id: OWNER, name: "Ah Seng Chicken Rice", phone: "+15555550100", channel: "imessage" });
+  await db.upsertDraftMerchant({ id: OWNER, name: "Ah Seng Chicken Rice", phone: DEMO_MERCHANT.phone, channel: "imessage" });
   await db.upsertDraftMerchant({ id: OTHER, name: "Other Co", phone: "+15555550111", channel: "whatsapp" });
   const bank = await db.insertBankAccount({
     merchantId: OWNER,

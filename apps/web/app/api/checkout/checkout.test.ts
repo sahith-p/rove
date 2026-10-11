@@ -8,11 +8,12 @@ import { useWebTestDeps, type WebTestDeps } from "../_lib/testing";
 import { createFakeStripe, stripeError, type FakeStripe } from "../stripe/fake-stripe";
 import { POST } from "./route";
 import { payerCurrency } from "./target";
+import { DEMO_CUSTOMER } from "@rove/shared/mocks";
 
 // createTestDb({ demo: true }): live merchant "ahseng" with item_chicken_rice 5.50, item_roasted 6.00, item_egg 1.00,
 // item_barley 1.50 (SGD). Mock settlement: 1.2900 SGD per USD, so S$12.50 → US$9.69.
 
-const MAYA: Recipient = { phone: "+15555550199", channel: "imessage" };
+const MAYA: Recipient = { phone: DEMO_CUSTOMER.phone, channel: "imessage" };
 const SG_PAYER: Recipient = { phone: "+6591234567", channel: "whatsapp" };
 const LINES: InvoiceLine[] = [
   { menuItemId: "item_chicken_rice", name: "Chicken rice", qty: 2, unit: money("5.50", "SGD") },
@@ -305,9 +306,8 @@ describe("POST /api/checkout · reuse", () => {
 });
 
 describe("POST /api/checkout · lanes and failures", () => {
-  test("bnb answers 501 and unconfigured ausd 503 from their own branches, after the target is validated", async () => {
+  test("unconfigured ausd answers 503 from its own branch, after the target is validated (bnb: bnb.test.ts)", async () => {
     const inv = await invoice();
-    await expectError(byCode(inv.code, { method: "bnb" }), 501, "bnb_not_ready");
     // The AUSD lane itself is tested in ../ausd/authorize/authorize.test.ts; without AUSD_PAY_TO it is off.
     const savedPayTo = process.env.AUSD_PAY_TO;
     delete process.env.AUSD_PAY_TO;
@@ -342,6 +342,6 @@ describe("POST /api/checkout · lanes and failures", () => {
     const r = await checkout({ target: { source: "invoice" }, method: "card" });
     assert.equal(r.status, 400);
     assert.equal(r.body.error, "invalid_body");
-    await expectError(byCode("K7Q2MX", { payCurrency: "EUR" }), 400, "invalid_body");
+    await expectError(byCode("K7Q2MX", { payCurrency: "JPY" }), 400, "invalid_body"); // not in the currency registry
   });
 });

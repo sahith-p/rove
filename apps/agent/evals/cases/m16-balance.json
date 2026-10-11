@@ -1,0 +1,21 @@
+{
+  "id": "m16-balance",
+  "description": "balance comes from the ledger tool",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "balance?"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "get_balance"
+    ],
+    "replyMatches": [
+      "S\\$\\d+\\.\\d{2}"
+    ]
+  }
+}

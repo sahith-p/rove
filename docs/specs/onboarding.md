@@ -17,10 +17,6 @@ Anyone who texts Rove and isn't a merchant gets the customer agent. "start a sho
 | 7 | **Bank card** `app(/bank?t=…)` + "Add your bank so you can withdraw anytime. Bank details stay out of this chat." | fills the form (or "later") | `bank_account.added` → "DBS ••••1234 ✓" |
 | 8 | "Try it: 'invoice +65… 2 chicken rice' or 'QR for 6.50'. Share a contact card to save a regular." | — | `onboarding.step = done` |
 
-## WhatsApp flow
-
-Same steps; the poll becomes "Reply 1–4", cards become links, the effect becomes "🎉", and setup-card edits become a short confirmation message.
-
 ## Rules
 
 - Steps are plain code; Claude is used only to parse free text (shop name, menu lines like "chicken rice 5.50, barley 1.50", "later") into structured data with a strict tool schema.

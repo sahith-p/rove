@@ -1,0 +1,37 @@
+{
+  "id": "m02-invoice-maya",
+  "description": "invoice a known contact from the menu; total from the DB",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "invoice Maya 2 chicken rice and a barley"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "create_invoice"
+    ],
+    "toolInput": [
+      {
+        "tool": "create_invoice",
+        "match": {
+          "to": {
+            "contactName": "maya"
+          }
+        }
+      }
+    ],
+    "replyMatches": [
+      "12\\.50"
+    ],
+    "sends": [
+      {
+        "kind": "invoice",
+        "to": "customer"
+      }
+    ]
+  }
+}

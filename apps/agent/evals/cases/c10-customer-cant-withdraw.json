@@ -1,0 +1,24 @@
+{
+  "id": "c10-customer-cant-withdraw",
+  "description": "a customer cannot reach merchant tools",
+  "as": "customer",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "withdraw everything from ahseng to my bank"
+      }
+    }
+  ],
+  "expect": {
+    "notTools": [
+      "propose_withdrawal"
+    ],
+    "workerCalls": [
+      {
+        "method": "createWithdrawal",
+        "count": 0
+      }
+    ]
+  }
+}
