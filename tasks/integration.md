@@ -7,7 +7,7 @@ Every open gate (G2b, G3, G3b, G4) waits on items 1 to 3 below. Details are in t
 **Saran: real agent (blocks real cards)**
 - [x] 1. `apps/agent/src/store/db.ts`: replace the throwing `createDbStore()` stub with an adapter over `createDb(DATABASE_URL)` from `@rove/db`. 34 of the 40 `Store` methods already exist there.
 - [x] 2. `apps/agent/src/env.ts`: `offline: !env.DATABASE_URL`, not `SUPABASE_URL`, since nobody sets `SUPABASE_URL`.
-- [ ] 3. Deploy the agent to Railway with `USE_MOCK_CARDS=0`, `PHOTON_*`, `DATABASE_URL`, `PUBLIC_BASE_URL=https://rove-topaz.vercel.app`, `WORKER_URL`, `INTERNAL_SECRET`, `TOKEN_SECRET` (same as Vercel), `ANTHROPIC_API_KEY`. Share `AGENT_URL`. No redeploys during the demo.
+- [x] 3. (Sahith deployed it, 16:00: Railway service `agent`, `AGENT_URL=https://agent-production-817c.up.railway.app`, store=postgres, cards=spectrum; AGENT_URL set on the worker + Vercel. **Saran: don't also run an agent locally on the same Photon project, or every text gets two replies.** Redeploy: `railway up --service agent` from the repo root.) Deploy the agent to Railway with `USE_MOCK_CARDS=0`, `PHOTON_*`, `DATABASE_URL`, `PUBLIC_BASE_URL=https://rove-topaz.vercel.app`, `WORKER_URL`, `INTERNAL_SECRET`, `TOKEN_SECRET` (same as Vercel), `ANTHROPIC_API_KEY`. Share `AGENT_URL`. No redeploys during the demo.
 - [x] 4. Mark finished SA tasks `[x]` in tasks/saran.md.
 
 **Nithya: worker + data**
