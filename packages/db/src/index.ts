@@ -152,6 +152,40 @@ export interface OnboardingState {
   updatedAt: string;
 }
 
+/**
+ * AUSD lane (docs/specs/ausd-lane.md): the payer's signed ERC-3009 TransferWithAuthorization on Base Sepolia.
+ * uint256 fields are decimal integer strings (token base units / unix seconds); nonce is bytes32 hex; signature 65-byte hex.
+ */
+export interface AusdAuthorization {
+  from: string;
+  to: string;
+  value: string;
+  validAfter: string;
+  validBefore: string;
+  nonce: string;
+  signature: string;
+}
+
+/** An `ausd` payment with its stored authorization and the relayer's bookkeeping. */
+export interface AusdRelayState {
+  payment: Payment;
+  authorization: AusdAuthorization;
+  /** The relay transaction, recorded before it is broadcast so a restarted worker can find it. */
+  relayTxHash: string | null;
+  relayAttempts: number;
+  /** Set when the payment became `authorized` (the confirmed relay tx). */
+  payinTxHash: string | null;
+  failureReason: string | null;
+}
+
+export type SetAusdAuthorizationResult =
+  | { ok: true; payment: Payment; /** the same authorization was already stored (idempotent retry) */ alreadyStored: boolean }
+  | {
+      ok: false;
+      reason: "not_found" | "not_ausd" | "not_created" | "different_authorization" | "authorization_reused";
+      payment: Payment | null;
+    };
+
 export type ApproveWithdrawalResult =
   | { ok: true; withdrawal: Withdrawal }
   | { ok: false; reason: "not_requested" | "insufficient_funds"; withdrawal: Withdrawal | null };
@@ -218,6 +252,22 @@ export interface Db {
   completeSettlement(paymentId: PaymentId, r: { txHash: string; delivered: string }): Promise<{ payment: Payment; firstSale: boolean } | null>;
   /** Next index for a per-payment BSC deposit address (sequence; never reused). */
   nextDepositIndex(): Promise<number>;
+
+  // AUSD lane (ERC-3009 on Base Sepolia; docs/specs/ausd-lane.md)
+  /**
+   * Stores the payer's verified authorization on a `created` ausd payment (once). Storing the identical authorization again
+   * is ok (alreadyStored). An authorization (from, nonce) can pay only one payment: reuse → authorization_reused.
+   */
+  setAusdAuthorization(paymentId: PaymentId, a: AusdAuthorization): Promise<SetAusdAuthorizationResult>;
+  /** x402: insert an ausd payment and its authorization in one transaction. DbConflictError on a reused (from, nonce). */
+  insertAusdPayment(p: NewPayment, a: AusdAuthorization): Promise<Payment>;
+  /** The payment + stored authorization + relay bookkeeping; null if unknown or no authorization stored. */
+  getAusdRelay(paymentId: PaymentId): Promise<AusdRelayState | null>;
+  getPaymentByAusdNonce(from: string, nonce: string): Promise<Payment | null>;
+  /** `created` ausd payments with a stored authorization (the worker relayer's queue), oldest update first. */
+  listAusdAwaitingRelay(limit?: number): Promise<AusdRelayState[]>;
+  /** Records the relay tx hash (before broadcast) and counts the attempt. False unless the payment is still `created`. */
+  setAusdRelayTx(paymentId: PaymentId, txHash: string): Promise<boolean>;
 
   // ledger
   /** Append-only; unique (kind, ref) makes it idempotent: false if that entry already exists. */
