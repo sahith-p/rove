@@ -5,6 +5,8 @@ import { isPositive, money, toMinor } from "@rove/shared";
 /** What the page needs from GET /api/me (or the demo fixtures). */
 export interface SetupData {
   name: string;
+  /** The merchant's settlement currency (registry code); prices are in it. Defaults to SGD. */
+  currency?: string;
   category: string | null;
   menu: { id: string; name: string; price: string; active: boolean }[];
 }
@@ -50,7 +52,7 @@ export type PriceResult = { ok: true; amount: string } | { ok: false; error: str
 
 /** "5.5" → "5.50"; "S$ 6" → "6.00"; rejects 0, negatives, >2 dp and anything that isn't a plain decimal. */
 export function parsePrice(raw: string): PriceResult {
-  const s = raw.trim().replace(/^s?\$\s*/i, "");
+  const s = raw.trim().replace(/^[^\d.]*/, "");
   if (!s) return { ok: false, error: "Add a price" };
   if (!/^\d*\.?\d*$/.test(s) || s === ".") return { ok: false, error: "Use numbers only, like 5.50" };
   const norm = s.startsWith(".") ? `0${s}` : s.endsWith(".") ? s.slice(0, -1) : s;
@@ -61,7 +63,7 @@ export function parsePrice(raw: string): PriceResult {
   } catch {
     return { ok: false, error: "Use numbers only, like 5.50" };
   }
-  if (!isPositive(m)) return { ok: false, error: "Price must be more than S$0" };
+  if (!isPositive(m)) return { ok: false, error: "Price must be more than 0" };
   if (toMinor(m) > MAX_PRICE_MINOR) return { ok: false, error: "That price looks too high" };
   return { ok: true, amount: m.amount };
 }

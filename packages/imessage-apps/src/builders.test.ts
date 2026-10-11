@@ -54,7 +54,7 @@ test("setup: key, url, v = active item count", () => {
   const spec = cards.setup({ merchant: DEMO_MERCHANT, menu: DEMO_MENU, sessionToken: T });
   assert.equal(spec.kind, "setup");
   assert.equal(spec.key, "setup:ahseng");
-  assert.equal(spec.live, true);
+  assert.equal(spec.live, false);
   const u = parse(spec.url);
   assert.equal(u.origin, BASE);
   assert.equal(u.pathname, "/setup");
@@ -242,7 +242,7 @@ test("confirm: key, url with confirm token, updateText on done / expired / faile
 
 // ------------------------------------------------------------------ cross-cutting
 
-test("all builders are live and deterministic (same input → identical spec)", () => {
+test("all builders are static by default and deterministic (same input → identical spec)", () => {
   const all = (c: ReturnType<typeof createCardBuilders>) => [
     c.setup({ merchant: DEMO_MERCHANT, menu: DEMO_MENU, sessionToken: T }),
     c.bank({ merchant: DEMO_MERCHANT, sessionToken: T }),
@@ -262,7 +262,8 @@ test("all builders are live and deterministic (same input → identical spec)", 
   assert.equal(a.length, 9);
   assert.equal(new Set(a.map((s) => s.kind)).size, 9);
   for (const spec of a) {
-    assert.equal(spec.live, true);
+    assert.equal(spec.live, false);
+    assert.equal(new URL(spec.url).searchParams.get("card"), null);
     assert.ok(spec.url.startsWith(`${BASE}/`), spec.url);
   }
 });
@@ -282,10 +283,10 @@ test("baseUrl with and without trailing slash yields identical URLs", () => {
   }
 });
 
-test("every card URL carries card=1 (compact in-card layout)", async () => {
+test("live builders: every card URL carries card=1 (compact in-card layout)", async () => {
   const { createCardBuilders } = await import("./builders");
   const { DEMO_MERCHANT, DEMO_MENU, demoInvoice } = await import("@rove/shared/mocks");
-  const b = createCardBuilders({ baseUrl: "https://rove.test" });
+  const b = createCardBuilders({ baseUrl: "https://rove.test", live: true });
   for (const spec of [
     b.setup({ merchant: DEMO_MERCHANT, menu: DEMO_MENU, sessionToken: "t" }),
     b.menu({ merchant: DEMO_MERCHANT, menu: DEMO_MENU }),

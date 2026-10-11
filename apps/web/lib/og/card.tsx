@@ -115,7 +115,7 @@ function Pill({ label, tone, icon, dark, c }: { label: string; tone: OgTone; ico
 }
 
 export async function ogCard(input: OgCardInput): Promise<ImageResponse> {
-  const dark = input.dark ?? false;
+  const dark = input.dark ?? true; // dark by default: matches the Rove card look in Messages
   const c = dark ? DARK : LIGHT;
   const fonts = await ogFonts();
   const has = (name: string) => fonts.some((f) => f.name === name);

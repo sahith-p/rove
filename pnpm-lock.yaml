@@ -180,6 +180,9 @@ importers:
       '@rove/shared':
         specifier: workspace:*
         version: link:../shared
+      jpeg-js:
+        specifier: 0.4.4
+        version: 0.4.4
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -2686,6 +2689,9 @@ packages:
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
+
+  jpeg-js@0.4.4:
+    resolution: {integrity: sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg==}
 
   js-cookie@3.0.8:
     resolution: {integrity: sha512-yeJd4aNAdYZQjaon2bpD/Gb0B/omw7HQOsynXXcOiWVCacbBcPlgn8S/d1X6blFSaHao7ozqtW7NZW19xpCtIw==}
@@ -7630,6 +7636,8 @@ snapshots:
     optional: true
 
   joycon@3.1.1: {}
+
+  jpeg-js@0.4.4: {}
 
   js-cookie@3.0.8: {}
 

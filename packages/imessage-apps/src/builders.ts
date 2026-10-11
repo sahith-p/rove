@@ -39,7 +39,12 @@ function isRefunded(status: PaymentStatus): boolean {
   return status === "refunded" || status === "partially_refunded";
 }
 
-export function createCardBuilders({ baseUrl }: { baseUrl: string }): CardBuilders {
+/**
+ * `live: false` (default): a static Rove bubble (layout text only); tapping it opens the extension EXPANDED on the
+ * full page. iMessage gives a web page no way to expand a live card, so a live card's buttons open pages inside the
+ * small bubble. `live: true`: the page renders LIVE in the bubble in its compact `card=1` layout.
+ */
+export function createCardBuilders({ baseUrl, live = false }: { baseUrl: string; live?: boolean }): CardBuilders {
   const l = links(baseUrl);
 
   const builders: CardBuilders = {
@@ -172,11 +177,13 @@ export function createCardBuilders({ baseUrl }: { baseUrl: string }): CardBuilde
     },
   };
 
-  // Every card URL carries card=1 so the page renders its compact, no-scroll card layout inside the iMessage webview.
+  // Live cards carry card=1 so the page renders its compact, no-scroll layout inside the bubble. Static cards open the
+  // full page expanded on tap; edits still update their layout text (e.g. "Paid ✓").
   const inCard = <K extends keyof CardBuilders>(k: K) =>
     ((v: Parameters<CardBuilders[K]>[0]) => {
       const spec = (builders[k] as (x: typeof v) => CardSpec)(v);
-      return { ...spec, url: withParams(spec.url, { card: "1" }), layout: layoutFor(k, v as never, spec) };
+      const layout = layoutFor(k, v as never, spec);
+      return live ? { ...spec, url: withParams(spec.url, { card: "1" }), layout } : { ...spec, live: false, layout };
     }) as CardBuilders[K];
   return {
     setup: inCard("setup"), bank: inCard("bank"), shop: inCard("shop"), menu: inCard("menu"), invoice: inCard("invoice"),

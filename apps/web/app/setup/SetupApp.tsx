@@ -2,12 +2,12 @@
 // /setup client: loads GET /api/me, edits shop + menu, saves with PUT /api/me/shop + PUT /api/me/menu.
 // Owner: Sahith · Task: SH-B2. Demo fixtures kick in only when NEXT_PUBLIC_DEMO_FIXTURES=1 and the API fails / is 501.
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { MeRes, UpdateMenuReq, UpdateShopReq } from "@rove/shared";
+import { MeRes, UpdateMenuReq, UpdateShopReq, currencyInfo, isCurrency, type Currency } from "@rove/shared";
 import { Check, ChevronDown, ChevronUp, Clock, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { IconBadge } from "../../components/Bits";
 import { CardFrame, CardLink, CardTitle } from "../../components/CardFrame";
 import { Button } from "../../components/Button";
-import { FlagSG } from "../../components/icons";
+import { CurrencyFlag } from "../../components/icons";
 import { Notice } from "../../components/Notice";
 import { sessionHeaders } from "../../lib/ui/headers";
 import {
@@ -104,6 +104,7 @@ const isAuthError = (e: unknown) => e instanceof ApiError && (e.status === 401 |
 
 export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: SetupData | null; cardHref?: string | null }) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
+  const [currency, setCurrency] = useState<Currency>("SGD");
   const [form, setForm] = useState<FormState>({ name: "", category: null, custom: "", rows: [] });
   const [baseline, setBaseline] = useState("");
   const [touched, setTouched] = useState<Set<string>>(() => new Set());
@@ -125,6 +126,7 @@ export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: 
       if (seq !== loadSeq.current) return;
       const f = toForm(data);
       setForm(f);
+      setCurrency(isCurrency(data.currency) ? data.currency : "SGD");
       setBaseline(snapshot(f));
       setTouched(new Set());
       setSubmitted(false);
@@ -136,6 +138,7 @@ export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: 
       apply(
         {
           name: me.merchant.name,
+          currency: me.merchant.currency,
           category: me.merchant.category,
           menu: me.menu.map((m) => ({ id: m.id, name: m.name, price: m.price.amount, active: m.active })),
         },
@@ -289,7 +292,6 @@ export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: 
     const shopBody = UpdateShopReq.safeParse({
       name: form.name.trim(),
       category: categoryToStored(form.category, form.custom),
-      currency: "SGD",
     });
     const menuBody = UpdateMenuReq.safeParse({
       items: rows.map((r) => ({ ...(r.id ? { id: r.id } : {}), name: r.name, price: r.price, active: r.active })),
@@ -454,8 +456,8 @@ export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: 
         <div className={styles.currency}>
           <span className={styles.label}>Currency</span>
           <span className={styles.currencyValue}>
-            <FlagSG size={16} />
-            <span className={styles.currencyCode}>SGD</span>
+            <CurrencyFlag currency={currency} size={16} />
+            <span className={styles.currencyCode}>{currency}</span>
             <span className={styles.currencyFixed}>Fixed</span>
           </span>
         </div>
@@ -549,7 +551,7 @@ export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: 
                     />
                     <div className={`${styles.priceWrap} ${priceBad ? styles.priceWrapBad : ""}`}>
                       <span className={styles.pricePrefix} aria-hidden="true">
-                        S$
+                        {currencyInfo(currency).symbol}
                       </span>
                       <input
                         className={styles.priceInput}

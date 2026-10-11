@@ -1,12 +1,14 @@
 "use client";
 // The payment buttons. The page only needs `onPay(method)`. Apple Pay / card start a card checkout, and the page then
 // swaps these buttons for Stripe's sheet (components/stripe/ExpressPay: Express Checkout Element + card form, SH-A3).
-// SH-A4 wires the BNB Chain wallet.
-// Layout: [ Pay] full width (primary), then [Card] [BNB Chain] side by side (secondary), then the Safari fallback.
+// SH-A4: the crypto buttons (AUSD, BNB Chain wallet) load lazily under them (components/privy), only when `crypto` is
+// given and NEXT_PUBLIC_PRIVY_APP_ID is set. Card mode (?card=1) never renders this component.
+// Layout: [ Pay] full width (primary), [Card] (secondary), the Safari fallback, then "or pay with crypto".
 import { useEffect, useState } from "react";
-import { ArrowUpRight, CreditCard } from "lucide-react";
+import { CreditCard, Copy } from "lucide-react";
 import { Button } from "../../../components/Button";
-import { AppleLogo, BnbMark } from "../../../components/icons";
+import { AppleLogo } from "../../../components/icons";
+import { CryptoPayLazy, type CryptoHandlers } from "../../../components/privy/lazy";
 import type { PayMethod } from "./_api";
 import styles from "./pay.module.css";
 
@@ -15,6 +17,8 @@ export interface PayOptionsProps {
   /** The method whose checkout is in flight (its button spins, the others are disabled). */
   busy?: PayMethod | null;
   disabled?: boolean;
+  /** Crypto lanes (AUSD + BNB Chain). Omitted → no crypto buttons. */
+  crypto?: CryptoHandlers;
 }
 
 declare global {
@@ -23,10 +27,11 @@ declare global {
   }
 }
 
-export function PayOptions({ onPay, busy = null, disabled = false }: PayOptionsProps) {
+export function PayOptions({ onPay, busy = null, disabled = false, crypto }: PayOptionsProps) {
   // Apple Pay may not be offered inside the Messages web view; offer Safari unless Apple Pay is clearly available.
   const [safariHref, setSafariHref] = useState<string | null>(null);
   const [applePayReady, setApplePayReady] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setSafariHref(window.location.href);
@@ -37,51 +42,53 @@ export function PayOptions({ onPay, busy = null, disabled = false }: PayOptionsP
     }
   }, []);
 
-  const locked = disabled || busy !== null;
+  const [cryptoBusy, setCryptoBusy] = useState(false);
+  const locked = disabled || busy !== null || cryptoBusy;
 
   return (
     <div className={styles.payOptions}>
+      {applePayReady ? (
+        <Button
+          fullWidth
+          onClick={() => onPay("apple_pay")}
+          loading={busy === "apple_pay"}
+          disabled={locked && busy !== "apple_pay"}
+          className={styles.applePay}
+          icon={<AppleLogo size={19} />}
+          aria-label={busy === "apple_pay" ? undefined : "Pay with Apple Pay"}
+        >
+          {busy === "apple_pay" ? "Starting Apple Pay…" : "Pay"}
+        </Button>
+      ) : null}
       <Button
         fullWidth
-        onClick={() => onPay("apple_pay")}
-        loading={busy === "apple_pay"}
-        disabled={locked && busy !== "apple_pay"}
-        className={styles.applePay}
-        icon={<AppleLogo size={19} />}
-        aria-label={busy === "apple_pay" ? undefined : "Pay with Apple Pay"}
+        variant={applePayReady ? "secondary" : "primary"}
+        onClick={() => onPay("card")}
+        loading={busy === "card"}
+        disabled={locked && busy !== "card"}
+        icon={<CreditCard size={18} strokeWidth={1.5} />}
+        aria-label={busy === "card" ? undefined : "Pay with card"}
       >
-        {busy === "apple_pay" ? "Starting Apple Pay…" : "Pay"}
+        {busy === "card" ? "Starting…" : applePayReady ? "Card" : "Pay with card"}
       </Button>
-      <div className={styles.altMethods}>
-        <Button
-          fullWidth
-          variant="secondary"
-          onClick={() => onPay("card")}
-          loading={busy === "card"}
-          disabled={locked && busy !== "card"}
-          icon={<CreditCard size={18} strokeWidth={1.5} />}
-          aria-label={busy === "card" ? undefined : "Pay with card"}
+      {!applePayReady && safariHref ? (
+        // Apple Pay isn't offered in this web view (e.g. inside Messages), and a page there can't open Safari itself:
+        // copy the link so the payer can paste it into Safari.
+        <button
+          type="button"
+          className={styles.safari}
+          onClick={() => {
+            void navigator.clipboard?.writeText(safariHref).then(
+              () => setCopied(true),
+              () => setCopied(false),
+            );
+          }}
         >
-          {busy === "card" ? "Starting…" : "Card"}
-        </Button>
-        <Button
-          fullWidth
-          variant="secondary"
-          onClick={() => onPay("bnb")}
-          loading={busy === "bnb"}
-          disabled={locked && busy !== "bnb"}
-          icon={<BnbMark size={18} />}
-          aria-label={busy === "bnb" ? undefined : "Pay with a BNB Chain wallet"}
-        >
-          {busy === "bnb" ? "Connecting…" : "BNB Chain"}
-        </Button>
-      </div>
-      {!applePayReady ? (
-        <a className={styles.safari} href={safariHref ?? undefined} target="_blank" rel="noopener noreferrer">
-          Open in Safari to pay with Apple Pay
-          <ArrowUpRight size={13} strokeWidth={1.75} aria-hidden="true" />
-        </a>
+          {copied ? "Link copied. Paste it in Safari for Apple Pay" : "Want Apple Pay? Copy link for Safari"}
+          {copied ? null : <Copy size={13} strokeWidth={1.75} aria-hidden="true" />}
+        </button>
       ) : null}
+      {crypto ? <CryptoPayLazy handlers={crypto} disabled={disabled || busy !== null} onBusyChange={setCryptoBusy} /> : null}
     </div>
   );
 }

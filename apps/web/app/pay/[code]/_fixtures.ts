@@ -70,8 +70,8 @@ export function fixturePayment(status: PaymentStatus, method: PaymentView["metho
 }
 
 /** What checkout would return. USD payers (and every BNB payer: USDT is a dollar) pay quote.usd; SGD payers pay the total. */
-export function fixtureCheckout(invoice: InvoiceView, payCurrency: Currency, method: "card" | "bnb"): CheckoutView {
-  const charge = method === "bnb" || payCurrency === "USD" ? DEMO_USD : invoice.total;
+export function fixtureCheckout(invoice: InvoiceView, payCurrency: Currency, method: "card" | "bnb" | "ausd"): CheckoutView {
+  const charge = method !== "card" || payCurrency === "USD" ? DEMO_USD : invoice.total;
   return CheckoutRes.parse({
     paymentId: demoPayment().id,
     local: invoice.total,

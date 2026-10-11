@@ -12,8 +12,8 @@
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  padding: clamp(12px, 5vh, 20px) max(16px, env(safe-area-inset-right)) clamp(12px, 5vh, 20px) max(16px, env(safe-area-inset-left));
-  padding: clamp(12px, 5dvh, 20px) max(16px, env(safe-area-inset-right)) clamp(12px, 5dvh, 20px)
+  padding: clamp(34px, 14vh, 44px) max(16px, env(safe-area-inset-right)) clamp(12px, 5vh, 20px) max(16px, env(safe-area-inset-left));
+  padding: clamp(34px, 14dvh, 44px) max(16px, env(safe-area-inset-right)) clamp(12px, 5dvh, 20px)
     max(16px, env(safe-area-inset-left));
   background: var(--bg);
 }

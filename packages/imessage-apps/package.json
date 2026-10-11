@@ -14,6 +14,7 @@
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@rove/shared": "workspace:*",
+    "jpeg-js": "0.4.4",
     "qrcode": "^1.5.4",
     "spectrum-ts": "latest"
   },

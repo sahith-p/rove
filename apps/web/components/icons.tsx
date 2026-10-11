@@ -92,10 +92,28 @@ export function FlagSG({ size = 18, className }: MarkProps) {
   );
 }
 
-/** The flag for a currency: SGD → SG, USD → US; any other code gets a neutral hairline disc with its first letter. */
+/** Round EU flag (ring of 12 stars), for EUR. */
+export function FlagEU({ size = 18, className }: MarkProps) {
+  const stars = Array.from({ length: 12 }, (_, i) => {
+    const a = (i * 30) * (Math.PI / 180);
+    return [12 + 6.2 * Math.cos(a), 12 + 6.2 * Math.sin(a)] as const;
+  });
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className}>
+      <circle cx="12" cy="12" r="12" fill="#003399" />
+      {stars.map(([cx, cy]) => (
+        <circle key={`${cx.toFixed(2)}-${cy.toFixed(2)}`} cx={cx} cy={cy} r="0.95" fill="#FFCC00" />
+      ))}
+      <circle cx="12" cy="12" r="11.5" fill="none" style={{ stroke: "var(--line)" }} strokeWidth="1" />
+    </svg>
+  );
+}
+
+/** The flag for a currency: SGD → SG, USD → US, EUR → EU; any other code gets a neutral hairline disc with its first letter. */
 export function CurrencyFlag({ currency, size = 18, className }: MarkProps & { currency: Currency }) {
   if (currency === "SGD") return <FlagSG size={size} className={className} />;
   if (currency === "USD") return <FlagUS size={size} className={className} />;
+  if (currency === "EUR") return <FlagEU size={size} className={className} />;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className}>
       <circle cx="12" cy="12" r="11.5" fill="none" style={{ stroke: "var(--line)" }} strokeWidth="1" />
