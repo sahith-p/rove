@@ -117,8 +117,9 @@ export interface Invoice {
 
 // ------------------------------------------------------------------ payments
 
-/** apple_pay/card = Stripe; bnb = USDT from a BNB Chain wallet (Privy), settled on XRPL like every other payment. */
-export type PaymentMethod = "apple_pay" | "card" | "bnb";
+/** apple_pay/card = Stripe; bnb = USDT from a BNB Chain wallet (Privy); ausd = Agora AUSD on Base Sepolia, gasless for the
+ *  payer (ERC-3009, Rove relays). All settle on XRPL like every other payment. */
+export type PaymentMethod = "apple_pay" | "card" | "bnb" | "ausd";
 
 export type PaymentSource = "invoice" | "one_time_qr" | "fixed_qr" | "pay_request";
 

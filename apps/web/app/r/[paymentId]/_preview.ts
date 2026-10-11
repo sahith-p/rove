@@ -7,6 +7,7 @@ export const METHOD_LABEL: Record<ReceiptData["method"], string> = {
   apple_pay: "Apple Pay",
   card: "Card",
   bnb: "BNB Chain wallet",
+  ausd: "AUSD wallet (no gas)",
 };
 
 export function receiptCopy(data: ReceiptData, merchantView = false) {

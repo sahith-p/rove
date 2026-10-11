@@ -80,9 +80,10 @@ export function configFromEnv(env: Env = process.env): WorkerConfig {
 export interface SeedStore {
   put(merchantId: MerchantId, address: string, seedEnc: string): Promise<void>;
   get(address: string): Promise<string | null>;
+  findByMerchant?(merchantId: MerchantId): Promise<string | null>;
 }
 
-export function createSeedStore(db: Pick<Db, "setMerchantXrpl" | "getMerchantSeedEnc">): SeedStore {
+export function createSeedStore(db: Pick<Db, "setMerchantXrpl" | "getMerchantSeedEnc" | "getMerchant">): SeedStore {
   return {
     async put(merchantId, address, seedEnc) {
       // credentialStatus is recorded for real by the merchants route once createMerchantAccount returns.
@@ -90,6 +91,8 @@ export function createSeedStore(db: Pick<Db, "setMerchantXrpl" | "getMerchantSee
       if (!row) throw new Error(`seed store: merchant ${merchantId} not found (create the draft first)`);
     },
     get: (address) => db.getMerchantSeedEnc(address),
+    // Lets createMerchantAccount resume the account it already made instead of generating (and stranding) a second one.
+    findByMerchant: async (merchantId) => (await db.getMerchant(merchantId))?.xrplAddress ?? null,
   };
 }
 
