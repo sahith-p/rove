@@ -6,22 +6,55 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { WithdrawalRes } from "@rove/shared";
 import { readSession, sessionHeaders } from "../../../lib/ui/session";
+import { previewMetadata } from "../../../lib/og/metadata";
 import { fixtureDest, isFixtureStatus, withdrawalFixture } from "./_fixtures";
+import { withdrawalCopy } from "./_preview";
 import type { WithdrawalView as View } from "./steps";
 import { WithdrawalView } from "./WithdrawalView";
 import styles from "./withdrawal.module.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Withdrawal · Rove" };
 
+type SearchRecord = Record<string, string | string[] | undefined>;
 type Params = Promise<{ withdrawalId: string }>;
-type Search = Promise<Record<string, string | string[] | undefined>>;
+type Search = Promise<SearchRecord>;
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? null;
+
+/** State-aware preview text (SH-B3): "Withdrawal S$118.40 · In your bank ✓". Image: opengraph-image.tsx. */
+export async function generateMetadata({ params, searchParams }: { params: Params; searchParams: Search }): Promise<Metadata> {
+  const [{ withdrawalId }, sp] = await Promise.all([params, searchParams]);
+  const { initial } = await resolve(withdrawalId, sp);
+  const robots = { index: false, follow: false };
+  // The session token is in the URL; don't leak it to anything this page links to.
+  const referrer = "no-referrer" as const;
+  if (!initial) {
+    return previewMetadata({ title: "Withdrawal · Rove", description: "Live status of your Rove withdrawal.", robots, referrer });
+  }
+  const { title, description } = withdrawalCopy(initial);
+  return previewMetadata({ title, description, robots, referrer });
+}
 
 export default async function Page({ params, searchParams }: { params: Params; searchParams: Search }) {
   const { withdrawalId } = await params;
   const sp = await searchParams;
+  const { expired, t, initial, fixture } = await resolve(withdrawalId, sp);
+  if (expired) return <Expired />;
+
+  return (
+    <WithdrawalView
+      withdrawalId={withdrawalId}
+      initial={initial}
+      token={t}
+      actionId={one(sp.a)}
+      confirmToken={one(sp.c)}
+      fixture={fixture}
+    />
+  );
+}
+
+/** Session check + first-paint data, shared by the page and its metadata. */
+async function resolve(withdrawalId: string, sp: SearchRecord) {
   const t = one(sp.t);
   const fixtureMode = process.env.NEXT_PUBLIC_DEMO_FIXTURES === "1";
 
@@ -33,7 +66,7 @@ export default async function Page({ params, searchParams }: { params: Params; s
   }
   // A withdrawal-scoped link only opens its own withdrawal.
   if (session?.scope === "withdrawal" && session.ref && session.ref !== withdrawalId) session = null;
-  if (!session && !fixtureMode) return <Expired />;
+  if (!session && !fixtureMode) return { expired: true, t, initial: null, fixture: false };
 
   let initial: View | null = session && t ? await fetchWithdrawal(withdrawalId, t) : null;
   let fixture = false;
@@ -47,17 +80,7 @@ export default async function Page({ params, searchParams }: { params: Params; s
     );
     fixture = true;
   }
-
-  return (
-    <WithdrawalView
-      withdrawalId={withdrawalId}
-      initial={initial}
-      token={t}
-      actionId={one(sp.a)}
-      confirmToken={one(sp.c)}
-      fixture={fixture}
-    />
-  );
+  return { expired: false, t, initial, fixture };
 }
 
 /** First paint from the API so the card opens on the right step. null on 501 / any failure (the client keeps polling). */

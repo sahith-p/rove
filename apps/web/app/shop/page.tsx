@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { MeRes, isPositive } from "@rove/shared";
 import { Amount, Card, Notice } from "../../components";
+import { previewMetadata } from "../../lib/og/metadata";
 import { format, relativeTime } from "../../lib/ui/format";
 import { readSession, sessionHeaders } from "../../lib/ui/session";
 import { AutoRefresh } from "./_AutoRefresh";
@@ -16,7 +17,14 @@ import styles from "./shop.module.css";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "My shop · Rove", robots: { index: false, follow: false } };
+export function generateMetadata(): Promise<Metadata> {
+  return previewMetadata({
+    title: "My shop · Rove",
+    description: "Your balance, recent payments, open invoices and payouts.",
+    robots: { index: false, follow: false },
+    referrer: "no-referrer",
+  });
+}
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

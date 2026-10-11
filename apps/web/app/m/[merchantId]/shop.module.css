@@ -1,0 +1,344 @@
+/* /m/[merchantId]. Page-local styles on top of app/globals.css tokens; shared pay styles come from pay.module.css. */
+
+.pickPage {
+  /* Fill the screen (minus .shell padding) so the bar sits at the bottom even when the menu is short. */
+  min-height: calc(100vh - 64px);
+  min-height: calc(100dvh - 64px);
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hint {
+  display: flex;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- Menu | Amount */
+
+.modeSwitch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.mode,
+.modeOn {
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.modeOn {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* ---------------------------------------------------------------- menu */
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item,
+.itemOn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 10px 10px 16px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius);
+  background: var(--card);
+  transition: border-color 120ms ease;
+}
+
+.itemOn {
+  border-color: var(--text);
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.itemPrice {
+  color: var(--muted);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.add {
+  flex: none;
+  min-width: 72px;
+  min-height: 40px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.stepper {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.stepBtn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.qty {
+  min-width: 28px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.switchLink {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- amount + phone fields */
+
+.amountPanel,
+.phoneBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.optional {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.amountField,
+.amountFieldError {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 14px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.amountField:focus-within {
+  border-color: var(--text);
+}
+
+.amountFieldError {
+  border-color: var(--error);
+}
+
+.currencyPrefix {
+  color: var(--muted);
+  font-size: 28px;
+  font-weight: 650;
+}
+
+.amountInput {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.amountInput::placeholder {
+  color: var(--border-strong);
+}
+
+.phoneInput,
+.phoneInputError {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.phoneInput:focus {
+  border-color: var(--text);
+  outline: none;
+}
+
+.phoneInputError {
+  border-color: var(--error);
+}
+
+.help,
+.helpError {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.helpError {
+  color: var(--error);
+}
+
+/* ---------------------------------------------------------------- review */
+
+.amountRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.back {
+  align-self: flex-start;
+  margin: -8px 0 -8px -6px;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.back:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- sticky bottom bar */
+
+.bar {
+  position: sticky;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 10;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  backdrop-filter: saturate(1.6) blur(14px);
+  box-shadow: var(--shadow);
+}
+
+.barInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.barLabel {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barTotal {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.barButton {
+  flex: none;
+  min-width: 112px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode,
+  .modeOn,
+  .item,
+  .itemOn {
+    transition: none;
+  }
+}

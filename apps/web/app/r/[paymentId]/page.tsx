@@ -4,10 +4,12 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Amount, Button, Card, LineItems, MerchantHeader, Notice } from "../../../components";
+import { previewMetadata } from "../../../lib/og/metadata";
 import { format, shortHash } from "../../../lib/ui/format";
 import { readSession } from "../../../lib/ui/session";
 import { SaveReceiptButton, SettlingPoller } from "./_client";
 import { loadReceipt, PENDING, type ReceiptData } from "./_data";
+import { METHOD_LABEL, receiptCopy } from "./_preview";
 import styles from "./receipt.module.css";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -19,15 +21,15 @@ interface PageProps {
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> {
-  return { title: "Receipt · Rove", robots: { index: false, follow: false } };
+/** State-aware preview text (SH-B3): "Receipt S$12.50 · Paid ✓ · Ah Seng Chicken Rice". Image: opengraph-image.tsx. */
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+  const [{ paymentId }, sp] = await Promise.all([params, searchParams]);
+  const load = await loadReceipt(paymentId, { state: sp.state });
+  const robots = { index: false, follow: false };
+  if (load.kind !== "ok") return previewMetadata({ title: "Receipt · Rove", description: "Your Rove receipt.", robots });
+  const { title, description } = receiptCopy(load.data, first(sp.view) === "merchant");
+  return previewMetadata({ title, description, robots });
 }
-
-const METHOD_LABEL: Record<ReceiptData["method"], string> = {
-  apple_pay: "Apple Pay",
-  card: "Card",
-  bnb: "BNB Chain wallet",
-};
 
 const dateTimeFmt = new Intl.DateTimeFormat("en-SG", {
   day: "numeric",

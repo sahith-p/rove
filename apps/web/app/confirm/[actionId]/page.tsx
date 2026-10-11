@@ -6,17 +6,21 @@
 // The confirm itself is the API's job: it re-verifies the token and claims the action atomically.
 import type { Metadata } from "next";
 import { verifyToken, type ConfirmTokenPayload } from "@rove/shared";
+import { previewMetadata } from "../../../lib/og/metadata";
 import { ConfirmClient, type InitialState } from "./ConfirmClient";
 import { ExpiredView } from "./ExpiredView";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Confirm · Rove",
-  description: "Confirm or cancel a request you made to Rove.",
-  robots: { index: false, follow: false },
-};
+export function generateMetadata(): Promise<Metadata> {
+  return previewMetadata({
+    title: "Confirm · Rove",
+    description: "Confirm or cancel a request you made to Rove.",
+    robots: { index: false, follow: false },
+    referrer: "no-referrer",
+  });
+}
 
 type Search = Record<string, string | string[] | undefined>;
 
