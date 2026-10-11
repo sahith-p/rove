@@ -11,6 +11,7 @@ import {
   fromMinor,
   money,
   toMinor,
+  type Currency,
   type Money,
   type PartnerPayoutStatus,
   type PayoutPartner,
@@ -18,7 +19,7 @@ import {
   type WithdrawalId,
   type WithdrawalStatus,
 } from "@rove/shared";
-import { createMockPayoutPartner, createMockSettlement } from "@rove/shared/mocks";
+import { createMockPayoutPartner, createMockPayoutPartners, createMockSettlement } from "@rove/shared/mocks";
 import type { WorkerDeps } from "../deps";
 import { createLogger, type LogLevel } from "../log";
 import { createTestDeps, type TestDeps } from "../testing";
@@ -54,6 +55,7 @@ export interface FastEngine {
 export function createFastEngine(): FastEngine {
   const base = createMockSettlement(); // quote / explorerUrl / isVerifiedMerchant
   const balances = new Map<string, bigint>();
+  const currencies = new Map<string, Currency>(); // address → the currency it holds (first credit decides; default SGD)
   const tick = () => new Promise<void>((r) => setImmediate(r));
   const hash = (n: number) => `TX${String(n).padStart(62, "0")}`;
   let txs = 0;
@@ -64,8 +66,9 @@ export function createFastEngine(): FastEngine {
     fail: { onchain: null, settle: null },
     noTrustLine: new Set(),
     hold: null,
-    balanceOf: (address) => fromMinor(balances.get(address) ?? 0n, "SGD"),
+    balanceOf: (address) => fromMinor(balances.get(address) ?? 0n, currencies.get(address) ?? "SGD"),
     credit(address, amount) {
+      if (!currencies.has(address)) currencies.set(address, amount.currency);
       balances.set(address, (balances.get(address) ?? 0n) + toMinor(amount));
     },
     debit(address, amount) {
@@ -223,14 +226,22 @@ export async function closeFixtures(): Promise<void> {
 }
 
 export async function withdrawalFixture(
-  opts: { balance?: string; bank?: boolean; payouts?: PayoutPartner; overrides?: Partial<WorkerDeps>; merchantId?: string } = {},
+  opts: {
+    balance?: string;
+    bank?: boolean;
+    payouts?: PayoutPartner;
+    overrides?: Partial<WorkerDeps>;
+    merchantId?: string;
+    /** The shop's currency (default SGD). EUR shops get an IBAN; the default partner routes SGD → StraitsX, EUR → SEPA. */
+    currency?: Currency;
+  } = {},
 ): Promise<WithdrawalFixture> {
   const fast = createFastEngine();
   const logs: LogLine[] = [];
   const log = createLogger("test", { level: "debug", sink: (level, line) => logs.push({ level, line }) });
-  const deps = await createTestDeps({ settlement: fast.engine, payouts: opts.payouts ?? createMockPayoutPartner(20), log, ...opts.overrides });
+  const deps = await createTestDeps({ settlement: fast.engine, payouts: opts.payouts ?? createMockPayoutPartners(20), log, ...opts.overrides });
   openDbs.add(deps.db);
-  const fx = await addMerchant(deps, fast, opts.merchantId);
+  const fx = await addMerchant(deps, fast, opts.merchantId, opts.currency);
   const snapshots: WithdrawalFixture["snapshots"] = [];
   // Check the invariant at the moment each status is announced (still recorded in deps.events by the inner emitter).
   const inner = deps.emit;
@@ -252,11 +263,18 @@ export async function addMerchant(
   deps: WorkerDeps,
   fast: FastEngine,
   id?: string,
+  currency: Currency = "SGD",
 ): Promise<Pick<WithdrawalFixture, "merchantId" | "address" | "seed" | "addBank" | "reconciled">> {
   const n = ++merchantSeq;
   const merchantId = id ?? `shop-${n}`;
   const address = `rTEST${merchantId.replace(/[^1-9A-HJ-NP-Za-km-z]/g, "x").padEnd(24, "x").slice(0, 28)}`;
-  await deps.db.upsertDraftMerchant({ id: merchantId, name: `Test Shop ${n}`, phone: `+1555000${String(n).padStart(4, "0")}`, channel: "imessage" });
+  await deps.db.upsertDraftMerchant({
+    id: merchantId,
+    name: `Test Shop ${n}`,
+    phone: `+1555000${String(n).padStart(4, "0")}`,
+    channel: "imessage",
+    currency,
+  });
   await deps.db.setMerchantXrpl(merchantId, { xrplAddress: address, xrplSeedEnc: "enc:test", credentialStatus: "accepted" });
   await deps.db.setMerchantLive(merchantId);
 
@@ -265,11 +283,24 @@ export async function addMerchant(
     merchantId,
     address,
     async seed(amount) {
-      const m = money(amount, "SGD");
+      const m = money(amount, currency);
       await deps.db.appendLedger({ merchantId, kind: "payment_credit", amount: m, ref: `pay_seed_${merchantId}_${++credits}` });
       fast.credit(address, m);
     },
     async addBank(o = {}) {
+      if (currency === "EUR") {
+        const b = await deps.payouts.createBeneficiary({ merchantId, type: "iban", accountNumber: "DE89370400440532013000", holderName: "Test Shop", currency });
+        const row = await deps.db.insertBankAccount({
+          merchantId,
+          type: "iban",
+          bankName: o.bankName ?? null,
+          last4: b.last4,
+          holderName: b.resolvedName,
+          beneficiaryId: b.beneficiaryId,
+          status: b.status,
+        });
+        return row.id;
+      }
       const b = await deps.payouts.createBeneficiary({ merchantId, type: "bank_account", bankName: "DBS", accountNumber: "0123451234", holderName: "Test Shop" });
       const row = await deps.db.insertBankAccount({
         merchantId,
