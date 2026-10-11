@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { money } from "@rove/shared";
 import type { MenuItem, PendingAction, Withdrawal, WithdrawalStatus } from "@rove/shared";
-import { DEMO_MENU, DEMO_MERCHANT, demoInvoice, demoPayment } from "@rove/shared/mocks";
+import { DEMO_CUSTOMER, DEMO_MENU, DEMO_MERCHANT, demoInvoice, demoPayment } from "@rove/shared/mocks";
 import { createCardBuilders, WITHDRAWAL_STATUS_LABEL } from "./builders";
 
 const BASE = "https://rove.example";
@@ -160,7 +160,7 @@ test("sale: key, merchant view url with token, payer fallback", () => {
   assert.equal(u.searchParams.get("view"), "merchant");
   assert.equal(u.searchParams.get("t"), T);
   assert.equal(u.searchParams.get("v"), "settled");
-  assert.equal(spec.fallbackText, "S$12.50 from +15555550199 ✓");
+  assert.equal(spec.fallbackText, `S$12.50 from ${DEMO_CUSTOMER.phone} ✓`);
   assert.equal(spec.updateText, undefined);
 
   const anon = cards.sale({ payment: payment({ payer: null }), merchant: DEMO_MERCHANT, sessionToken: T });

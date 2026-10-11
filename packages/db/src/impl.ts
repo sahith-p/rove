@@ -3,6 +3,7 @@
 import type { Pool } from "./executor";
 import type { Db } from "./index";
 import { agentRepo } from "./repo/agent";
+import { ausdRepo } from "./repo/ausd";
 import { contactsRepo } from "./repo/contacts";
 import { invoicesRepo, type InvoicesRepoOptions } from "./repo/invoices";
 import { ledgerRepo } from "./repo/ledger";
@@ -25,6 +26,7 @@ export function makeDb(pool: Pool, opts: MakeDbOptions = {}): Db {
     ...withdrawalsRepo(pool),
     ...refundsRepo(pool),
     ...agentRepo(pool),
+    ...ausdRepo(pool),
     close: () => pool.end(),
   };
 }

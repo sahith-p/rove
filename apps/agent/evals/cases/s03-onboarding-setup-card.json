@@ -1,0 +1,36 @@
+{
+  "id": "s03-onboarding-setup-card",
+  "description": "category vote → setup card",
+  "as": "stranger",
+  "needsClaude": false,
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "hi"
+      }
+    },
+    {
+      "inbound": {
+        "type": "text",
+        "text": "Uncle's Kopi"
+      }
+    },
+    {
+      "inbound": {
+        "type": "poll_option",
+        "title": "Drinks",
+        "pollTitle": "What do you sell?",
+        "selected": true
+      }
+    }
+  ],
+  "expect": {
+    "sends": [
+      {
+        "kind": "setup",
+        "to": "sender"
+      }
+    ]
+  }
+}

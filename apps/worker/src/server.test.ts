@@ -6,11 +6,12 @@ import { createLogger } from "./log";
 import { createServer } from "./server";
 import { createFakeDb, createFastSettlement } from "./test-fakes";
 import { createTestDeps, TEST_CONFIG, TEST_INTERNAL_SECRET } from "./testing";
+import { DEMO_MERCHANT } from "@rove/shared/mocks";
 
 const read = async (res: Response) => (await res.json()) as Record<string, any>;
 
 const auth = { authorization: `Bearer ${TEST_INTERNAL_SECRET}`, "content-type": "application/json" };
-const merchantBody = { id: "ahseng", name: "Ah Seng Chicken Rice", phone: "+15555550100", channel: "imessage", currency: "SGD", category: null } as const;
+const merchantBody = { id: "ahseng", name: "Ah Seng Chicken Rice", phone: DEMO_MERCHANT.phone, channel: "imessage", currency: "SGD", category: null } as const;
 
 async function app(overrides: Parameters<typeof createTestDeps>[0] = {}) {
   const fake = createFakeDb();

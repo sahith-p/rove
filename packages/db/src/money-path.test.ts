@@ -6,6 +6,7 @@ import { after, before, describe, it } from "node:test";
 import { DbConflictError, type Db } from "./index";
 import type { Pool } from "./executor";
 import { amounts, liveMerchant, openTestDb, paymentInput, settle, sgd, usd } from "./testkit";
+import { DEMO_CUSTOMER } from "@rove/shared/mocks";
 
 let db: Db;
 let pool: Pool;
@@ -25,7 +26,7 @@ describe("payment: created → authorized → settling → settled", () => {
     const inv = await db.createInvoice({
       merchantId: m.id,
       kind: "invoice",
-      to: { phone: "+1 555 555 0199", channel: "imessage" },
+      to: { phone: DEMO_CUSTOMER.phone.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, "+1 $1 $2 $3"), channel: "imessage" },
       lines: [
         { menuItemId: null, name: "Chicken rice", qty: 2, unit: sgd("5.50") },
         { menuItemId: null, name: "Barley drink", qty: 1, unit: sgd("1.50") },
@@ -71,7 +72,7 @@ describe("payment: created → authorized → settling → settled", () => {
     const contacts = await db.findContacts(m.id);
     assert.deepEqual(
       contacts.map((c) => [c.phone, c.channel]),
-      [["+15555550199", "imessage"]],
+      [[DEMO_CUSTOMER.phone, "imessage"]],
     );
 
     // idempotent: a second completion is a CAS miss and writes nothing

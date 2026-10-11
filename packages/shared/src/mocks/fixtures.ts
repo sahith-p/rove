@@ -6,7 +6,7 @@ import type { Contact, Invoice, MenuItem, Merchant, Payment } from "../domain";
 export const DEMO_MERCHANT: Merchant = {
   id: "ahseng",
   name: "Ah Seng Chicken Rice",
-  phone: "+15555550100", // ← merchant demo iPhone (iMessage)
+  phone: "+14708209753", // ← merchant demo iPhone (iMessage)
   channel: "imessage",
   category: "hawker",
   country: "SG",
@@ -18,7 +18,7 @@ export const DEMO_MERCHANT: Merchant = {
   createdAt: new Date(0).toISOString(),
 };
 
-export const DEMO_CUSTOMER = { name: "Maya", phone: "+15555550199", channel: "imessage" as const }; // ← customer demo iPhone
+export const DEMO_CUSTOMER = { name: "Maya", phone: "+19259156406", channel: "imessage" as const }; // ← customer demo iPhone
 
 export const DEMO_MENU: MenuItem[] = [
   { id: "item_chicken_rice", merchantId: "ahseng", name: "Chicken rice", price: money("5.50", "SGD"), active: true, sort: 1 },

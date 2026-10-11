@@ -1,0 +1,33 @@
+{
+  "id": "m06-withdraw-confirm",
+  "description": "withdraw, then confirm on the step-up page → exactly one execute",
+  "as": "merchant",
+  "setup": {
+    "addBank": true
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "withdraw everything"
+      }
+    },
+    {
+      "inbound": {
+        "type": "web_confirm",
+        "via": "web"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "propose_withdrawal"
+    ],
+    "workerCalls": [
+      {
+        "method": "executeWithdrawal",
+        "count": 1
+      }
+    ]
+  }
+}

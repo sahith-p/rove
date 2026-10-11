@@ -1,0 +1,30 @@
+{
+  "id": "m18-auto-withdraw",
+  "description": "auto-withdraw change needs confirmation; nothing executed yet",
+  "as": "merchant",
+  "setup": {
+    "addBank": true
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "turn on daily auto withdraw"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "set_auto_withdraw"
+    ],
+    "workerCalls": [
+      {
+        "method": "setAutoWithdraw",
+        "count": 0
+      }
+    ],
+    "replyMatches": [
+      "👍|confirm|YES"
+    ]
+  }
+}

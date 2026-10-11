@@ -1,0 +1,28 @@
+{
+  "id": "s02-onboarding-poll",
+  "description": "after the name, the category poll is sent",
+  "as": "stranger",
+  "needsClaude": false,
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "hi"
+      }
+    },
+    {
+      "inbound": {
+        "type": "text",
+        "text": "Uncle's Kopi"
+      }
+    }
+  ],
+  "expect": {
+    "sends": [
+      {
+        "kind": "poll",
+        "to": "sender"
+      }
+    ]
+  }
+}

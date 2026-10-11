@@ -1,5 +1,6 @@
 // Background jobs. Each start* returns its own stopper; startJobs returns one that stops them all (SIGTERM, tests).
 
+import { startAusdRelayer } from "./ausd/index";
 import { startBnbWatcher } from "./bnb/index";
 import type { WorkerDeps } from "./deps";
 import { startExpiryJob } from "./expiry";
@@ -18,6 +19,7 @@ export function startJobs(deps: WorkerDeps): () => void {
     startBnbWatcher(deps), // NI-C6
     startReconciler(deps), // NI-C7
     startWithdrawalExpiryJob(deps), // NI-C7: requested withdrawals past their confirmation window → cancelled
+    startAusdRelayer(deps), // AUSD lane
   ];
   return () => {
     for (const stop of stoppers) {

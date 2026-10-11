@@ -1,0 +1,26 @@
+{
+  "id": "c01-what-do-i-owe",
+  "description": "customer sees only invoices to their phone",
+  "as": "customer",
+  "setup": {
+    "invoiceCustomer": {
+      "amount": "8.00"
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "what do I owe?"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "my_open_invoices"
+    ],
+    "replyMatches": [
+      "8\\.00"
+    ]
+  }
+}
