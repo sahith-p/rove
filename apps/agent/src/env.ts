@@ -32,6 +32,8 @@ export const config = {
   },
 
   anthropicApiKey: env.ANTHROPIC_API_KEY ?? "",
+  /** Only for API keys not scoped to a workspace (sent as the anthropic-workspace-id header). */
+  anthropicWorkspaceId: env.ANTHROPIC_WORKSPACE_ID ?? "",
   elevenLabs: { apiKey: env.ELEVENLABS_API_KEY ?? "", voiceId: env.ELEVENLABS_VOICE_ID ?? "" },
 
   /** Demo cap on a single invoice / pay request (docs/specs/invoicing-and-qr.md §4). */

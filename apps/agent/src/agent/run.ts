@@ -23,7 +23,7 @@ export function plainText(s: string): string {
 }
 
 export function createTurnRunner(deps: Deps, m: { actions: ActionsService; onboarding: OnboardingFlow }): TurnRunner {
-  const client = deps.config.anthropicApiKey ? new Anthropic({ apiKey: deps.config.anthropicApiKey }) : null;
+  const client = deps.config.anthropicApiKey ? new Anthropic({ apiKey: deps.config.anthropicApiKey, defaultHeaders: deps.config.anthropicWorkspaceId ? { "anthropic-workspace-id": deps.config.anthropicWorkspaceId } : undefined }) : null;
 
   return {
     async turn(input: TurnInput): Promise<TurnResult> {

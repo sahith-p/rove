@@ -12,7 +12,7 @@ import type { Config } from "./env";
 import type { Outbox, ScreenEffect } from "./ports";
 
 export interface RecordedSend {
-  kind: "card" | "card-edit" | "text" | "image" | "poll" | "effect" | "voice" | "contact";
+  kind: `card:${string}` | `card-edit:${string}` | "text" | "image" | "poll" | "effect" | "voice" | "contact";
   to: string;
   body: string;
   messageId: string;
@@ -31,14 +31,14 @@ export function createConsoleOutbox(opts: { log: (line: string) => void; record?
   };
   const cards: CardPresenter = {
     async send(to, spec) {
-      const messageId = out("card", to, `${spec.kind} ${spec.key} ${spec.url} | ${spec.fallbackText}`, spec);
+      const messageId = out(`card:${spec.kind}`, to, `${spec.kind} ${spec.key} ${spec.url} | ${spec.fallbackText}`, spec);
       known.set(`${to.phone}|${spec.key}`, messageId);
       return { messageId, edited: false };
     },
     async update(to, spec) {
       const original = known.get(`${to.phone}|${spec.key}`);
       if (!original) return this.send(to, spec);
-      out("card-edit", to, `${spec.kind} ${spec.key} ${spec.url}${spec.updateText ? ` | ${spec.updateText}` : ""}`, spec);
+      out(`card-edit:${spec.kind}`, to, `${spec.kind} ${spec.key} ${spec.url}${spec.updateText ? ` | ${spec.updateText}` : ""}`, spec);
       return { messageId: original, edited: true };
     },
     async text(to, body) {

@@ -170,7 +170,7 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
   async function parseMenuWithClaude(text: string): Promise<{ name: string; price: string }[]> {
     if (!config.anthropicApiKey) return [];
     try {
-      const client = new Anthropic({ apiKey: config.anthropicApiKey });
+      const client = new Anthropic({ apiKey: config.anthropicApiKey, defaultHeaders: config.anthropicWorkspaceId ? { "anthropic-workspace-id": config.anthropicWorkspaceId } : undefined });
       const res = await client.messages.create({
         model: AGENT_MODEL,
         max_tokens: 2048,
