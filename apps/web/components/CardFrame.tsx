@@ -7,6 +7,7 @@ import type { Money } from "@rove/shared";
 import { ArrowUpRight } from "lucide-react";
 import { format } from "../lib/ui/format";
 import { Button } from "./Button";
+import { CardOpenButton } from "./CardOpenButton";
 import type { Step } from "./StatusStepper";
 import styles from "./CardFrame.module.css";
 
@@ -99,28 +100,6 @@ export function CardDots({ steps }: { steps: Step[] }) {
 }
 
 /** The card's main button: opens the full page in a new tab / Safari. */
-export function CardLink({
-  href,
-  children,
-  icon,
-  variant = "primary",
-}: {
-  href: string;
-  children: ReactNode;
-  icon?: ReactNode;
-  variant?: "primary" | "secondary";
-}) {
-  return (
-    <Button
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      fullWidth
-      variant={variant}
-      icon={icon}
-      trailingIcon={<ArrowUpRight size={16} strokeWidth={1.75} />}
-    >
-      {children}
-    </Button>
-  );
+export function CardLink(props: { href: string; children: ReactNode; icon?: ReactNode; variant?: "primary" | "secondary" }) {
+  return <CardOpenButton {...props} />;
 }
