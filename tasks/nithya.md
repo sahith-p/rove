@@ -136,7 +136,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** Gate **G3b**.
 
 ### NI-C7 · Reconciler + hardening · 40 min (after G4)
-- [ ] status
+- [x] 814908b … 160c2ce (reconciler every 60s + `GET /internal/reconcile`, /healthz, boot replay, stale-request cancel, money log, Railway docs). **Real e2e smoke passed**: S$12.50 card sale settled on XRPL + S$5.00 withdrawal completed; ledger S$7.50 = XRPL S$7.50 ✓
 - **Paths:** `apps/worker/src/{reconcile,boot}.ts`
 - **Do:** Every 60s compare ledger (available + held) to XSGD balance per merchant, log drift; boot-time resume + replay of un-acked events; readable logs for the demo laptop.
 - **Done when:** `/shop` shows "Ledger ✓ matches XRPL" after the full demo run.
