@@ -152,6 +152,8 @@ export interface Payment {
   lines: InvoiceLine[]; // copied from the invoice or picked on the fixed-QR page; [] for a free amount
   local: Money;
   quote: Quote | null;
+  /** What the payer is charged, in the payer's own currency (USD → quote.usd, SGD → local). The card leg never converts. */
+  charge?: Money;
   method: PaymentMethod;
   status: PaymentStatus;
   /** Optional: payer's phone (from the invoice, or typed on the pay page for a receipt). */

@@ -108,3 +108,4 @@ Session = `x-rove-session: <signToken(MerchantSessionPayload)>`, which the page 
 | Time | Change | Approved by |
 |---|---|---|
 | G0 | Initial contracts (messaging-first design) | — |
+| proposed | Charge the payer in their own currency (no card FX): optional `CheckoutReq.payCurrency`, `CheckoutRes.charge`, `PaymentStatusRes.charge`, `Payment.charge`, `SettlementEngine.settle({ from })`; `payments.charge_amount/charge_currency`. See payments-stripe.md §1a | Nithya (proposer); needs one more owner |
