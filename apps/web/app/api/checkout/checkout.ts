@@ -76,7 +76,9 @@ export async function runCheckout(deps: WebDeps, body: CheckoutBody, now = Date.
       {
         amount: Number(toMinor(charge)),
         currency: charge.currency.toLowerCase(),
-        automatic_payment_methods: { enabled: true },
+        // Card only: Apple Pay / Google Pay ride on the card method; this keeps Klarna, Cash App and bank redirects out
+        // of the card form (Sahith 15:15).
+        payment_method_types: ["card"],
         metadata: { paymentId, merchantId: target.merchantId },
       },
       { idempotencyKey: paymentId },

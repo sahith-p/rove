@@ -233,6 +233,8 @@ export interface Db {
   expireInvoices(now?: Date): Promise<Invoice[]>;
   /** Open invoices of kind 'invoice' older than `olderThan` and never reminded. */
   invoicesToRemind(olderThan: Date): Promise<Invoice[]>;
+  /** Same as invoicesToRemind, under the name the agent's Store uses. */
+  invoicesDueForReminder(createdBefore: Date | string): Promise<Invoice[]>;
   setInvoiceReminded(id: string): Promise<void>;
   /** CAS: set reminded_at only if it's still null. True for the one caller that wins, so each nudge goes out once. */
   markInvoiceReminded(id: string): Promise<boolean>;
@@ -307,6 +309,8 @@ export interface Db {
   insertAction(a: NewPendingAction): Promise<PendingAction>;
   getAction(id: string): Promise<PendingAction | null>;
   addConfirmMessageIds(id: string, messageIds: string[]): Promise<void>;
+  /** Replace the action's confirm message ids (the agent's Store sets them once the confirm card + text are sent). */
+  setActionMessageIds(id: string, messageIds: string[]): Promise<void>;
   findOpenActionByMessageId(messageId: string): Promise<PendingAction | null>;
   /** Any status (so a late 👍 can be answered "expired"); newest first. */
   findActionByMessageId(messageId: string): Promise<PendingAction | null>;
@@ -316,6 +320,8 @@ export interface Db {
   /** proposed → executing, only while unexpired. Null = already claimed, expired or unknown. */
   claimAction(id: string): Promise<PendingAction | null>;
   setActionStatus(id: string, status: PendingActionStatus, result?: unknown): Promise<PendingAction | null>;
+  /** Same as setActionStatus, under the name the agent's Store uses. */
+  finishAction(id: string, status: PendingActionStatus, result?: unknown): Promise<PendingAction | null>;
   expireActions(now?: Date): Promise<PendingAction[]>;
 
   // agent memory + onboarding

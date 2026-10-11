@@ -82,6 +82,13 @@ describe("pending actions", () => {
     assert.equal((await db.findActionByRef("wd_ref"))?.id, wd.id);
     assert.equal((await db.findActionByRef("pay_ref"))?.id, rf.id);
     assert.equal(await db.findActionByRef("wd_nobody"), null);
+
+    // setActionMessageIds replaces; finishAction = setActionStatus
+    await db.setActionMessageIds(rf.id, ["m_a", "m_b", "m_a"]);
+    assert.deepEqual((await db.getAction(rf.id))?.confirmMessageIds, ["m_a", "m_b"]);
+    await db.setActionMessageIds(rf.id, ["m_c"]);
+    assert.deepEqual((await db.getAction(rf.id))?.confirmMessageIds, ["m_c"]);
+    assert.equal((await db.finishAction(rf.id, "cancelled"))?.status, "cancelled");
   });
 });
 
