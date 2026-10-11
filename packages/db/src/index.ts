@@ -175,7 +175,7 @@ export interface Db {
 
   // menu
   listMenu(merchantId: MerchantId, opts?: { includeInactive?: boolean }): Promise<MenuItem[]>;
-  /** Replace the whole menu (setup card): rows not listed are deactivated, not deleted (old invoices reference them). */
+  /** Replace the whole menu (setup card): rows not listed are deleted (invoices keep their own line copies); `active: false` hides. */
   replaceMenu(merchantId: MerchantId, items: MenuItemInput[]): Promise<MenuItem[]>;
   upsertMenuItem(merchantId: MerchantId, item: { name: string; price?: Money; active?: boolean }): Promise<MenuItem>;
   findMenuItems(merchantId: MerchantId, names: string[]): Promise<MenuMatch[]>;

@@ -54,18 +54,21 @@ describe("GET /api/payments/:paymentId", () => {
     assert.ok(!text.includes("Maya"), "payerName needs the merchant's sale session");
   });
 
-  test("payerName only with a sale session for this payment from the merchant that owns it", async () => {
+  test("payerName only for the owning merchant: its sale session for this payment, or its shop session", async () => {
     const ok = token({ merchantId: "ahseng", scope: "sale", ref: payment.id });
     const withName = await call(payment.id, ok);
     assert.equal((withName.body as { payerName?: string }).payerName, "Maya");
     assert.ok(!withName.text.includes("91234567"));
+    // /shop links its receipts with the merchant's shop session
+    const viaShop = await call(payment.id, token({ merchantId: "ahseng", scope: "shop" }));
+    assert.equal((viaShop.body as { payerName?: string }).payerName, "Maya");
 
     const other = await seedPayment(deps.db, "ahseng", { payerPhone: PAYER });
     const denied = [
       token({ merchantId: "ahseng", scope: "sale", ref: other.id }), // another payment's sale card
       token({ merchantId: "kopi", scope: "sale", ref: payment.id }), // another merchant
       token({ merchantId: "ahseng", scope: "sale" }), // no ref
-      token({ merchantId: "ahseng", scope: "shop" }), // broad scope isn't enough
+      token({ merchantId: "kopi", scope: "shop" }), // another merchant's shop
       token({ merchantId: "ahseng", scope: "setup" }),
       token({ merchantId: "ahseng", scope: "sale", ref: payment.id, exp: Math.floor(Date.now() / 1000) - 5 }), // expired
       `${ok.split(".")[0]}.AAAA`, // tampered

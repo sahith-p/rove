@@ -68,7 +68,7 @@ describe("PUT /api/me/menu", () => {
       (await deps.db.listMenu("ahseng")).map((m) => m.name),
       ["Roasted chicken rice", "Kopi"],
     );
-    assert.equal(after.find((m) => m.name === "Barley drink")?.active, false, "a removed item is deactivated, not deleted");
+    assert.equal(after.find((m) => m.name === "Barley drink"), undefined, "an item removed in the setup card is deleted");
   });
 
   test("bank / shop / sale scopes can't touch the menu → 403, nothing emitted", async () => {
