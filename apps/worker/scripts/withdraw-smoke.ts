@@ -40,7 +40,7 @@ async function openDb(): Promise<{ db: Db; label: string }> {
 }
 
 async function main(): Promise<number> {
-  const amount = money(amountArg, "SGD");
+  money(amountArg, "SGD"); // fail fast on a malformed amount; re-read below in the merchant's currency
   const { db, label } = await openDb();
   const settlement = createMockSettlement();
   const payouts = createMockPayoutPartner();
@@ -71,7 +71,7 @@ async function main(): Promise<number> {
   };
 
   try {
-    console.log(`withdraw-smoke · ${merchantId} · ${format(amount)} · db: ${label} · engine: mock · payouts: mock (simulated StraitsX)`);
+    console.log(`withdraw-smoke · ${merchantId} · ${amountArg} · db: ${label} · engine: mock · payouts: mock (simulated StraitsX)`);
 
     // 1. a live merchant with a (mock) custodial account
     let merchant = await db.getMerchant(merchantId);
@@ -93,13 +93,15 @@ async function main(): Promise<number> {
       console.log(`  created draft merchant ${merchantId}`);
     }
     if (!merchant.xrplAddress || merchant.status !== "live") {
-      const acct = merchant.xrplAddress ? null : await settlement.createMerchantAccount({ merchantId });
+      const acct = merchant.xrplAddress ? null : await settlement.createMerchantAccount({ merchantId, currency: merchant.currency });
       if (acct) await db.setMerchantXrpl(merchantId, { xrplAddress: acct.xrplAddress, xrplSeedEnc: "mock", credentialStatus: acct.credentialStatus });
       await db.setMerchantLive(merchantId);
       merchant = (await db.getMerchant(merchantId))!;
       console.log(`  merchant live with mock account ${merchant.xrplAddress}`);
     }
     const address = merchant.xrplAddress!;
+    const currency = merchant.currency;
+    const amount = money(amountArg, currency);
 
     // 2. a default bank account (simulated beneficiary; no real numbers anywhere)
     if (!(await db.getDefaultBankAccount(merchantId))) {
@@ -112,18 +114,18 @@ async function main(): Promise<number> {
     const ledger = await db.getBalance(merchantId);
     const total = add(ledger.available, ledger.held);
     if (isPositive(total)) {
-      await settlement.settle({ paymentId: `smoke_mirror_${merchantId}`, merchantAddress: address, local: total, sendMaxUsd: "0", from: "SGD" });
+      await settlement.settle({ paymentId: `smoke_mirror_${merchantId}`, merchantAddress: address, local: total, sendMaxUsd: "0", from: currency });
       console.log(`  mock chain now mirrors the ledger: ${format(total)}`);
     }
     if (cmp(ledger.available, amount) < 0) {
       const topUp = sub(amount, ledger.available);
       const paymentId = newId("pay");
-      await settlement.settle({ paymentId, merchantAddress: address, local: topUp, sendMaxUsd: "0", from: "SGD" });
+      await settlement.settle({ paymentId, merchantAddress: address, local: topUp, sendMaxUsd: "0", from: currency });
       await db.appendLedger({ merchantId, kind: "payment_credit", amount: topUp, ref: paymentId });
       console.log(`  seeded ${format(topUp)} (simulated sale ${paymentId})`);
     }
     const before = await db.getBalance(merchantId);
-    console.log(`  before: available ${format(before.available)} · held ${format(before.held)} · chain ${format(await settlement.balance({ merchantAddress: address }))}`);
+    console.log(`  before: available ${format(before.available)} · held ${format(before.held)} · chain ${format(await settlement.balance({ merchantAddress: address, currency }))}`);
 
     // 4. propose (what the agent's propose_withdrawal does), then confirm (what the executor does after 👍)
     const view = await createWithdrawal(deps, { merchantId, amount: amount.amount, destination: null });
@@ -152,7 +154,7 @@ async function main(): Promise<number> {
 
     // 5. ledger vs chain
     const after = await db.getBalance(merchantId);
-    const chain = await settlement.balance({ merchantAddress: address });
+    const chain = await settlement.balance({ merchantAddress: address, currency });
     const ledgerTotal = add(after.available, after.held);
     console.log(`  after:  available ${format(after.available)} · held ${format(after.held)} · chain ${format(chain)}`);
     assert.equal(toMinor(ledgerTotal), toMinor(chain), `ledger available + held (${format(ledgerTotal)}) != chain balance (${format(chain)})`);
