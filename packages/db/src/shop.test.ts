@@ -68,7 +68,7 @@ describe("merchants", () => {
 });
 
 describe("menu", () => {
-  it("replaceMenu keeps ids, deactivates what's gone, renames and swaps safely", async () => {
+  it("replaceMenu keeps ids, deletes what's gone, keeps hidden items, renames and swaps safely", async () => {
     const first = await db.replaceMenu("ahseng", [
       { name: "Chicken rice", price: sgd("5.50") },
       { name: "Barley drink", price: sgd("1.50") },
@@ -90,21 +90,31 @@ describe("menu", () => {
     ]);
     assert.deepEqual((await db.listMenu("ahseng")).map((i) => i.name), ["Chicken rice (large)", "Kopi"]);
     const all = await db.listMenu("ahseng", { includeInactive: true });
-    assert.deepEqual(all.find((i) => i.id === barley!.id)?.active, false); // deactivated, not deleted
+    assert.equal(all.find((i) => i.id === barley!.id), undefined); // removed in the setup card → deleted
 
-    // swap two names, and bring the barley back by name (same row, reactivated)
+    // swap two names, and add the barley back (a new row)
     const kopi = second[1]!;
     const third = await db.replaceMenu("ahseng", [
       { id: rice!.id, name: "Kopi", price: sgd("1.20") },
       { id: kopi.id, name: "Chicken rice (large)", price: sgd("6.00") },
       { name: "barley drink", price: sgd("1.60") },
     ]);
-    assert.deepEqual(third.map((i) => [i.id, i.name]), [
+    assert.deepEqual(third.map((i) => [i.id, i.name]).slice(0, 2), [
       [rice!.id, "Kopi"],
       [kopi.id, "Chicken rice (large)"],
-      [barley!.id, "barley drink"],
     ]);
+    assert.equal(third[2]!.name, "barley drink");
+    assert.notEqual(third[2]!.id, barley!.id);
     assert.ok(third.every((i) => i.active));
+
+    // hiding (active: false) keeps the row; it's still listed with includeInactive
+    await db.replaceMenu("ahseng", [
+      { id: rice!.id, name: "Kopi", price: sgd("1.20"), active: false },
+      { id: kopi.id, name: "Chicken rice (large)", price: sgd("6.00") },
+      { id: third[2]!.id, name: "barley drink", price: sgd("1.60") },
+    ]);
+    assert.deepEqual((await db.listMenu("ahseng")).map((i) => i.name), ["Chicken rice (large)", "barley drink"]);
+    assert.equal((await db.listMenu("ahseng", { includeInactive: true })).find((i) => i.name === "Kopi")?.active, false);
 
     await assert.rejects(
       () => db.replaceMenu("ahseng", [{ name: "Tea", price: sgd("1") }, { name: " tea ", price: sgd("1") }]),
