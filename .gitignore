@@ -11,3 +11,5 @@ dist
 .turbo
 .claude/worktrees/
 .env*
+next-env.d.ts
+*.tsbuildinfo
