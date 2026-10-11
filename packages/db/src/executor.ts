@@ -1,6 +1,7 @@
 // The tiny SQL surface the Db implementation runs on, so production (postgres.js) and tests (PGlite) execute the same SQL.
-// Parameters are limited to primitives; arrays and objects go in as JSON text and are cast in SQL ($1::jsonb), which
-// both drivers handle identically. Numerics come back as strings (never floats), timestamps as Date.
+// Parameters are limited to primitives; arrays and objects go in as JSON text cast in SQL as `$1::text::jsonb`.
+// (Not `$1::jsonb`: postgres.js JSON.stringify's json/jsonb-typed params, double-encoding a string. The test adapter
+// mimics that, see pglite.ts.) Numerics come back as strings (never floats), timestamps as Date.
 
 import postgres from "postgres";
 import { translateError } from "./errors";
