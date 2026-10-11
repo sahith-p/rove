@@ -2,12 +2,11 @@
 //  - Console (USE_MOCK_CARDS=1, offline dev, evals): logs every send and optionally records it. Message ids are
 //    unique ("mock-msg-N") across cards and texts, so evals can 👍 a confirm card by id.
 //  - Spectrum: cards through the CardPresenter (Sahith's, or the basic fallback); polls, effects, voice notes and
-//    contact cards channel-native, with WhatsApp fallbacks per docs/specs/channels.md.
+//    contact cards iMessage-native (docs/specs/channels.md).
 
-import type { CardPresenter, CardSpec, Channel, Recipient } from "@rove/shared";
+import type { CardPresenter, CardSpec, Recipient } from "@rove/shared";
 import { attachment, poll, text as textContent, voice as voiceContent, type Message, type Space, type SpectrumInstance } from "spectrum-ts";
 import { effect as imessageEffect, imessage, nativeContactCard } from "spectrum-ts/providers/imessage";
-import { whatsappBusiness } from "spectrum-ts/providers/whatsapp-business";
 import type { Config } from "./env";
 import type { Outbox, ScreenEffect } from "./ports";
 
@@ -79,7 +78,7 @@ export interface SpectrumOutboxOptions {
   spectrum: AnySpectrum;
   config: Config;
   /** Which providers were configured at boot. */
-  providers: { imessage: boolean; whatsapp: boolean };
+  providers: { imessage: boolean };
   log: (...args: unknown[]) => void;
 }
 
@@ -91,10 +90,6 @@ export function createSpaceResolver(o: SpectrumOutboxOptions) {
     let space = spaces.get(key);
     if (!space) {
       space = (async () => {
-        if (to.channel === "whatsapp") {
-          if (!o.providers.whatsapp) throw new Error("WhatsApp is not configured");
-          return (whatsappBusiness as any)(o.spectrum).space.create(to.phone.replace(/\D/g, "")) as Promise<Space>;
-        }
         if (!o.providers.imessage) throw new Error("iMessage is not configured");
         const im = (imessage as any)(o.spectrum);
         return im.space.create(await im.user(to.phone)) as Promise<Space>;
@@ -116,7 +111,6 @@ export function createSpectrumOutbox(o: SpectrumOutboxOptions & { presenter: Car
   const spaceFor = o.spaceFor ?? createSpaceResolver(o);
   const idOf = (m: Message | Message[] | undefined) => (Array.isArray(m) ? m[0]?.id : m?.id) ?? `unsent-${Date.now()}`;
   const send = async (to: Recipient, content: any) => idOf(await (await spaceFor(to)).send(content));
-  const channels = new Map<string, Channel>();
 
   return {
     cards: o.presenter,
@@ -129,42 +123,19 @@ export function createSpectrumOutbox(o: SpectrumOutboxOptions & { presenter: Car
       return { messageId };
     },
     async poll(to, title, options) {
-      if (to.channel === "whatsapp") {
-        const numbered = options.map((opt, i) => `${i + 1}. ${opt}`).join("\n");
-        const choices = options.map((_, i) => String(i + 1));
-        const last = choices.pop();
-        return { messageId: await send(to, `${title}\n${numbered}\nReply ${choices.join(", ")}${choices.length ? " or " : ""}${last}.`) };
-      }
       return { messageId: await send(to, poll(title, options)) };
     },
     async effect(to, body, fx) {
-      if (to.channel === "whatsapp") return { messageId: await send(to, `${body} 🎉`) };
       return { messageId: await send(to, imessageEffect(textContent(body), IMESSAGE_EFFECT[fx] as any)) };
     },
     async voice(to, audio, v) {
       return { messageId: await send(to, voiceContent(audio, { name: v.name, mimeType: v.mimeType, duration: v.duration })) };
     },
     async contactCard(to) {
-      if (to.channel !== "imessage") return;
       await send(to, nativeContactCard()).catch((err) => o.log("contact card failed", err));
     },
-    async resolveChannel(phone) {
-      const cached = channels.get(phone);
-      if (cached) return cached;
-      let channel: Channel = "imessage";
-      if (o.providers.imessage) {
-        try {
-          const user = await (imessage as any)(o.spectrum).user(phone);
-          if (user?.service !== "iMessage" && o.providers.whatsapp) channel = "whatsapp";
-        } catch (err) {
-          o.log("resolveChannel failed", phone, err);
-          if (o.providers.whatsapp) channel = "whatsapp";
-        }
-      } else if (o.providers.whatsapp) {
-        channel = "whatsapp";
-      }
-      channels.set(phone, channel);
-      return channel;
+    async resolveChannel() {
+      return "imessage";
     },
   };
 }

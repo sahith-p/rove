@@ -6,7 +6,6 @@ import type { CardPresenter, Recipient } from "@rove/shared";
 import { app, attachment, edit, Spectrum, type Message, type Space, type SpectrumInstance } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { terminal } from "spectrum-ts/providers/terminal";
-import { whatsappBusiness, whatsappTemplate } from "spectrum-ts/providers/whatsapp-business";
 import type { Agent } from "./app";
 import { createBasicSpectrumPresenter } from "./cards";
 import type { Config } from "./env";
@@ -17,25 +16,19 @@ import { toE164 } from "./tools/match";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Spectrum's provider-tuple generics aren't known statically here */
 type AnySpectrum = SpectrumInstance<any>;
-/** Sahith's presenter option (not re-exported from the package index). */
-type WhatsAppTemplateSender = NonNullable<NonNullable<Parameters<typeof createSpectrumCardPresenter>[1]>["waTemplates"]>;
 
 export interface SpectrumSetup {
   spectrum: AnySpectrum;
-  providers: { imessage: boolean; whatsapp: boolean; terminal: boolean };
+  providers: { imessage: boolean; terminal: boolean };
 }
 
 /** Spectrum with whichever providers are configured; null when none are. */
 export async function createSpectrum(config: Config): Promise<SpectrumSetup | null> {
   const s = config.spectrum;
   const hasProject = Boolean(s.projectId && s.projectSecret);
-  const wa = s.whatsapp;
-  const providers = { imessage: hasProject, whatsapp: Boolean(wa.accessToken && wa.phoneNumberId), terminal: config.terminal };
+  const providers = { imessage: hasProject, terminal: config.terminal };
   const list: any[] = [];
   if (providers.imessage) list.push(imessage.config());
-  if (providers.whatsapp) {
-    list.push(whatsappBusiness.config({ accessToken: wa.accessToken, phoneNumberId: wa.phoneNumberId, ...(wa.appSecret ? { appSecret: wa.appSecret } : {}) }));
-  }
   if (providers.terminal) list.push(terminal.config());
   if (!list.length) return null;
   const spectrum = (await (hasProject
@@ -50,7 +43,7 @@ export function createRuntimeOutbox(setup: SpectrumSetup, config: Config, log: (
   const spaceFor = createSpaceResolver(opts);
   let presenter: CardPresenter;
   try {
-    presenter = createSpectrumCardPresenter(setup.spectrum as any, setup.providers.whatsapp ? { waTemplates: whatsappInvoiceTemplate(spaceFor, config) } : {});
+    presenter = createSpectrumCardPresenter(setup.spectrum as any);
   } catch (err) {
     log("card presenter: using the basic fallback", err instanceof Error ? err.message : err);
     presenter = createBasicSpectrumPresenter({
@@ -63,26 +56,6 @@ export function createRuntimeOutbox(setup: SpectrumSetup, config: Config, log: (
   return createSpectrumOutbox({ ...opts, presenter, spaceFor });
 }
 
-/**
- * WhatsApp invoices to people outside the 24h window: the approved `rove_invoice` template (channels.md).
- * Body params {{1}} merchant name, {{2}} amount come from the card's fallbackText. Spectrum's v1 template content has
- * body params only, so the URL button suffix isn't sent; the pay link follows as text (delivered once they reply).
- */
-function whatsappInvoiceTemplate(spaceFor: (to: Recipient) => Promise<Space>, config: Config): WhatsAppTemplateSender {
-  return {
-    async invoice(to, spec) {
-      const space = await spaceFor(to);
-      const m = /^(.*) sent you a (?:payment )?request for (\S+)/.exec(spec.fallbackText);
-      const sent = await space.send(
-        m
-          ? whatsappTemplate({ name: config.spectrum.whatsappTemplate, languageCode: "en", bodyParams: [m[1]!, m[2]!] })
-          : `${spec.fallbackText}\n${spec.url}`,
-      );
-      return { messageId: sent?.id ?? `unsent-${Date.now()}`, edited: false };
-    },
-  };
-}
-
 /** Sender of an inbound message → Recipient, or null if we can't message them back by phone. */
 export function senderOf(message: Message, config: Config): Recipient | null {
   const id = message.sender?.id;
@@ -93,10 +66,6 @@ export function senderOf(message: Message, config: Config): Recipient | null {
       if (!id || id.includes("@")) return null; // email handles have no phone
       const phone = toE164(id);
       return phone ? { phone, channel: "imessage" } : null;
-    }
-    case "whatsapp_business": {
-      const digits = (id ?? "").replace(/\D/g, "");
-      return digits ? { phone: `+${digits}`, channel: "whatsapp" } : null;
     }
     default:
       return null;

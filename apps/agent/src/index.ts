@@ -1,5 +1,5 @@
 // Agent service (port 4002). Owner: Saran. Specs: docs/specs/agent.md, onboarding.md, channels.md, voice.md.
-// Boot: load .env → Spectrum (iMessage / WhatsApp / terminal, whichever are configured) → outbox → agent modules
+// Boot: load .env → Spectrum (iMessage / terminal, whichever are configured) → outbox → agent modules
 // → internal HTTP server, reminders, action expiry sweep → inbound message loop (runtime.ts).
 // Card handles live in memory: don't restart the agent during the demo.
 
@@ -33,7 +33,7 @@ setInterval(() => void agent.actions.sweep().catch((err) => log("action sweep fa
 
 log(`store=${config.offline ? "memory (offline)" : "supabase"} cards=${config.mockCards || !setup ? "console" : "spectrum"}`);
 if (!setup) {
-  log("no Spectrum providers configured (SPECTRUM_PROJECT_ID / WhatsApp / USE_TERMINAL_PROVIDER=1): internal HTTP only");
+  log("no Spectrum providers configured (SPECTRUM_PROJECT_ID / USE_TERMINAL_PROVIDER=1): internal HTTP only");
 } else {
   log("providers:", Object.entries(setup.providers).filter(([, on]) => on).map(([name]) => name).join(", "));
   await runMessageLoop(setup, agent);

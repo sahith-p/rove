@@ -1,6 +1,6 @@
 // Merchant onboarding over chat (docs/specs/onboarding.md). Owner: Saran · Task: SA-A4.
 // Steps are plain code; state lives in the store's onboarding row (per phone), so a restart doesn't lose progress.
-//   start → name → category (poll / "Reply 1–4") → menu (setup card or texted items) → [worker creates the shop]
+//   start → name → category (poll, or a typed 1–4) → menu (setup card or texted items) → [worker creates the shop]
 //   → merchant.live: confetti + sticker + bank card → bank → done
 // Claude is only used as a fallback to parse messy menu text into {name, price} items.
 
@@ -224,10 +224,8 @@ export function createOnboarding(deps: Deps): OnboardingFlow {
       const s = await store.setOnboarding(from.phone, from.channel, "name", existing?.data ?? {});
       const to = recipientOf(s);
       await say(to, "Hi! I'm Rove. I'll set up your shop in a minute.");
-      if (to.channel === "imessage") {
-        await outbox.contactCard(to);
-        await say(to, "Save me so you can find me.");
-      }
+      await outbox.contactCard(to);
+      await say(to, "Save me so you can find me.");
       await say(to, "What's your shop called?");
     },
 

@@ -185,20 +185,11 @@ export function createBasicSpectrumPresenter(d: BasicPresenterDeps): CardPresent
   };
   return {
     async send(to, spec) {
-      if (to.channel === "whatsapp") {
-        const { messageId } = await sendText(to, `${spec.fallbackText}\n${spec.url}`);
-        return { messageId, edited: false };
-      }
       const msg = await (await d.spaceFor(to)).send(d.app(spec.url, { live: spec.live }));
       if (msg) handles.set(k(to, spec), msg);
       return { messageId: msg?.id ?? `unsent-${Date.now()}`, edited: false };
     },
     async update(to, spec) {
-      if (to.channel === "whatsapp") {
-        if (!spec.updateText) return null;
-        const { messageId } = await sendText(to, spec.updateText);
-        return { messageId, edited: false };
-      }
       const original = handles.get(k(to, spec));
       if (!original) return this.send(to, spec);
       await (await d.spaceFor(to)).send(d.edit(d.app(spec.url, { live: spec.live }), original));

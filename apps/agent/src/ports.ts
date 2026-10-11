@@ -175,15 +175,15 @@ export interface Outbox {
   cards: CardPresenter;
   text(to: Recipient, body: string): Promise<{ messageId: string }>;
   image(to: Recipient, png: Uint8Array, name: string, caption?: string): Promise<{ messageId: string }>;
-  /** iMessage poll; WhatsApp → "Reply 1–4" text. Votes come back as poll_option (or a digit reply). */
+  /** iMessage poll. Votes come back as poll_option (or a digit reply). */
   poll(to: Recipient, title: string, options: string[]): Promise<{ messageId: string }>;
-  /** iMessage screen effect; WhatsApp → text + emoji. */
+  /** iMessage screen effect. */
   effect(to: Recipient, body: string, effect: ScreenEffect): Promise<{ messageId: string }>;
   /** Voice note (m4a/AAC). Platforms without voice notes get an audio attachment. */
   voice(to: Recipient, audio: Buffer, opts: { name: string; mimeType: string; duration?: number }): Promise<{ messageId: string }>;
-  /** Rove's own contact card ("save me"). iMessage nativeContactCard; elsewhere a no-op. */
+  /** Rove's own contact card ("save me"), as an iMessage nativeContactCard. */
   contactCard(to: Recipient): Promise<void>;
-  /** Which channel reaches this phone: iMessage if Photon says so, else WhatsApp if configured, else iMessage. */
+  /** Which channel reaches this phone. Always iMessage: WhatsApp was dropped. */
   resolveChannel(phone: string): Promise<Channel>;
 }
 

@@ -11,7 +11,7 @@
     {
       "inbound": {
         "type": "text",
-        "text": "refund Maya"
+        "text": "refund Maya's most recent payment in full, wrong order"
       }
     },
     {

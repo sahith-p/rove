@@ -67,7 +67,7 @@ export function describeLines(lines: InvoiceLine[]): string {
   return lines.map((l) => (l.menuItemId ? `${l.qty}× ${l.name}` : format(l.unit))).join(", ");
 }
 
-/** Send the invoice's pay card to its recipient (iMessage app card / WhatsApp template or link). */
+/** Send the invoice's pay card to its recipient (iMessage app card). */
 export async function deliverInvoice(deps: Deps, invoice: Invoice, merchant: Merchant): Promise<SentMessage> {
   if (!invoice.to) throw new Error(`invoice ${invoice.code} has no recipient`);
   return deps.outbox.cards.send(invoice.to, deps.builders.invoice({ invoice, merchant }));

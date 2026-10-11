@@ -23,12 +23,6 @@ export const config = {
   spectrum: {
     projectId: env.SPECTRUM_PROJECT_ID ?? "",
     projectSecret: env.SPECTRUM_PROJECT_SECRET ?? "",
-    whatsapp: {
-      accessToken: env.SPECTRUM_WHATSAPP_BUSINESS_ACCESS_TOKEN ?? "",
-      phoneNumberId: env.SPECTRUM_WHATSAPP_BUSINESS_PHONE_NUMBER_ID ?? "",
-      appSecret: env.SPECTRUM_WHATSAPP_BUSINESS_APP_SECRET ?? "",
-    },
-    whatsappTemplate: env.WHATSAPP_INVOICE_TEMPLATE ?? "rove_invoice",
   },
 
   anthropicApiKey: env.ANTHROPIC_API_KEY ?? "",

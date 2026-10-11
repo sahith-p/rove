@@ -259,7 +259,7 @@ async function runCase(c: Case): Promise<Outcome> {
         break;
       case "reaction": {
         const target = inbound.target === "$lastConfirm" ? lastConfirmId() : fill(inbound.target, vars);
-        if (!target) return { status: "FAIL", reasons: ["no confirm message to react to"] };
+        if (!target) return { status: "FAIL", reasons: [`no confirm message to react to; replies so far: ${JSON.stringify(replies.map((r) => r.body))}`] };
         msg = { type: "reaction", emoji: inbound.emoji, targetMessageId: target };
         break;
       }

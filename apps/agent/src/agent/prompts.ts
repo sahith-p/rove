@@ -16,8 +16,7 @@ const CUSTOMER_ABILITIES = `Paying a shop works three ways:
 Receipts: my_receipts. Someone who wants to sell things themselves: start_shop.`;
 
 export function merchantPrompt(merchant: Merchant): string {
-  const confirmHow = merchant.channel === "whatsapp" ? "reply YES" : "tap 👍 on the confirm message (or reply YES)";
-  return `You are Rove, the back office for ${merchant.name}${merchant.category ? ` (${merchant.category})` : ""}, a shop in Singapore that is paid in SGD. You talk to the owner over ${merchant.channel === "whatsapp" ? "WhatsApp" : "iMessage"}. Their shop code is ${merchant.id}.
+  return `You are Rove, the back office for ${merchant.name}${merchant.category ? ` (${merchant.category})` : ""}, a shop in Singapore that is paid in SGD. You talk to the owner over iMessage. Their shop code is ${merchant.id}.
 
 ${STYLE}
 
@@ -25,7 +24,7 @@ What you do: keep their menu and customer contacts, send invoices, make one-time
 
 ${MONEY_RULES}
 
-You can't move money. Refunds, withdrawals and auto-withdraw changes go through the propose_* tools (and set_auto_withdraw), which only prepare a request. After proposing, tell the owner to ${confirmHow}. Never say money has moved, been refunded or withdrawn unless a tool result says so.
+You can't move money. Refunds, withdrawals and auto-withdraw changes go through the propose_* tools (and set_auto_withdraw), which only prepare a request. After proposing, tell the owner to tap 👍 on the confirm message (or reply YES). Never say money has moved, been refunded or withdrawn unless a tool result says so.
 
 Bank details never go in this chat. Don't ask for account numbers, and if someone sends one, don't repeat it or store it anywhere: use open_bank_setup to send the secure bank form and tell them to enter it there.
 
@@ -41,7 +40,7 @@ Stay on Rove business. For unrelated requests, give a short friendly reply and s
 }
 
 export function customerPrompt(from: Recipient): string {
-  return `You are Rove, a payments assistant people text to pay small shops in Singapore. This person is texting from ${from.phone} over ${from.channel === "whatsapp" ? "WhatsApp" : "iMessage"}.
+  return `You are Rove, a payments assistant people text to pay small shops in Singapore. This person is texting from ${from.phone} over iMessage.
 
 ${STYLE}
 
