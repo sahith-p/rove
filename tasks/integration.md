@@ -11,7 +11,7 @@ Every open gate (G2b, G3, G3b, G4) waits on items 1 to 3 below. Details are in t
 - [ ] 4. Mark finished SA tasks `[x]` in tasks/saran.md.
 
 **Nithya: worker + data**
-- [ ] 1. Deploy the worker to Railway with `USE_MOCK_SETTLEMENT=0`, `AGENT_URL`, `DATABASE_URL`, `INTERNAL_SECRET`, XRPL seeds. Share `WORKER_URL`. Without it Stripe payments stop at `authorized`: no settle, no sale or receipt card.
+- [x] 1. (Sahith deployed it, 15:50: Railway project `rove`, service `worker`, `WORKER_URL=https://worker-production-b037.up.railway.app`, /healthz ok, real XRPL + DB; `WORKER_URL` set on Vercel. `AGENT_URL` is a placeholder until Saran's agent is up: Saran, deploy as a 2nd service in the same Railway project and tell Sahith the URL.) Deploy the worker to Railway with `USE_MOCK_SETTLEMENT=0`, `AGENT_URL`, `DATABASE_URL`, `INTERNAL_SECRET`, XRPL seeds. Share `WORKER_URL`. Without it Stripe payments stop at `authorized`: no settle, no sale or receipt card.
 - [ ] 2. Add the 6 missing `@rove/db` helpers. Needed for 👍 confirms: `setActionMessageIds`, `findActionByMessageId`, `finishAction`, `findActionByRef`. Can wait: `invoicesDueForReminder`, `markInvoiceReminded`.
 - [ ] 3. Stripe: card-only payment methods (no redirect methods) + the checkout-reuse question (15:15 row). Add `rove-topaz.vercel.app` as an Apple Pay domain (15:05 row).
 - [x] 4. Send Sahith `NEXT_PUBLIC_PRIVY_APP_ID` (got it, set on Vercel) (15:05 row) so SH-A4 (AUSD/BNB button) can start.
