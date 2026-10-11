@@ -94,7 +94,7 @@ export const CheckoutReq = z.object({
       items: z.array(z.object({ menuItemId: z.string(), qty: z.number().int().positive() })).optional(),
     }),
   ]),
-  method: z.enum(["card", "bnb"]),
+  method: z.enum(["card", "bnb", "ausd"]),
   /** optional "text me the receipt" */
   payerPhone: E164.optional(),
   /** Currency the payer is charged in, so the card leg never crosses a currency (no card FX). Page sends the locale
@@ -111,7 +111,23 @@ export const CheckoutRes = z.object({
   stripe: z.object({ clientSecret: z.string() }).optional(),
   /** method=bnb: send test USDT on BSC testnet to this per-payment deposit address (Privy wallet) */
   bnb: z.object({ chainId: z.literal(97), depositAddress: z.string(), token: z.string(), decimals: z.number(), amount: Decimal }).optional(),
+  /** method=ausd: AUSD on Base Sepolia, gasless for the payer. The page signs an ERC-3009 TransferWithAuthorization
+   *  (EIP-712: `domain` + `authorization` + the payer's own address as `from`), then POSTs it to ROUTES.ausdAuthorize;
+   *  Rove's worker relays it and pays the gas (docs/specs/ausd-lane.md). */
+  ausd: z
+    .object({
+      chainId: z.number(),
+      token: z.string(),
+      decimals: z.number(),
+      amount: Decimal, // USD, equals `charge`
+      authorization: z.object({ to: z.string(), value: z.string(), validAfter: z.string(), validBefore: z.string(), nonce: z.string() }),
+      domain: z.object({ name: z.string(), version: z.string(), chainId: z.number(), verifyingContract: z.string() }),
+    })
+    .optional(),
 });
+
+/** POST /api/ausd/authorize  The payer's signed ERC-3009 authorization for an `ausd` checkout. → PaymentStatusRes */
+export const AusdAuthorizeReq = z.object({ paymentId: z.string(), from: z.string(), signature: z.string() });
 
 /** GET /api/payments/:paymentId  Polled by the pay page and receipt page. */
 export const PaymentStatusRes = z.object({
@@ -127,7 +143,7 @@ export const PaymentStatusRes = z.object({
   payerName: z.string().optional(),
   merchantVerified: z.boolean().optional(),
   lines: z.array(InvoiceLineZ),
-  method: z.enum(["apple_pay", "card", "bnb"]),
+  method: z.enum(["apple_pay", "card", "bnb", "ausd"]),
   settleTxHash: z.string().optional(),
   explorerUrl: z.string().url().optional(),
 });
@@ -249,6 +265,7 @@ export const ROUTES = {
   meBankAccounts: "/api/me/bank-accounts",
   withdrawal: (id: string) => `/api/withdrawals/${id}`,
   confirmAction: (actionId: string) => `/api/actions/${actionId}/confirm`,
+  ausdAuthorize: "/api/ausd/authorize",
   worker: {
     settle: "/internal/settle",
     refunds: "/internal/refunds",
