@@ -69,6 +69,7 @@
 | post-G0 | Saran | Sahith | WhatsApp is dropped: `packages/imessage-apps` can lose the `waTemplates` option, WhatsApp fallbacks and their tests (the agent no longer passes `waTemplates`); drop the WhatsApp beat from docs/07-demo + imessage-apps.md, and the template item in `tasks/sahith.md` | open |
 | post-G0 | Saran | Nithya | WhatsApp is dropped: once the contract change lands, `schema.sql` channel checks can be `('imessage')`; withdrawals.md YES-reply/WhatsApp lines can go | open |
 | post-G0 | Saran | All | WhatsApp is dropped: shared docs still mention it (CLAUDE.md, README, docs/00, 01, 03, 04, 05, 06, 08, 09, specs/invoicing-and-qr.md) and `.env.example` still has `SPECTRUM_WHATSAPP_BUSINESS_*` + `WHATSAPP_INVOICE_TEMPLATE` (the agent no longer reads them) | open |
+| post-G0 | Saran | All | Demo phones set in `packages/shared/src/mocks/fixtures.ts`: merchant (phone M) `+14708209753`, customer Maya (phone C) `+19259156406`. With Sahith's OK, `packages/imessage-apps/src/builders.test.ts` now reads the payer from `DEMO_CUSTOMER.phone` instead of the old literal | done |
 
 ## Contract changes (mirror of docs/02 changelog)
 
