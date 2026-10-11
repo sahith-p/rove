@@ -11,6 +11,7 @@
 // Each successful transition emits `withdrawal.updated` (awaited, so the agent sees statuses in order; emit never throws).
 
 import {
+  currencyInfo,
   DECIMALS,
   fromMinor,
   toMinor,
@@ -180,11 +181,14 @@ async function fail(deps: WorkerDeps, w: Withdrawal, from: WithdrawalStatus[], r
   await emitUpdate(deps, failed);
 }
 
-export function onchainFailureReason(err: unknown, w: Pick<Withdrawal, "destination">): string {
+export function onchainFailureReason(err: unknown, w: Pick<Withdrawal, "destination" | "amount">): string {
   if (w.destination.kind !== "xrpl_wallet") return ONCHAIN_FAILED_REASON;
   // The real engine's sendToWallet pre-check throws XrplDestinationError with a message written for the merchant.
   if (err instanceof Error && err.name === "XrplDestinationError" && err.message) return `${err.message} Nothing left your balance.`;
-  if (/trust ?line|tecNO_LINE|tecNO_AUTH|tecPATH_DRY/i.test(errText(err))) return NO_TRUST_LINE_REASON;
+  if (/trust ?line|tecNO_LINE|tecNO_AUTH|tecPATH_DRY/i.test(errText(err))) {
+    const coin = currencyInfo(w.amount.currency).stablecoin?.xrplCode ?? w.amount.currency;
+    return NO_TRUST_LINE_REASON.replaceAll("XSGD", coin);
+  }
   return ONCHAIN_FAILED_REASON;
 }
 
@@ -323,7 +327,8 @@ async function returnToMerchant(deps: WorkerDeps, w: Withdrawal, merchant: Merch
   for (const [attempt, delay] of [0, 500, 2000].entries()) {
     if (delay) await sleep(delay);
     try {
-      const r = await deps.settlement.settle({ paymentId: w.id, merchantAddress: merchant.xrplAddress!, local: w.amount, sendMaxUsd: "0", from: "SGD" });
+      // from = the merchant's own currency: the treasury's float of that stablecoin pays directly, no swap.
+      const r = await deps.settlement.settle({ paymentId: w.id, merchantAddress: merchant.xrplAddress!, local: w.amount, sendMaxUsd: "0", from: w.amount.currency });
       const delivered = deliveredMoney(r.delivered, w.amount);
       if (toMinor(delivered) !== toMinor(w.amount)) {
         log.warn("return delivered a different amount than the withdrawal; crediting what arrived", { id: w.id, delivered: delivered.amount, amount: w.amount.amount });
