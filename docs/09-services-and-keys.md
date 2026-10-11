@@ -8,6 +8,7 @@ Every external service Rove touches, who sets it up, and exactly which values go
 
 | ✓ | Service | Owner | Why we need it | Sign up | Env vars it produces | Free / cost |
 |---|---|---|---|---|---|---|
+| [ ] | **Photon: add demo phones as Users** | Sahith | Free/Pro shared lines only message registered Users; otherwise `Target not allowed for this project` | app.photon.codes → project → **Users** → add each demo phone (merchant, customer, teammates) | — | — |
 | [ ] | **Photon (Spectrum)** | Saran | the agent on iMessage: send/receive, App cards, edits, polls, effects, tapbacks, contact cards, voice notes | app.photon.codes → new project → Settings | `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET` | Free/Pro use a shared line pool (fine for DMs); Business = dedicated number |
 | [ ] | **Meta WhatsApp Business** (via Photon) | Saran | the agent on WhatsApp; **submit the `rove_invoice` template at 11:30** (docs/specs/channels.md) | developers.facebook.com → app → WhatsApp → API setup (test number OK), or a Photon cloud WhatsApp line if your plan has one | `SPECTRUM_WHATSAPP_BUSINESS_ACCESS_TOKEN`, `SPECTRUM_WHATSAPP_BUSINESS_PHONE_NUMBER_ID`, `SPECTRUM_WHATSAPP_BUSINESS_APP_SECRET` | free test number; template approval time varies |
 | [ ] | **Anthropic (Claude API)** | Saran | the merchant agent (`claude-opus-5-5`) | Claude Console (console.anthropic.com) → API keys | `ANTHROPIC_API_KEY` | pay-as-you-go; add credit first |

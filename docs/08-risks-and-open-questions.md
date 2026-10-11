@@ -19,6 +19,7 @@
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
+| **Photon Free/Pro only messages numbers registered as project Users** (allowlist) | certain | high | add every demo phone as a User in the Photon dashboard before G2; invoicing arbitrary numbers needs the Business plan (say so in the pitch) |
 | Apple Pay doesn't run inside the iMessage card | med | med | "Open in Safari to pay" button; card still updates to Paid |
 | Photon live rendering differs from docs | med | high | dynamic OG preview images; tap still opens the page |
 | WhatsApp template not approved in time | med | low | invoices to iMessage numbers; WhatsApp users pay by QR; show WhatsApp for chat only |

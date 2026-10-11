@@ -36,6 +36,7 @@
 
 | Experiment | Owner | Result |
 |---|---|---|
+| **Photon shared-pool allowlist** | Sahith | First G2 run failed: `PERMISSION_DENIED: Target not allowed for this project`. Free/Pro plans only message numbers added under **Users** in the Photon dashboard (or `photon spectrum users add`). Add every demo phone (merchant, customer, teammates). Business plan (dedicated line) removes the limit. |
 | `app(url, { live: true })` renders our page live? | Sahith | |
 | Apple Pay available inside the card web view? | Sahith + Nithya | |
 | Tapback on an app card → `reaction.target.id` = card id? | Sahith + Saran | |
