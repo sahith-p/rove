@@ -118,7 +118,7 @@ export function createCardBuilders({ baseUrl }: { baseUrl: string }): CardBuilde
       });
     },
 
-    withdrawal({ withdrawal, destinationLabel, sessionToken }) {
+    withdrawal({ withdrawal, destinationLabel, sessionToken, actionId, confirmToken }) {
       const amount = format(withdrawal.amount);
       let updateText: string | undefined;
       switch (withdrawal.status) {
@@ -138,7 +138,10 @@ export function createCardBuilders({ baseUrl }: { baseUrl: string }): CardBuilde
       return card({
         kind: "withdrawal",
         key: `withdrawal:${withdrawal.id}`,
-        url: withParams(l.withdrawal(withdrawal.id, sessionToken), { v: withdrawal.status }),
+        url: withParams(l.withdrawal(withdrawal.id, sessionToken), {
+          v: withdrawal.status,
+          ...(actionId && confirmToken ? { a: actionId, c: confirmToken } : {}),
+        }),
         live: true,
         fallbackText: `Withdrawal of ${amount} to ${destinationLabel}: ${WITHDRAWAL_STATUS_LABEL[withdrawal.status]}.`,
         updateText,

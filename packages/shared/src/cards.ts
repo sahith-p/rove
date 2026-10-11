@@ -41,7 +41,15 @@ export interface CardBuilders {
   invoice(v: { invoice: Invoice; merchant: Merchant }): CardSpec;
   receipt(v: { payment: Payment; merchant: Merchant }): CardSpec;
   sale(v: { payment: Payment; merchant: Merchant; sessionToken: string }): CardSpec;
-  withdrawal(v: { withdrawal: Withdrawal; merchant: Merchant; destinationLabel: string; sessionToken: string }): CardSpec;
+  /** Pass `actionId` + `confirmToken` when the withdrawal needs the web step-up; the page reads them as `?a=` and `?c=`. */
+  withdrawal(v: {
+    withdrawal: Withdrawal;
+    merchant: Merchant;
+    destinationLabel: string;
+    sessionToken: string;
+    actionId?: string;
+    confirmToken?: string;
+  }): CardSpec;
   confirm(v: { action: PendingAction; merchant: Merchant; summary: string; confirmToken: string }): CardSpec;
 }
 
