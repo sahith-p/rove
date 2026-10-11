@@ -1,23 +1,45 @@
-/* Landing (/). Tokens from globals.css. */
+/* Landing (/). Tokens from globals.css. Mobile-first inside the 440px .shell; at ≥ 900px the page breaks out
+   of the shell to a wider centered column and sections go two-up. Hairlines + space, never fills. */
 
 .home {
   display: flex;
   flex-direction: column;
-  gap: 40px;
-  min-height: calc(100vh - 64px);
-  min-height: calc(100dvh - 64px);
+  gap: 64px;
 }
 
 .top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding-top: 8px;
 }
+
+.topNote {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- hero */
 
 .hero {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  margin-top: -24px;
+}
+
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .headline {
@@ -25,65 +47,465 @@
   line-height: 1.05;
 }
 
-/* An iMessage-style thread, monochrome: ink bubbles are you, hairline bubbles are Rove. */
-.thread {
+.heroLede {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.heroCta {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 20px 16px;
-  border: 1px solid var(--line);
-  border-radius: calc(var(--radius) + 6px);
-  list-style: none;
-}
-
-.me,
-.rove {
-  max-width: 80%;
-  padding: 9px 14px;
-  border-radius: 18px;
-  font-size: 15px;
-  line-height: 1.35;
-}
-
-.me {
-  align-self: flex-end;
-  border-bottom-right-radius: 6px;
-  background: var(--text);
-  color: var(--bg);
-}
-
-.rove {
-  align-self: flex-start;
-  border: 1px solid var(--line);
-  border-bottom-left-radius: 6px;
-}
-
-.me + .rove,
-.rove + .me {
+  align-items: center;
+  gap: 16px;
   margin-top: 8px;
 }
 
-.code {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 0 6px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font-family: var(--mono);
-  font-size: 13px;
-  letter-spacing: 0.08em;
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
 }
 
-.cta {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: auto;
+.textLink:hover {
+  color: var(--text);
 }
 
 .soon {
   color: var(--muted);
   font-size: 15px;
   text-align: center;
+}
+
+/* ---------------------------------------------------------------- proof strip */
+
+.proof {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.proof > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 0;
+}
+
+.proof > div + div {
+  border-top: 1px solid var(--line);
+}
+
+.proof dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.proof dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.proofBig {
+  margin-right: 6px;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 32px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- shared item type */
+
+.itemTitle {
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.011em;
+  margin: 0;
+}
+
+.itemBody {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- how it works */
+
+.steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.stepHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stepNum {
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 28px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- split sections (merchants, customers) */
+
+.splitBody {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.listIcon {
+  display: inline-flex;
+  flex: none;
+  color: var(--muted);
+}
+
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.points li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- receipt (testnet run) */
+
+.receipt {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.receiptHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receiptRows {
+  margin: 0;
+}
+
+.receiptRows > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+}
+
+.receiptRows dt {
+  color: var(--muted);
+  min-width: 0;
+}
+
+.receiptRows dd {
+  margin: 0;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------- safety grid */
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.gridItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.gridItem > :first-child {
+  margin-bottom: 8px;
+}
+
+/* ---------------------------------------------------------------- stack */
+
+.stack {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.stack li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.stack li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stackName {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* ---------------------------------------------------------------- closing + footer */
+
+.closing {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 40px 0 8px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+
+.closingTitle {
+  align-items: center;
+  font-size: clamp(30px, 8.5vw, 40px);
+  line-height: 1.08;
+}
+
+.closingCta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 32px;
+  border-top: 1px solid var(--line);
+}
+
+.footerBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footerCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.footerCols ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.footerNote {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- desktop */
+
+@media (min-width: 900px) {
+  .home {
+    --wide: min(1080px, calc(100vw - 64px));
+    width: var(--wide);
+    margin-left: calc(50% - var(--wide) / 2);
+    gap: 112px;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    align-items: center;
+    gap: 64px;
+    margin-top: 0;
+  }
+
+  .headline {
+    font-size: 60px;
+    line-height: 1.02;
+  }
+
+  .heroLede {
+    max-width: 30em;
+    font-size: 18px;
+  }
+
+  .heroCta {
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .heroCta > :first-child {
+    width: auto;
+  }
+
+  .heroThread {
+    max-width: 420px;
+    justify-self: end;
+    width: 100%;
+  }
+
+  .proof {
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: -48px;
+  }
+
+  .proof > div {
+    padding: 24px 24px 24px 0;
+  }
+
+  .proof > div + div {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    padding-left: 24px;
+  }
+
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    border-top: 0;
+  }
+
+  .stepItem {
+    padding: 24px 0 0;
+    border-bottom: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .split .splitBody {
+    display: grid;
+    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+    align-items: start;
+    gap: 64px;
+  }
+
+  .split .list,
+  .split .points {
+    position: sticky;
+    top: 32px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 48px;
+  }
+
+  .stack {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 48px;
+  }
+
+  .closing {
+    padding-top: 64px;
+  }
+
+  .closingTitle {
+    font-size: 52px;
+  }
+
+  .closingCta > * {
+    width: auto;
+    min-width: 280px;
+  }
+
+  .footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .footerNote {
+    grid-column: 1 / -1;
+  }
 }
