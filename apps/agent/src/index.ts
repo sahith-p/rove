@@ -1,11 +1,40 @@
-// Agent service (port 4002). Owner: Saran. Spec: docs/specs/agent.md, docs/specs/onboarding.md, docs/specs/channels.md
-//  - Spectrum runtime: iMessage + WhatsApp Business (+ terminal when USE_TERMINAL_PROVIDER=1)       SA-A1
-//  - Persona routing: registered merchant phone → merchant agent; anyone else → customer agent      SA-A1
-//  - Internal HTTP: /internal/events, /internal/actions/:id/confirm                                  SA-A2
-//  - Pending actions: create / expire / confirm (👍 tapback, YES reply, card, web)                    SA-A3
-//  - Onboarding over chat + iMessage App cards (setup, bank), polls, contact card, confetti          SA-A4
-//  - Claude tool loop + merchant/customer tools                                                      SA-B1..B4
-//  - Voice notes (ElevenLabs), contact cards in, invoice reminders                                   SA-C1..C4
-// Outbound cards go through Sahith's CardPresenter (@rove/imessage-apps), injected with this process's Spectrum instance.
+// Agent service (port 4002). Owner: Saran. Specs: docs/specs/agent.md, onboarding.md, channels.md, voice.md.
+// Boot: load .env → Spectrum (iMessage / WhatsApp / terminal, whichever are configured) → outbox → agent modules
+// → internal HTTP server, reminders, action expiry sweep → inbound message loop (runtime.ts).
+// Card handles live in memory: don't restart the agent during the demo.
 
-console.log("agent: not implemented yet (SA-A1)");
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+// .env must load before ./env reads process.env, so everything else is imported dynamically below.
+for (const path of [fileURLToPath(new URL("../../../.env", import.meta.url)), "../../.env", ".env"]) {
+  if (existsSync(path)) {
+    process.loadEnvFile(path);
+    break;
+  }
+}
+
+const { config } = await import("./env");
+const { buildAgent } = await import("./app");
+const { createConsoleOutbox } = await import("./outbox");
+const { createRuntimeOutbox, createSpectrum, runMessageLoop } = await import("./runtime");
+const { startServer } = await import("./server");
+const { startReminders } = await import("./reminders");
+
+const log = (...args: unknown[]) => console.log("[agent]", ...args);
+const setup = await createSpectrum(config);
+const outbox =
+  config.mockCards || !setup ? createConsoleOutbox({ log: (line) => console.log("[out]", line) }) : createRuntimeOutbox(setup, config, log);
+
+const agent = buildAgent({ outbox, log });
+startServer(agent.deps, { events: agent.events, actions: agent.actions });
+startReminders(agent.deps, { voice: agent.voice });
+setInterval(() => void agent.actions.sweep().catch((err) => log("action sweep failed", err)), 30_000);
+
+log(`store=${config.offline ? "memory (offline)" : "supabase"} cards=${config.mockCards || !setup ? "console" : "spectrum"}`);
+if (!setup) {
+  log("no Spectrum providers configured (SPECTRUM_PROJECT_ID / WhatsApp / USE_TERMINAL_PROVIDER=1): internal HTTP only");
+} else {
+  log("providers:", Object.entries(setup.providers).filter(([, on]) => on).map(([name]) => name).join(", "));
+  await runMessageLoop(setup, agent);
+}

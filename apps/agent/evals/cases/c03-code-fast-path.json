@@ -1,0 +1,27 @@
+{
+  "id": "c03-code-fast-path",
+  "description": "a bare payment code skips Claude and sends the pay card",
+  "as": "customer",
+  "setup": {
+    "createCode": {
+      "amount": "6.50"
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "$code"
+      }
+    }
+  ],
+  "expect": {
+    "claudeCalled": false,
+    "sends": [
+      {
+        "kind": "invoice",
+        "to": "customer"
+      }
+    ]
+  }
+}

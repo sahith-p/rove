@@ -1,0 +1,27 @@
+{
+  "id": "c05-code-paid",
+  "description": "an already-paid code says so",
+  "as": "customer",
+  "setup": {
+    "payInvoice": {
+      "amount": "12.50"
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "$paidCode"
+      }
+    }
+  ],
+  "expect": {
+    "claudeCalled": false,
+    "noSends": [
+      "invoice"
+    ],
+    "textMatches": [
+      "paid"
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "id": "m07-refund-thumbs",
+  "description": "refund the last payment from Maya; 👍 → one worker refund",
+  "as": "merchant",
+  "setup": {
+    "payInvoice": {
+      "amount": "12.50"
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "refund Maya, she was overcharged"
+      }
+    },
+    {
+      "inbound": {
+        "type": "reaction",
+        "emoji": "👍",
+        "target": "$lastConfirm"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "propose_refund"
+    ],
+    "toolInput": [
+      {
+        "tool": "propose_refund",
+        "match": {
+          "paymentId": "$paymentId"
+        }
+      }
+    ],
+    "workerCalls": [
+      {
+        "method": "refund",
+        "count": 1
+      }
+    ]
+  }
+}

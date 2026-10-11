@@ -1,0 +1,29 @@
+{
+  "id": "m04-qr-amount",
+  "description": "one-time QR for a free amount",
+  "as": "merchant",
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "QR for 6.50"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "create_one_time_qr"
+    ],
+    "toolInput": [
+      {
+        "tool": "create_one_time_qr",
+        "match": {
+          "amount": "6.50"
+        }
+      }
+    ],
+    "textMatches": [
+      "6\\.50"
+    ]
+  }
+}

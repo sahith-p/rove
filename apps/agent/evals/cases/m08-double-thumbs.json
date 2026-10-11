@@ -1,0 +1,43 @@
+{
+  "id": "m08-double-thumbs",
+  "description": "👍 twice on the same confirm → still one execution",
+  "as": "merchant",
+  "setup": {
+    "payInvoice": {
+      "amount": "12.50"
+    }
+  },
+  "turns": [
+    {
+      "inbound": {
+        "type": "text",
+        "text": "refund Maya"
+      }
+    },
+    {
+      "inbound": {
+        "type": "reaction",
+        "emoji": "👍",
+        "target": "$lastConfirm"
+      }
+    },
+    {
+      "inbound": {
+        "type": "reaction",
+        "emoji": "👍",
+        "target": "$lastConfirm"
+      }
+    }
+  ],
+  "expect": {
+    "tools": [
+      "propose_refund"
+    ],
+    "workerCalls": [
+      {
+        "method": "refund",
+        "count": 1
+      }
+    ]
+  }
+}
