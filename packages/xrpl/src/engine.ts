@@ -6,7 +6,7 @@
 //       signing methods throw XrplSigningUnavailableError naming the missing env var.
 
 import type { Money, SettlementEngine } from "@rove/shared";
-import { xsgdBalance } from "./balance";
+import { tokenBalance } from "./balance";
 import { closeConnections } from "./client";
 import { xrplConfigFromEnv, type XrplConfig } from "./config";
 import { createContext, explorerTxUrl, type EngineContext, type EngineOptions } from "./context";
@@ -23,7 +23,8 @@ export interface XrplSettlementEngine extends SettlementEngine {
   /** For scripts and tests: the context the methods run on. */
   readonly context: EngineContext;
   /**
-   * Read-only pre-check for a wallet withdrawal (withdrawals.md §3a): null if `address` can receive `local` XSGD,
+   * Read-only pre-check for a wallet withdrawal (withdrawals.md §3a): null if `address` can receive `local` (in the
+   * merchant's stablecoin, from local.currency),
    * else an XrplDestinationError whose message the agent can say to the merchant.
    */
   checkWalletDestination(input: { address: string; local: Money; merchantAddress?: string }): Promise<XrplDestinationError | null>;
@@ -42,13 +43,13 @@ export function createXrplSettlement(config: XrplConfig = xrplConfigFromEnv(), s
   return {
     config,
     context: ctx,
-    quote: ({ local }) => quote(ctx, local),
+    quote: ({ local, from }) => quote(ctx, local, from ?? "USD"),
     settle: (input) => settle(ctx, input),
-    createMerchantAccount: ({ merchantId }) => createMerchantAccount(ctx, merchantId),
+    createMerchantAccount: ({ merchantId, currency }) => createMerchantAccount(ctx, merchantId, currency ?? "SGD"),
     refund: (input) => refund(ctx, input),
     sweepToRedemption: (input) => sweepToRedemption(ctx, input),
     sendToWallet: (input) => sendToWallet(ctx, input),
-    balance: ({ merchantAddress }) => xsgdBalance(ctx, merchantAddress),
+    balance: ({ merchantAddress, currency }) => tokenBalance(ctx, merchantAddress, currency ?? "SGD"),
     isVerifiedMerchant: (address) => isVerifiedMerchant(ctx, address),
     explorerUrl: (txHash) => explorerTxUrl(txHash, config.explorerBase),
     checkWalletDestination: (input) => checkWalletDestination(ctx, input),
