@@ -108,7 +108,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** Gate **G3** money path with the real engine; duplicates don't double-settle.
 
 ### NI-C3 · Create withdrawal (limits, fee, step-up) · 40 min
-- [~] nithya/NI-C3-C4-withdrawals
+- [x] 1974c49, cab4666 (limits, fee, step-up rules, wallet trust-line pre-check)
 - **Depends:** NI-C1, NI-B1
 - **Paths:** `apps/worker/src/withdrawals/create.ts`
 - **Do:** withdrawals.md §3a: validate amount vs available + `WITHDRAWAL_LIMITS`, destination (default bank / wallet trust line), fee, `needs_step_up` → `requested` → `InternalCreateWithdrawalRes`.
