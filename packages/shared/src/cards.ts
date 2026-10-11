@@ -31,6 +31,17 @@ export interface CardSpec {
   fallbackText: string;
   /** On channels without edit-in-place, send this as a new message when the card is updated. Omit = stay quiet. */
   updateText?: string;
+  /** Rove-branded bubble text (iMessage customized mini app): caption top-left, trailing top-right. */
+  layout?: CardLayout;
+}
+
+export interface CardLayout {
+  caption?: string;
+  subcaption?: string;
+  trailingCaption?: string;
+  trailingSubcaption?: string;
+  /** Fallback text for surfaces that can't render the bubble. */
+  summary?: string;
 }
 
 export interface CardBuilders {
