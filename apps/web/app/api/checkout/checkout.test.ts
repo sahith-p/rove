@@ -83,7 +83,8 @@ describe("POST /api/checkout · invoice codes", () => {
     const { params, options } = fake.calls.create[0]!;
     assert.equal(params.amount, 969);
     assert.equal(params.currency, "usd");
-    assert.deepEqual(params.automatic_payment_methods, { enabled: true });
+    assert.deepEqual(params.payment_method_types, ["card"]);
+    assert.equal(params.automatic_payment_methods, undefined);
     assert.deepEqual(params.metadata, { paymentId: res.paymentId, merchantId: "ahseng" });
     assert.equal(options?.idempotencyKey, res.paymentId);
     const pi = [...fake.intents.values()][0]!;
