@@ -232,6 +232,8 @@ export interface Db {
   /** Open invoices of kind 'invoice' older than `olderThan` and never reminded. */
   invoicesToRemind(olderThan: Date): Promise<Invoice[]>;
   setInvoiceReminded(id: string): Promise<void>;
+  /** CAS: set reminded_at only if it's still null. True for the one caller that wins, so each nudge goes out once. */
+  markInvoiceReminded(id: string): Promise<boolean>;
 
   // payments
   insertPayment(p: NewPayment): Promise<Payment>;
@@ -304,6 +306,10 @@ export interface Db {
   getAction(id: string): Promise<PendingAction | null>;
   addConfirmMessageIds(id: string, messageIds: string[]): Promise<void>;
   findOpenActionByMessageId(messageId: string): Promise<PendingAction | null>;
+  /** Any status (so a late 👍 can be answered "expired"); newest first. */
+  findActionByMessageId(messageId: string): Promise<PendingAction | null>;
+  /** The newest action whose args point at this withdrawal id or payment id (to edit its confirm card later). */
+  findActionByRef(ref: string): Promise<PendingAction | null>;
   findOpenActionsForMerchant(merchantId: MerchantId): Promise<PendingAction[]>;
   /** proposed → executing, only while unexpired. Null = already claimed, expired or unknown. */
   claimAction(id: string): Promise<PendingAction | null>;

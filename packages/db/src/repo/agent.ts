@@ -11,6 +11,8 @@ type AgentRepo = Pick<
   | "getAction"
   | "addConfirmMessageIds"
   | "findOpenActionByMessageId"
+  | "findActionByMessageId"
+  | "findActionByRef"
   | "findOpenActionsForMerchant"
   | "claimAction"
   | "setActionStatus"
@@ -73,6 +75,20 @@ export function agentRepo(pool: Pool): AgentRepo {
           where status = 'proposed' and expires_at > now() and $1 = any(confirm_message_ids)
           order by created_at desc limit 1`,
         [messageId],
+      ),
+
+    findActionByMessageId: (messageId) =>
+      action(
+        `select ${ACTION_COLS} from pending_actions where $1 = any(confirm_message_ids) order by created_at desc limit 1`,
+        [messageId],
+      ),
+
+    findActionByRef: (ref) =>
+      action(
+        `select ${ACTION_COLS} from pending_actions
+          where args->>'withdrawalId' = $1 or args->>'paymentId' = $1
+          order by created_at desc limit 1`,
+        [ref],
       ),
 
     findOpenActionsForMerchant: (merchantId) =>
