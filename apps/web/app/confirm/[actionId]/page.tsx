@@ -7,6 +7,7 @@
 import type { Metadata } from "next";
 import { verifyToken, type ConfirmTokenPayload } from "@rove/shared";
 import { previewMetadata } from "../../../lib/og/metadata";
+import { isCardMode } from "../../../lib/ui/card";
 import { ConfirmClient, type InitialState } from "./ConfirmClient";
 import { ExpiredView } from "./ExpiredView";
 
@@ -78,7 +79,7 @@ export default async function Page({
   const preview = fixtures ? first(sp.state) : undefined;
 
   if (preview === "expired" || (!payload && !fixtures)) {
-    return <ExpiredView />;
+    return <ExpiredView card={isCardMode(sp)} />;
   }
 
   // Fixture mode renders even without a valid token, with a fresh 5-minute window.
@@ -94,6 +95,7 @@ export default async function Page({
       initial={initial}
       fixtures={fixtures}
       unverified={!payload}
+      card={isCardMode(sp)}
     />
   );
 }

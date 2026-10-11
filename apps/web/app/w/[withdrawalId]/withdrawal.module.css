@@ -1,7 +1,9 @@
+/* /w/[withdrawalId] (SH-C2). Tokens from app/globals.css. */
+
 .page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 /* ---------------------------------------------------------------- header */
@@ -9,180 +11,64 @@
 .head {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.headTop {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding-top: 4px;
+  gap: 12px;
 }
 
-.eyebrow {
-  margin-top: 6px;
+.pill {
+  animation: fadeUp 0.35s ease both;
+}
+
+.amountMuted [aria-label] {
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.amountMuted {
-  opacity: 0.55;
   text-decoration: line-through;
   text-decoration-thickness: 2px;
 }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  transition: background-color 0.4s ease, color 0.4s ease;
-  animation: fadeUp 0.35s ease both;
-}
-
-.waiting {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.progress {
-  background: var(--card);
-  color: var(--text);
-}
-
-.done {
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.problem {
-  background: var(--error-soft);
-  color: var(--error);
-}
-
-.pillDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: blink 1.2s ease-in-out infinite;
-}
-
-/* Completion checkmark: circle draws, then the tick. */
-.check {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 4px;
-  animation: popIn 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
-}
-
-.checkCircle {
-  fill: var(--success-soft);
-  stroke: var(--success);
-  stroke-width: 3;
-  stroke-dasharray: 151;
-  stroke-dashoffset: 151;
-  animation: draw 0.6s ease-out 0.1s forwards;
-}
-
-.checkMark {
-  fill: none;
-  stroke: var(--success);
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 36;
-  stroke-dashoffset: 36;
-  animation: draw 0.35s ease-out 0.6s forwards;
-}
-
-/* ---------------------------------------------------------------- facts */
-
-.facts {
-  margin: 0;
-  padding: 4px 16px;
-  border-radius: var(--radius-lg);
-  background: var(--card);
-}
-
-.fact {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  font-size: 15px;
-}
-
-.fact + .fact {
-  border-top: 1px solid var(--border);
-}
-
-.fact dt {
-  flex: none;
-  color: var(--muted);
-}
-
-.fact dd {
-  margin: 0;
-  min-width: 0;
-  font-weight: 600;
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-
-.destIcon {
-  margin-right: 6px;
-  font-weight: 400;
-}
-
 .speed {
   color: var(--muted);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* ---------------------------------------------------------------- step-up */
 
 .stepUp {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 16px;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-lg);
-  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   animation: fadeUp 0.35s ease both;
 }
 
-.lock {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--bg);
+.stepUpHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .stepUpText {
   min-width: 0;
-  font-size: 15px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .stepUpTitle {
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
-.stepUp > :nth-child(n + 3) {
-  grid-column: 1 / -1;
-}
-
-.confirmBtn {
-  min-height: 54px;
-  font-size: 17px;
+.stepUpLine {
+  color: var(--muted);
 }
 
 .hint {
@@ -191,48 +77,7 @@
   text-align: center;
 }
 
-/* ---------------------------------------------------------------- stepper */
-
-.stepperCard {
-  padding: 18px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-}
-
-/* Smooth step changes. StatusStepper keeps the same <li> per step, so state changes transition in place. */
-.stepper :global(li) > span {
-  transition: background-color 0.45s ease, border-color 0.45s ease, color 0.45s ease, transform 0.3s ease;
-}
-
-.stepper :global(li) > div > div {
-  transition: color 0.45s ease;
-}
-
-/* Done / failed markers carry a glyph (✓ / ✕): pop them in the moment they get it. */
-.stepper :global(li) > span:not(:empty) {
-  animation: markerPop 0.45s cubic-bezier(0.2, 1.5, 0.4, 1);
-}
-
-/* A step's detail line (tx hash, FAST ref) fades in when it appears. */
-.stepper :global(li) > div > div + div {
-  animation: fadeUp 0.4s ease both;
-}
-
-.stepper :global(li)[aria-current="step"] > span {
-  transform: scale(1.08);
-}
-
-.stepper a {
-  font-family: var(--mono);
-  font-size: 13px;
-}
-
 /* ---------------------------------------------------------------- misc */
-
-.footer {
-  margin-top: 4px;
-  font-size: 14px;
-}
 
 .loading {
   display: flex;
@@ -241,33 +86,28 @@
   gap: 10px;
   padding: 48px 0;
   color: var(--muted);
+  font-size: 14px;
 }
 
-.loadingDot {
-  width: 10px;
-  height: 10px;
+.loadingSpinner {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
   border-radius: 50%;
-  background: var(--accent);
-  animation: blink 1.2s ease-in-out infinite;
+  animation: rove-spin 700ms linear infinite;
 }
 
 .expired {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 48px 8px;
-  text-align: center;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 32px;
 }
 
-.expiredIcon {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 6px;
-  border-radius: 50%;
-  background: var(--card);
+.expiredTitle {
+  margin-top: 12px;
   font-size: 26px;
 }
 
@@ -282,56 +122,10 @@
   }
 }
 
-@keyframes markerPop {
-  0% {
-    transform: scale(0.6);
-  }
-  60% {
-    transform: scale(1.18);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes popIn {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0.3;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .pill,
-  .pillDot,
-  .check,
   .stepUp,
-  .loadingDot,
-  .stepper :global(li) > span,
-  .stepper :global(li) > div > div + div {
+  .loadingSpinner {
     animation: none !important;
-    transition: none !important;
-  }
-
-  .checkCircle,
-  .checkMark {
-    animation: none;
-    stroke-dashoffset: 0;
   }
 }

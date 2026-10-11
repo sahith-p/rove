@@ -20,6 +20,7 @@ import { internalAuth } from "./auth";
 import type { WorkerDeps } from "./deps";
 import { isUserFacingError } from "./errors";
 import { createMerchant } from "./merchants";
+import { reconcileSnapshot } from "./reconcile";
 import { handleRefund } from "./refunds";
 import { handleSettle } from "./settle";
 import { setAutoWithdraw } from "./withdrawals/auto";
@@ -56,14 +57,66 @@ async function body<T>(c: Context, schema: Schema<T>): Promise<T> {
 /** `/internal/withdrawals/:id/execute` from the contract's path builder, so the two can't drift. */
 const pattern = (build: (param: string) => string, param: string) => build(`:${param}`);
 
+/** /healthz DB probe: answer from a recent check so a public endpoint can't be used to hammer the database. */
+const DB_PROBE_TTL_MS = 5000;
+const DB_PROBE_TIMEOUT_MS = 2000;
+
+function dbProbe(deps: WorkerDeps, log: { warn(msg: string, f?: Record<string, unknown>): void }) {
+  let last: { at: number; ok: boolean; ms: number } | null = null;
+  let inFlight: Promise<{ ok: boolean; ms: number }> | null = null;
+  const run = async () => {
+    const started = Date.now();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      // Cheapest real query the Db contract offers: a primary-key lookup that finds nothing.
+      await Promise.race([
+        deps.db.getMerchant("__healthz__"),
+        new Promise((_, reject) => (timer = setTimeout(() => reject(new Error(`no answer in ${DB_PROBE_TIMEOUT_MS}ms`)), DB_PROBE_TIMEOUT_MS))),
+      ]);
+      return { ok: true, ms: Date.now() - started };
+    } catch (err) {
+      log.warn("healthz: database unreachable", { err: err instanceof Error ? err.message : String(err) });
+      return { ok: false, ms: Date.now() - started };
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  return async () => {
+    if (last && Date.now() - last.at < DB_PROBE_TTL_MS) return last;
+    inFlight ??= run().finally(() => (inFlight = null));
+    const r = await inFlight;
+    last = { at: Date.now(), ...r };
+    return last;
+  };
+}
+
 export function createServer(deps: WorkerDeps): Hono {
   const app = new Hono();
   const log = deps.log.child("http");
   const W = ROUTES.worker;
 
-  app.get("/healthz", (c) => c.json({ ok: true, settlement: deps.config.useMockSettlement ? "mock" : "xrpl" }));
+  // Public (Railway's healthcheck): 200 when the worker can reach its database, else 503. No secrets, no hostnames.
+  const probe = dbProbe(deps, log);
+  app.get("/healthz", async (c) => {
+    const db = await probe();
+    const mock = deps.config.useMockSettlement;
+    return c.json(
+      {
+        ok: db.ok,
+        engine: mock ? "mock" : "real",
+        settlement: mock ? "mock" : "xrpl",
+        payouts: deps.config.useMockPayouts ? "mock" : "real",
+        db: db.ok ? "ok" : "unreachable",
+        dbMs: db.ms,
+      },
+      db.ok ? 200 : 503,
+    );
+  });
 
   app.use("/internal/*", internalAuth(deps.config.internalSecret));
+
+  // NI-C7 · the reconciler's last result per merchant (ledger available + held vs XRPL). Read-only: no check runs here.
+  app.get("/internal/reconcile", (c) => c.json(reconcileSnapshot(deps)));
 
   // NI-C2 · 202: settlement continues in the background (the poller covers lost nudges).
   app.post(W.settle, async (c) => {

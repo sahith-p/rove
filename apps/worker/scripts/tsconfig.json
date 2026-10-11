@@ -1,0 +1,2 @@
+// Typecheck for the live scripts (not part of `pnpm check`): pnpm --filter worker exec tsc -p scripts
+{ "extends": "../tsconfig.json", "compilerOptions": { "lib": ["ES2022", "DOM"] }, "include": ["*.ts", "../src"] }

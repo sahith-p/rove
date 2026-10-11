@@ -1,0 +1,119 @@
+/* Stripe Express Checkout + card fallback (SH-A3). Monochrome hairline system; tokens from globals.css. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.express {
+  min-height: 52px;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.express[aria-busy="true"] {
+  background: var(--wash);
+  animation: rove-pulse 1.4s ease-in-out infinite;
+}
+
+.hidden {
+  display: none;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+
+@media (hover: hover) {
+  .toggle:hover {
+    border-color: var(--muted);
+  }
+}
+
+.toggle:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.toggleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chev,
+.chevOpen {
+  color: var(--muted);
+  transition: transform 150ms ease;
+}
+
+.chevOpen {
+  transform: rotate(90deg);
+}
+
+/* The card form sits in one hairline frame. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--error);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.error svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.back {
+  align-self: center;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.back:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .express[aria-busy="true"] {
+    animation: none;
+  }
+}

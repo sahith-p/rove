@@ -11,7 +11,8 @@
     "seed": "tsx scripts/seed.ts",
     "settle:demo": "tsx scripts/settle-demo.ts",
     "test": "tsx --test \"src/**/*.test.ts\"",
-    "engine:demo": "tsx scripts/engine-demo.ts"
+    "engine:demo": "tsx scripts/engine-demo.ts",
+    "corridors:demo": "tsx scripts/corridors-demo.ts"
   },
   "dependencies": {
     "@rove/shared": "workspace:*",

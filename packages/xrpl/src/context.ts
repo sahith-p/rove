@@ -1,11 +1,12 @@
 // Resolved config + connection + signers shared by the engine methods and the seed.
 // Signing wallets are created lazily, so a read-only deployment (no seeds) works until a signing method is called.
 
+import { isCurrency, type Currency } from "@rove/shared";
 import { isValidClassicAddress, Wallet } from "xrpl";
 import { getConnection, type XrplConnection } from "./client";
-import type { XrplConfig } from "./config";
+import { codeFor, issuerEnvName, issuerFor, type XrplConfig } from "./config";
 import { decryptSeed } from "./crypto";
-import { currencyHex, SGD_CODE, USD_CODE } from "./currency";
+import { currencyHex } from "./currency";
 import { XrplSigningUnavailableError } from "./errors";
 import { submitQueue, type SubmitQueue } from "./queue";
 import type { SeedStore } from "./seed-store";
@@ -31,9 +32,13 @@ export interface Asset {
 export interface EngineContext extends SubmitDeps {
   config: XrplConfig;
   seedStore?: SeedStore;
-  /** RLUSD stand-in. Throws if XRPL_USD_ISSUER is missing. */
+  /** The XRPL token for an enabled currency (its stablecoin). Throws naming the issuer env var if it's missing. */
+  asset(currency: Currency): Asset;
+  /** The stablecoin's human code for messages: "XSGD", "RLUSD", "EUR". */
+  tokenName(currency: Currency): string;
+  /** RLUSD stand-in (= asset("USD"), the hub). Throws if XRPL_USD_ISSUER is missing. */
   usd(): Asset;
-  /** XSGD stand-in. Throws if XRPL_SGD_ISSUER is missing. */
+  /** XSGD stand-in (= asset("SGD")). Throws if XRPL_SGD_ISSUER is missing. */
   sgd(): Asset;
   treasuryAddress(): string;
   credentialIssuerAddress(): string;
@@ -86,12 +91,20 @@ export function createContext(config: XrplConfig, opts: EngineOptions = {}): Eng
     onTx,
   };
 
+  const asset = (currency: Currency): Asset => {
+    if (!isCurrency(currency)) throw new Error(`not an enabled currency: ${String(currency)}`);
+    const code = codeFor(config, currency);
+    return { currency: currencyHex(code), issuer: need(issuerFor(config, currency), issuerEnvName(currency), `the ${code} issuer`) };
+  };
+
   const ctx: EngineContext = {
     ...base,
     config,
     seedStore: opts.seedStore,
-    usd: () => ({ currency: currencyHex(config.usdCode ?? USD_CODE), issuer: need(config.usdIssuer, "XRPL_USD_ISSUER", "the RLUSD issuer") }),
-    sgd: () => ({ currency: currencyHex(config.sgdCode ?? SGD_CODE), issuer: need(config.sgdIssuer, "XRPL_SGD_ISSUER", "the XSGD issuer") }),
+    asset,
+    tokenName: (currency) => codeFor(config, currency),
+    usd: () => asset("USD"),
+    sgd: () => asset("SGD"),
     treasuryAddress: () =>
       config.treasuryAddress
         ? need(config.treasuryAddress, "XRPL_TREASURY_ADDRESS", "the treasury")
