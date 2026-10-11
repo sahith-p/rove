@@ -13,10 +13,10 @@ import { Resvg, renderAsync, type ResvgRenderOptions } from "@resvg/resvg-js";
 
 const SANS = "Geist";
 const MONO = "Geist Mono";
-const INK = "#111827";
-const MUTED = "#71717a";
-const ACCENT = "#ea580c";
-const CARD = "#f4f4f5";
+const INK = "#0a0a0a";
+const MUTED = "#737373";
+const ACCENT = "#0a0a0a"; // monochrome: eyes + wordmark dot in ink (no orange, no blue-tinted grays)
+const CARD = "#f5f5f5";
 const GREEN = "#16a34a";
 const GREEN_INK = "#15803d";
 const GREEN_BG = "#ecfdf3";
@@ -436,7 +436,7 @@ export async function stickerPng(input: {
 
   // Cut line.
   parts.push(
-    `<rect x="28" y="28" width="${W - 56}" height="${H - 56}" rx="72" fill="none" stroke="#d4d4d8" ` +
+    `<rect x="28" y="28" width="${W - 56}" height="${H - 56}" rx="72" fill="none" stroke="#d4d4d4" ` +
       `stroke-width="4" stroke-dasharray="22 16" stroke-linecap="round"/>`,
   );
 
