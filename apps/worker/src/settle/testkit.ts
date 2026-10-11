@@ -19,7 +19,7 @@ import {
   type Recipient,
   type SettlementEngine,
 } from "@rove/shared";
-import { createMockSettlement } from "@rove/shared/mocks";
+import { DEMO_CUSTOMER, createMockSettlement } from "@rove/shared/mocks";
 import type { WorkerDeps } from "../deps";
 import { createLogger } from "../log";
 import { createTestDeps, type TestDeps } from "../testing";
@@ -184,7 +184,7 @@ export async function createKit(t: TestContext, overrides: Partial<WorkerDeps> =
   return { deps, engine, stripe, logs };
 }
 
-export const MAYA: Recipient = { phone: "+15555550199", channel: "imessage" };
+export const MAYA: Recipient = { phone: DEMO_CUSTOMER.phone, channel: "imessage" };
 
 let merchantSeq = 0;
 
