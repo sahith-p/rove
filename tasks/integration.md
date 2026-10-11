@@ -1,5 +1,29 @@
 # Integration log (append-only, everyone)
 
+## Critical path to done (handoff, updated 15:45 by Sahith)
+
+Every open gate (G2b, G3, G3b, G4) waits on items 1 to 3 below. Details are in the Requests rows below.
+
+**Saran: real agent (blocks real cards)**
+- [ ] 1. `apps/agent/src/store/db.ts`: replace the throwing `createDbStore()` stub with an adapter over `createDb(DATABASE_URL)` from `@rove/db`. 34 of the 40 `Store` methods already exist there.
+- [ ] 2. `apps/agent/src/env.ts`: `offline: !env.DATABASE_URL`, not `SUPABASE_URL`, since nobody sets `SUPABASE_URL`.
+- [ ] 3. Deploy the agent to Railway with `USE_MOCK_CARDS=0`, `PHOTON_*`, `DATABASE_URL`, `PUBLIC_BASE_URL=https://rove-topaz.vercel.app`, `WORKER_URL`, `INTERNAL_SECRET`, `TOKEN_SECRET` (same as Vercel), `ANTHROPIC_API_KEY`. Share `AGENT_URL`. No redeploys during the demo.
+- [ ] 4. Mark finished SA tasks `[x]` in tasks/saran.md.
+
+**Nithya: worker + data**
+- [ ] 1. Deploy the worker to Railway with `USE_MOCK_SETTLEMENT=0`, `AGENT_URL`, `DATABASE_URL`, `INTERNAL_SECRET`, XRPL seeds. Share `WORKER_URL`. Without it Stripe payments stop at `authorized`: no settle, no sale or receipt card.
+- [ ] 2. Add the 6 missing `@rove/db` helpers. Needed for 👍 confirms: `setActionMessageIds`, `findActionByMessageId`, `finishAction`, `findActionByRef`. Can wait: `invoicesDueForReminder`, `markInvoiceReminded`.
+- [ ] 3. Stripe: card-only payment methods (no redirect methods) + the checkout-reuse question (15:15 row). Add `rove-topaz.vercel.app` as an Apple Pay domain (15:05 row).
+- [ ] 4. Send Sahith `NEXT_PUBLIC_PRIVY_APP_ID` (15:05 row) so SH-A4 (AUSD/BNB button) can start.
+
+**Sahith: web + cards**
+- [ ] 1. Merge + deploy the redesign: minimal, no-scroll `card=1` layouts on every page.
+- [ ] 2. Set `NEXT_PUBLIC_DEMO_FIXTURES=0` on Vercel (real data only) after the redesign deploy.
+- [ ] 3. G2b with Saran once the agent is live: the agent sends an invoice card to phone M.
+- [ ] 4. SH-A4 Privy button (after item 4 of Nithya's list). SH-C4 demo script, video at 16:30, repo public, submit by 17:00.
+
+**Then all three:** one real loop on phone M: text "invoice +19259156406 2 chicken rice" → card arrives → Apple Pay on /pay → settles on XRPL → sale card. Then G4: add bank → withdraw → 👍 → "In your bank".
+
 ## Gates
 
 | Gate | Target | Owner(s) | Status | Evidence (command output, tx link, screenshot) |
