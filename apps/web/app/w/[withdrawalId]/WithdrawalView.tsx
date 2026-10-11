@@ -181,7 +181,6 @@ export function WithdrawalView({ withdrawalId, initial, token, actionId, confirm
     const done = head.tone === "done";
     return (
       <CardFrame
-        eyebrow="Withdrawal"
         status={
           <StatusPill tone={PILL_TONE[head.tone]} role="status" live>
             {head.label}

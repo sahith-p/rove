@@ -92,7 +92,16 @@ export function FlagSG({ size = 18, className }: MarkProps) {
   );
 }
 
-/** The flag for a currency: SGD → SG, USD → US. */
+/** The flag for a currency: SGD → SG, USD → US; any other code gets a neutral hairline disc with its first letter. */
 export function CurrencyFlag({ currency, size = 18, className }: MarkProps & { currency: Currency }) {
-  return currency === "SGD" ? <FlagSG size={size} className={className} /> : <FlagUS size={size} className={className} />;
+  if (currency === "SGD") return <FlagSG size={size} className={className} />;
+  if (currency === "USD") return <FlagUS size={size} className={className} />;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className}>
+      <circle cx="12" cy="12" r="11.5" fill="none" style={{ stroke: "var(--line)" }} strokeWidth="1" />
+      <text x="12" y="16" textAnchor="middle" fontSize="11" fontWeight="600" fill="currentColor" fontFamily="var(--font)">
+        {String(currency).charAt(0)}
+      </text>
+    </svg>
+  );
 }
