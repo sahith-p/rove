@@ -4,7 +4,7 @@ import type { Currency } from "@rove/shared";
 import type { Executor, Param } from "../executor";
 
 /** `col in <IN_JSON(n)>` with params[n-1] = JSON.stringify(list): an IN list without driver-specific array params. */
-export const inJson = (n: number) => `(select jsonb_array_elements_text($${n}::jsonb))`;
+export const inJson = (n: number) => `(select jsonb_array_elements_text($${n}::text::jsonb))`;
 
 /** Collects `col = $n` assignments for dynamic UPDATEs. */
 export class SetBuilder {
