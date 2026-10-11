@@ -34,8 +34,10 @@ export const config = {
   maxInvoiceSgd: "500.00",
   /** Unpaid invoices get one nudge after this long. */
   reminderAfterMs: 24 * 3600 * 1000,
-  /** Daily voice recap hour, Asia/Singapore. */
-  recapHourSgt: 21,
+  /** The shop's local timezone: times shown in messages, what "today" means, the recap hour. */
+  timeZone: env.AGENT_TIMEZONE || "Asia/Singapore",
+  /** Daily voice recap hour, in timeZone. */
+  recapHour: 21,
 } as const;
 
 export type Config = typeof config;

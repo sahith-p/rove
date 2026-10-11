@@ -1,5 +1,5 @@
-// System prompts. Kept stable per sender (no timestamps) so the prefix caches; the current Singapore time is
-// prepended to each user message instead (see nowLine).
+// System prompts. Kept stable per sender (no timestamps) so the prefix caches; the shop's local time is
+// prepended to each user message instead (clockLine in ../time).
 
 import type { Merchant, Recipient } from "@rove/shared";
 
@@ -60,19 +60,4 @@ ${MONEY_RULES}
 ${UNTRUSTED}
 
 Stay on Rove business. For unrelated requests, give a short friendly reply and say what you can help with.`;
-}
-
-/** "[Sat 11 Oct, 7:42 PM SGT]" — prefixed to the user message so the system prompt stays cacheable. */
-export function nowLine(now: Date): string {
-  const parts = new Intl.DateTimeFormat("en-SG", {
-    timeZone: "Asia/Singapore",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).formatToParts(now);
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `[${get("weekday")} ${get("day")} ${get("month")}, ${get("hour")}:${get("minute")} ${get("dayPeriod").toUpperCase()} SGT]`;
 }

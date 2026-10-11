@@ -99,7 +99,7 @@ export interface Store {
   getPayment(id: string): Promise<Payment | null>;
   listPayments(merchantId: string, limit: number): Promise<Payment[]>;
   receiptsForPhone(phone: string, limit: number): Promise<(Payment & { merchantName: string })[]>;
-  daySummary(merchantId: string, date: string): Promise<DaySummary>; // date = YYYY-MM-DD Asia/Singapore
+  daySummary(merchantId: string, date: string): Promise<DaySummary>; // date = YYYY-MM-DD in config.timeZone
   getBalance(merchantId: string): Promise<Balance>;
 
   // bank + withdrawals

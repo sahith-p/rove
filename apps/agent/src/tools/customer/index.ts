@@ -18,13 +18,13 @@ import {
 } from "@rove/shared";
 import { defineTool, ToolError } from "../../agent/tool";
 import type { ToolContext } from "../context";
+import { localDayMonth } from "../../time";
 import { matchByName } from "../match";
 
 type Ctx = Omit<ToolContext, "calls">;
 
 const PAY_REQUEST_TTL_MS = 3600 * 1000;
 
-const sgtDate = new Intl.DateTimeFormat("en-SG", { timeZone: "Asia/Singapore", day: "numeric", month: "short" });
 
 function isExpired(invoice: Invoice, now: Date): boolean {
   return new Date(invoice.expiresAt).getTime() <= now.getTime();
@@ -177,7 +177,7 @@ export function customerTools(ctx: ToolContext): BetaRunnableTool[] {
         const receipts = await store.receiptsForPhone(from.phone, limit);
         if (!receipts.length) return "No payments from this number yet.";
         return receipts
-          .map((p) => `${format(p.local)} · ${p.merchantName} · ${sgtDate.format(new Date(p.createdAt))} · ${p.status.replace(/_/g, " ")}`)
+          .map((p) => `${format(p.local)} · ${p.merchantName} · ${localDayMonth(new Date(p.createdAt))} · ${p.status.replace(/_/g, " ")}`)
           .join("\n");
       },
       calls,

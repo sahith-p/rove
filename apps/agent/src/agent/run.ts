@@ -8,7 +8,8 @@ import type { ToolContext } from "../tools/context";
 import { customerTools } from "../tools/customer";
 import { merchantTools } from "../tools/merchant";
 import { loadHistory, saveTurn } from "./history";
-import { customerPrompt, merchantPrompt, nowLine } from "./prompts";
+import { clockLine } from "../time";
+import { customerPrompt, merchantPrompt } from "./prompts";
 
 /** Text messages, not documents: drop markdown the model might still emit. */
 export function plainText(s: string): string {
@@ -47,7 +48,7 @@ export function createTurnRunner(deps: Deps, m: { actions: ActionsService; onboa
       const tools = merchant ? [...merchantTools(ctx), ...customerTools(ctx)] : customerTools(ctx);
       const system = merchant ? merchantPrompt(merchant) : customerPrompt(input.from);
       const history = await loadHistory(deps.store, input.from.phone);
-      const userText = `${nowLine(deps.now())}${input.voice ? " (voice note)" : ""} ${input.text}`;
+      const userText = `${clockLine(deps.now())}${input.voice ? " (voice note)" : ""} ${input.text}`;
 
       const params = {
         model: AGENT_MODEL,
