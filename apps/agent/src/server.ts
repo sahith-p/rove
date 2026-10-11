@@ -23,8 +23,10 @@ export function createServerApp(deps: Deps, m: { events: EventsHandler; actions:
   app.post("/internal/events", async (c) => {
     const parsed = EventEnvelopeZ.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "invalid event", issues: parsed.error.issues }, 400);
-    const status = await m.events.handle(parsed.data);
-    return c.json({ status }, 202);
+    // Ack first, then work: handling sends several cards (picture render + Photon), which outlasts the worker's
+    // 5 s emit timeout; the worker then marked the agent unreachable. handle() dedupes on the envelope id.
+    void m.events.handle(parsed.data).catch((err) => deps.log("[server] event failed", parsed.data.type, err));
+    return c.json({ status: "accepted" }, 202);
   });
 
   app.post("/internal/actions/:id/confirm", async (c) => {

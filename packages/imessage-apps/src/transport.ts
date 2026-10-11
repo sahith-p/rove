@@ -11,7 +11,7 @@ import type { Channel, Recipient } from "@rove/shared";
 import { app, attachment, edit, UnsupportedError } from "spectrum-ts";
 import type { Message, Space, SpectrumInstance } from "spectrum-ts";
 import { customizedMiniApp, imessage } from "spectrum-ts/providers/imessage";
-import { cardImageJpeg } from "./cardImage";
+import { cardImageJpeg, isDone } from "./cardImage";
 import { whatsappBusiness } from "spectrum-ts/providers/whatsapp-business";
 
 /** Opaque per-transport handle to a sent card. The presenter only stores it and hands it back to `editCard`. */
@@ -88,7 +88,8 @@ function cardContent(url: string, live: boolean, layout?: CardLayout) {
   if (live) return customizedMiniApp({ ...ROVE_MINI_APP, url, live, layout: { ...layout } });
   // Static bubble: just the Rove picture. No caption row under it (iOS font, duplicates the picture); the one line
   // iMessage requires (imageTitle) is the call to action / status, overlaid on the picture's empty bottom band.
-  const imageTitle = layout.trailingSubcaption ?? (layout.trailingCaption ? "Tap to pay" : "Tap to open");
+  // Done cards already show their status chip in the picture; the overlay line then says where the money went.
+  const imageTitle = isDone(layout) ? "Settled on XRPL" : (layout.trailingSubcaption ?? "Tap to open");
   return customizedMiniApp({ ...ROVE_MINI_APP, url, live, layout: { image: cardImageJpeg(layout), imageTitle, ...(layout.summary ? { summary: layout.summary } : {}) } });
 }
 

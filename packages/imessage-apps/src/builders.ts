@@ -209,26 +209,26 @@ export function layoutFor<K extends keyof CardBuilders>(kind: K, v: Parameters<C
   const name = () => clip(a.merchant.name, 28);
   switch (kind) {
     case "setup":
-      return { caption: name(), trailingCaption: "Edit menu", trailingSubcaption: "Tap to edit", summary };
+      return { caption: name(), subcaption: "Shop setup", trailingCaption: "Edit menu", trailingSubcaption: "Tap to edit", summary };
     case "bank":
-      return { caption: "Add your bank", trailingSubcaption: "Tap to add · secure", summary };
+      return { caption: "Add your bank", subcaption: "Payouts", trailingSubcaption: "Tap to add · secure", summary };
     case "shop":
-      return { caption: name(), trailingSubcaption: "Tap to open", summary };
+      return { caption: name(), subcaption: "My shop", trailingSubcaption: "Tap to open", summary };
     case "menu":
-      return { caption: name(), trailingCaption: "Menu", trailingSubcaption: "Tap to order", summary };
+      return { caption: name(), subcaption: "Menu", trailingSubcaption: "Tap to order", summary };
     case "invoice": {
       const inv = a.invoice;
       const status = inv.status === "paid" ? "Paid ✓" : inv.status === "expired" ? "Expired" : inv.status === "cancelled" ? "Cancelled" : undefined;
-      return { caption: name(), trailingCaption: format(inv.total), trailingSubcaption: status ?? "Tap to pay", summary };
+      return { caption: name(), subcaption: inv.status === "paid" ? "Paid" : "Payment request", trailingCaption: format(inv.total), trailingSubcaption: status ?? "Tap to pay", summary };
     }
     case "receipt":
-      return { caption: name(), trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "Receipt", summary };
+      return { caption: name(), subcaption: "Receipt", trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "Receipt", summary };
     case "sale":
-      return { caption: "New sale", trailingCaption: format(a.payment.local), trailingSubcaption: PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "Received", summary };
+      return { caption: a.payment.payer?.phone ? `From ${a.payment.payer.phone}` : "From a customer", subcaption: "New sale", trailingCaption: `+${format(a.payment.local)}`, trailingSubcaption: a.payment.status === "settled" ? "Money in ✓" : (PAYMENT_PILL[a.payment.status as PaymentStatus] ?? "Received"), summary };
     case "withdrawal":
-      return { caption: "Withdrawal", trailingCaption: format(a.withdrawal.amount), trailingSubcaption: WITHDRAWAL_PILL[a.withdrawal.status as WithdrawalStatus], summary };
+      return { caption: clip(a.destinationLabel ?? "Withdrawal", 26), subcaption: "Withdrawal", trailingCaption: format(a.withdrawal.amount), trailingSubcaption: WITHDRAWAL_PILL[a.withdrawal.status as WithdrawalStatus], summary };
     case "confirm":
-      return { caption: clip(a.summary, 30), trailingCaption: "Confirm", trailingSubcaption: "Tap to confirm", summary };
+      return { caption: clip(a.summary, 30), subcaption: "Needs your OK", trailingSubcaption: "Tap to confirm", summary };
     default:
       return { summary };
   }

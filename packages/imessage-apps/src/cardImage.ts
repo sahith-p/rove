@@ -26,17 +26,38 @@ function esc(s: string): string {
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
-/** Dark square: title (caption) in the serif, hero (trailingCaption, usually the amount) large in Geist, the Rove
- *  wordmark top-right. The bottom band stays empty: iMessage overlays layout.imageTitle there. */
+/** True when the card reports money that already moved in (sale settled, receipt / invoice paid). */
+export function isDone(layout: CardLayout): boolean {
+  return /✓|^Paid|^Settled|^Received|^Money in/.test(layout.trailingSubcaption ?? "");
+}
+
+/**
+ * Dark square: eyebrow (subcaption) in caps top-left, title (caption) in the serif, hero (trailingCaption, usually the
+ * amount) large in Geist. Top-right is the Rove wordmark, or a light status chip ("✓ Paid", "✓ Money in") once money
+ * has moved, so "you got paid" never looks like "please pay". The bottom band stays empty: iMessage overlays
+ * layout.imageTitle there.
+ */
 export function cardImageSvg(layout: CardLayout): string {
+  const done = isDone(layout);
+  const eyebrow = (layout.subcaption ?? "").toUpperCase();
   const title = clip(layout.caption ?? "Rove", 24);
   const hero = layout.trailingCaption ?? "";
-  const heroSize = hero.length > 9 ? 96 : 116;
+  const heroSize = hero.length > 10 ? 88 : hero.length > 8 ? 100 : 116;
+  const heroY = 236 + 40 + heroSize;
+  const chipText = (layout.trailingSubcaption ?? "").replace(/\s*✓\s*/g, "").trim() || "Paid";
+  const chipW = 64 + chipText.length * 17;
+  const chip = `<g transform="translate(${W - 52 - chipW} 48)">
+    <rect width="${chipW}" height="60" rx="30" fill="${FG}"/>
+    <path d="M24 30 l9 9 l17 -19" fill="none" stroke="${BG}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="58" y="40" font-family="Geist" font-weight="600" font-size="28" fill="${BG}">${esc(chipText)}</text>
+  </g>`;
+  const corner = done ? chip : `<text x="${W - 52}" y="92" text-anchor="end" font-family="Faculty Glyphic" font-size="34" fill="${DIM}">Rove</text>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <rect width="${W}" height="${H}" fill="${BG}"/>
-  <text x="${W - 52}" y="92" text-anchor="end" font-family="Faculty Glyphic" font-size="34" fill="${DIM}">Rove</text>
+  ${eyebrow ? `<text x="52" y="92" font-family="Geist" font-weight="600" font-size="24" letter-spacing="3" fill="${DIM}">${esc(eyebrow)}</text>` : ""}
+  ${corner}
   <text x="52" y="236" font-family="Faculty Glyphic" font-size="42" fill="${SOFT}">${esc(title)}</text>
-  ${hero ? `<text x="48" y="${236 + 40 + heroSize}" font-family="Geist" font-weight="600" font-size="${heroSize}" letter-spacing="-3" fill="${FG}">${esc(hero)}</text>` : ""}
+  ${hero ? `<text x="48" y="${heroY}" font-family="Geist" font-weight="600" font-size="${heroSize}" letter-spacing="-3" fill="${FG}">${esc(hero)}</text>` : ""}
 </svg>`;
 }
 
