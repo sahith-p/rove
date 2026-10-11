@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, test } from "node:test";
 import type { Db } from "@rove/db";
 import { createTestDb } from "@rove/db/testing";
 import { AddBankAccountRes, SESSION_HEADER, TOKEN_TTL_SEC, type BeneficiaryInput, type PayoutPartner } from "@rove/shared";
-import { DEMO_MERCHANT, createMockPayoutPartner } from "@rove/shared/mocks";
+import { DEMO_MERCHANT, createMockPayoutPartner, createMockPayoutPartners } from "@rove/shared/mocks";
 import { setWebDepsForTests } from "../../_lib/deps";
 import { sessionToken, useWebTestDeps, type WebTestDeps } from "../../_lib/testing";
 import { POST } from "./route";
@@ -138,7 +138,7 @@ describe("POST /api/me/bank-accounts", () => {
     assert.equal(view.type, "paynow_uen");
     assert.equal(view.bankName, null);
     assert.equal(view.last4.length, 4);
-    assert.deepEqual(hh.partnerCalls[0], { merchantId: MERCHANT, type: "paynow_uen", proxy: uen, holderName: "Ah Seng Food Pte Ltd" });
+    assert.deepEqual(hh.partnerCalls[0], { merchantId: MERCHANT, type: "paynow_uen", proxy: uen, holderName: "Ah Seng Food Pte Ltd", currency: "SGD" });
     assert.equal(hh.deps.events[0]?.type, "bank_account.added");
     assert.equal((hh.deps.events[0] as { label: string }).label, `PayNow ••••${view.last4} (AH SENG FOOD PTE LTD)`);
     await assertNowhere(hh, [uen, "201912345"], res.text);
@@ -287,5 +287,62 @@ describe("POST /api/me/bank-accounts", () => {
     assert.equal(res.status, 400);
     assert.equal(res.body?.error, "invalid_json");
     assert.ok(!res.text.includes("0123456789"));
+  });
+});
+
+describe("POST /api/me/bank-accounts · per currency (corridors)", () => {
+  const IBAN = "DE89 3704 0044 0532 0130 00";
+
+  beforeEach(async () => {
+    await h.deps.db.close();
+    h = await setup(createMockPayoutPartners(20)); // simulated StraitsX (SGD) + SEPA (EUR), routed like production
+  });
+
+  test("an EUR shop adds an IBAN: SEPA partner, last 4 only, 'IBAN ••••3000' label", async () => {
+    const hh = h;
+    await hh.deps.db.updateShop(MERCHANT, { currency: "EUR" });
+    const res = await post({ type: "iban", accountNumber: IBAN.toLowerCase(), holderName: "Café Berlin GmbH" });
+
+    assert.equal(res.status, 201, res.text);
+    const view = AddBankAccountRes.parse(res.body);
+    assert.deepEqual([view.type, view.bankName, view.last4, view.holderName], ["iban", null, "3000", "CAFÉ BERLIN GMBH"]);
+    assert.deepEqual(hh.partnerCalls[0], {
+      merchantId: MERCHANT,
+      type: "iban",
+      accountNumber: "DE89370400440532013000",
+      holderName: "Café Berlin GmbH",
+      currency: "EUR",
+    });
+    const [row] = await hh.deps.db.listBankAccounts(MERCHANT);
+    assert.match(row?.beneficiaryId ?? "", /^sepa_bene_/);
+    assert.equal((hh.deps.events[0] as { label: string }).label, "IBAN ••••3000 (CAFÉ BERLIN GMBH)");
+    await assertNowhere(hh, ["DE89370400440532013000", "89370400440532013000", IBAN], res.text);
+  });
+
+  test("a bad IBAN checksum → 400 naming the account number, value not echoed", async () => {
+    await h.deps.db.updateShop(MERCHANT, { currency: "EUR" });
+    const res = await post({ type: "iban", accountNumber: "DE00370400440532013000", holderName: "Café Berlin" });
+    assert.equal(res.status, 400);
+    assert.match(res.body?.message ?? "", /account number/);
+    assert.ok(!res.text.includes("370400440532013000"));
+    assert.equal(h.partnerCalls.length, 0);
+  });
+
+  test("the account type must match the shop's currency; USD shops have no bank payouts yet", async () => {
+    const iban = await post({ type: "iban", accountNumber: IBAN, holderName: "Ah Seng" });
+    assert.deepEqual([iban.status, iban.body?.error], [422, "account_type_not_supported"]); // SGD shop
+    assert.match(iban.body?.message ?? "", /PayNow/);
+
+    await h.deps.db.updateShop(MERCHANT, { currency: "EUR" });
+    const paynow = await post({ type: "paynow_uen", uen: "201912345K", holderName: "Café Berlin" });
+    assert.deepEqual([paynow.status, paynow.body?.error], [422, "account_type_not_supported"]);
+    assert.match(paynow.body?.message ?? "", /IBAN/);
+
+    await h.deps.db.updateShop(MERCHANT, { currency: "USD" });
+    const usd = await post({ type: "bank_account", bankName: "Chase", accountNumber: "000123456789", holderName: "Joe's Diner" });
+    assert.deepEqual([usd.status, usd.body?.error], [422, "bank_payouts_unavailable"]);
+    assert.match(usd.body?.message ?? "", /XRPL wallet/);
+    assert.equal(h.partnerCalls.length, 0);
+    assert.deepEqual(await h.deps.db.listBankAccounts(MERCHANT), []);
   });
 });

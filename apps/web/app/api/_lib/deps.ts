@@ -5,14 +5,14 @@
 // The web NEVER signs: settlement here is read-only (quote, verified badge, balance, explorer links). Only the worker
 // moves money. The web never reads XRPL_*_SEED, WALLET_ENCRYPTION_KEY or BSC_DEPOSIT_MNEMONIC.
 //   USE_MOCK_SETTLEMENT=1 → createMockSettlement()      else @rove/xrpl createXrplSettlement(xrplConfigFromEnv()) without seeds
-//   USE_MOCK_PAYOUTS=1    → createMockPayoutPartner()   else: no real partner exists → error on first use
+//   USE_MOCK_PAYOUTS=1    → createMockPayoutPartners() (simulated StraitsX for SGD + SEPA for EUR, routed by currency)   else: no real partner exists → error on first use
 //   STRIPE_SECRET_KEY set → Stripe client               else null
 // Tests: setWebDepsForTests(await createWebTestDeps()) (./testing.ts).
 
 import Stripe from "stripe";
 import { getDb, type Db } from "@rove/db";
 import type { PayoutPartner, SettlementEngine } from "@rove/shared";
-import { createMockPayoutPartner, createMockSettlement } from "@rove/shared/mocks";
+import { createMockPayoutPartners, createMockSettlement } from "@rove/shared/mocks";
 import { createEmitter, type Emit } from "./emit";
 
 /** What the web may ask the settlement engine. No settle / refund / sweep / send / createMerchantAccount. */
@@ -90,7 +90,7 @@ export function createWebDeps(env: Env = process.env): WebDeps {
   return {
     db,
     settlement: config.useMockSettlement ? createMockSettlement() : lazyXrplSettlement(),
-    payouts: config.useMockPayouts ? createMockPayoutPartner() : noPayoutPartner(),
+    payouts: config.useMockPayouts ? createMockPayoutPartners() : noPayoutPartner(),
     stripe: stripeKey ? new Stripe(stripeKey) : null,
     emit: createEmitter({ db, agentUrl: config.agentUrl, secret: config.internalSecret }),
     config,

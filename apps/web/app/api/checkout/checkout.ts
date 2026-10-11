@@ -1,8 +1,15 @@
 // POST /api/checkout: resolve the target, quote, charge the payer in their own currency. Owner: Nithya · Task: NI-B2
-// Spec: docs/specs/payments-stripe.md §1, §1a, §7. route.ts wires it; tests call runCheckout() through the route.
+// Spec: docs/specs/payments-stripe.md §1, §1a, §7, docs/specs/corridors.md. route.ts wires it; tests call runCheckout()
+// through the route.
 //
-// The pay page calls checkout on every USD/SGD toggle and again on Pay, so an unexpired `created` payment for the same
-// target, currency and method is handed back (same paymentId + clientSecret) instead of minting a new one each time.
+// Any enabled currency (registry): the payer currency comes from payerCurrencyFor (toggle → phone → USD), the quote is
+// quote({ local, from: payerCurrency }), and the PaymentIntent is in that currency for exactly quote.pay (the total itself
+// when the payer and the shop share a currency). The quote's route (from, pay, sendMax) is stored on the payment so the
+// worker settles from the same float. Stripe test mode accepts EUR/SGD presentment on our US sandbox and converts to USD
+// on its own settlement; production needs a Stripe entity per region (EU for EUR) so that conversion never happens.
+//
+// The pay page calls checkout on every currency toggle and again on Pay, so an unexpired `created` payment for the same
+// target, charge currency and method is handed back (same paymentId + clientSecret) instead of minting a new one each time.
 
 import type Stripe from "stripe";
 import type { z } from "zod";
@@ -56,7 +63,8 @@ export async function runCheckout(deps: WebDeps, body: CheckoutBody, now = Date.
   const reused = await reuseCreated(deps.db, stripe, target, currency, now);
   if (reused) return validated(reused);
 
-  const quote = await deps.settlement.quote({ local: target.local });
+  // The payer's own float pays on XRPL (corridors.md §1): quote.pay is what it spends = what the card is charged.
+  const quote = await deps.settlement.quote({ local: target.local, from: currency });
   const charge = chargeIn(currency, target.local, quote);
   const paymentId = newId("pay");
 
@@ -100,13 +108,15 @@ export async function runCheckout(deps: WebDeps, body: CheckoutBody, now = Date.
   return validated({ paymentId, local: target.local, quote, charge, stripe: { clientSecret: pi.client_secret } });
 }
 
-/** §1a: SGD payer at an SGD shop → the total itself (no conversion); USD payer → the quote's USD (the swap is inside it). */
+/**
+ * §1a / corridors.md: same currency as the shop → the total itself (no conversion); any other enabled currency → the
+ * quote's `pay` in that currency (what the payer's float spends on XRPL; the market-rate swap is inside it). Quotes are
+ * in minor units already; rounding up means an engine with more precision can never undercharge.
+ */
 function chargeIn(currency: Currency, local: Money, quote: Quote): Money {
   if (currency === local.currency) return local;
-  if (currency === quote.usd.currency) {
-    // Quotes are in cents already; never undercharge if an engine ever returns more precision.
-    return fromMinor(toUnits(quote.usd.amount, DECIMALS.USD, "ceil"), "USD");
-  }
+  if (quote.pay?.currency === currency) return fromMinor(toUnits(quote.pay.amount, DECIMALS[currency], "ceil"), currency);
+  if (currency === "USD") return fromMinor(toUnits(quote.usd.amount, DECIMALS.USD, "ceil"), "USD"); // engine without `pay`
   throw new HttpError(400, "currency_not_supported", `Paying in ${currency} isn't supported here.`);
 }
 

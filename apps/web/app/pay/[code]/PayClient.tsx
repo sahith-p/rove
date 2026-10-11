@@ -35,6 +35,7 @@ import {
   type PreviewState,
 } from "./_fixtures";
 import { CurrencyToggle, localeCurrency } from "./CurrencyToggle";
+import { CryptoPayLazy } from "../../../components/privy/lazy";
 import { PayOptions } from "./PayOptions";
 import styles from "./pay.module.css";
 
@@ -311,7 +312,7 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
 
   // Currency toggle: re-quote with checkout so the big amount shows exactly what will be charged.
   const onCurrency = useCallback(
-    async (currency: Currency) => {
+    async (currency: Currency, openSheet = false) => {
       setPayCurrency(currency);
       if (phase.name !== "open" || busy) return;
       setQuoting(true);
@@ -320,20 +321,29 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
       setQuoting(false);
       setHeld(res ? { checkout: res.data, currency, method: "card", simulated: res.simulated } : null);
       // Stripe's sheet is open: swap it to the new currency's PaymentIntent (or close it if that failed).
-      setIntent((prev) => (prev ? toIntent(res, currency, prev.preferCard) : null));
+      // openSheet (first load where Apple Pay works): mount Stripe's own Apple Pay button now, so ONE tap opens the sheet.
+      setIntent((prev) => (prev ? toIntent(res, currency, prev.preferCard) : openSheet ? toIntent(res, currency, false) : null));
     },
     [phase, busy, checkout],
   );
 
   // First quote: when the locale picks a currency other than the invoice's, quote it once so the big amount is
-  // what the payer will actually be charged (the toggle re-quotes on every change).
+  // what the payer will actually be charged (the toggle re-quotes on every change). Where Apple Pay works, always
+  // start the checkout so Stripe's Apple Pay button is on the page from the start (a tap on our own button can't open
+  // Apple's sheet: it has to be Stripe's button).
   const autoQuoted = useRef(false);
   useEffect(() => {
-    if (autoQuoted.current || phase.name !== "open" || !payCurrency || busy || quoting) return;
-    if (payCurrency === phase.invoice.total.currency) return;
+    if (autoQuoted.current || phase.name !== "open" || !payCurrency || busy || quoting || usingFixtures) return;
+    let applePay = false;
+    try {
+      applePay = Boolean((window as { ApplePaySession?: { canMakePayments(): boolean } }).ApplePaySession?.canMakePayments());
+    } catch {
+      applePay = false;
+    }
+    if (!applePay && payCurrency === phase.invoice.total.currency) return;
     autoQuoted.current = true;
-    void onCurrency(payCurrency);
-  }, [phase, payCurrency, busy, quoting, onCurrency]);
+    void onCurrency(payCurrency, applePay);
+  }, [phase, payCurrency, busy, quoting, usingFixtures, onCurrency]);
 
   const onPay = useCallback(
     async (method: PayMethod) => {
@@ -515,7 +525,12 @@ function Body(props: BodyProps) {
           ) : null}
           <div className={styles.payBlock}>
             {intent ? (
-              quoting ? null : <ExpressPay key={intent.checkout.stripe.clientSecret} intent={intent} onPaid={onStripePaid} onCancel={onStripeCancel} />
+              quoting ? null : (
+                <>
+                  <ExpressPay key={intent.checkout.stripe.clientSecret} intent={intent} onPaid={onStripePaid} onCancel={onStripeCancel} />
+                  {crypto && !intent.preferCard ? <CryptoPayLazy handlers={crypto} disabled={busy !== null} /> : null}
+                </>
+              )
             ) : (
               <PayOptions onPay={onPay} busy={busy} disabled={quoting} crypto={crypto} />
             )}

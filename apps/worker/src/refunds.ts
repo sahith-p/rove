@@ -179,7 +179,7 @@ async function execute(deps: WorkerDeps, refund: Refund, opts: { resumed: boolea
     try {
       const { txHash } = await deps.settlement.refund({ paymentId: payment.id, merchantAddress: merchant.xrplAddress, local: r.amount });
       r = (await db.updateRefund(r.id, { xrplTxHash: txHash })) ?? { ...r, xrplTxHash: txHash };
-      log.info("refund: XSGD back to treasury", { ...ctx, txHash, explorer: deps.settlement.explorerUrl(txHash) });
+      log.info("refund: stablecoin back to treasury", { ...ctx, txHash, explorer: deps.settlement.explorerUrl(txHash) });
     } catch (err) {
       const c = classifyXrplError(err);
       if (c.kind === "ambiguous" || c.kind === "mismatch") {

@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createDb, type Db } from "@rove/db";
 import type { Currency, EventEnvelope, RoveEvent } from "@rove/shared";
-import { createMockPayoutPartner } from "@rove/shared/mocks";
+import { createMockPayoutPartners } from "@rove/shared/mocks";
 import { createXrplSettlement, xrplConfigFromEnv, type XrplSettlementEngine } from "@rove/xrpl";
 import { postgresPool, type Pool } from "../../../packages/db/src/executor";
 import { findLine, getTrustLines } from "../../../packages/xrpl/src/ledger";
@@ -73,7 +73,7 @@ export function liveWorker(opts: { db?: Db; scope?: string } = {}): LiveWorker {
   const deps: WorkerDeps = {
     db,
     settlement: engine,
-    payouts: createMockPayoutPartner(),
+    payouts: createMockPayoutPartners(),
     stripe: createStripe(),
     emit: rec.emit,
     config,

@@ -9,7 +9,7 @@
 
 import { createTestDb } from "@rove/db/testing";
 import { signToken, type EventEnvelope, type MerchantSessionPayload, type RoveEvent } from "@rove/shared";
-import { createMockPayoutPartner, createMockSettlement } from "@rove/shared/mocks";
+import { createMockPayoutPartners, createMockSettlement } from "@rove/shared/mocks";
 import { setWebDepsForTests, type WebConfig, type WebDeps } from "./deps";
 import type { Emit } from "./emit";
 
@@ -50,7 +50,7 @@ export async function createWebTestDeps(overrides: Partial<WebDeps> = {}): Promi
   return {
     db: overrides.db ?? (await createTestDb()),
     settlement: overrides.settlement ?? createMockSettlement(),
-    payouts: overrides.payouts ?? createMockPayoutPartner(20),
+    payouts: overrides.payouts ?? createMockPayoutPartners(20),
     stripe: overrides.stripe ?? null,
     emit: overrides.emit ?? captured.emit,
     config: overrides.config ?? TEST_WEB_CONFIG,

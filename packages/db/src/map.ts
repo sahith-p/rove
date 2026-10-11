@@ -21,6 +21,7 @@ import {
   type Money,
   type Payment,
   type PendingAction,
+  type Quote,
   type Recipient,
   type Refund,
   type Withdrawal,
@@ -39,7 +40,7 @@ export const INVOICE_COLS =
 export const PAYMENT_COLS =
   "id, merchant_id, source, invoice_id, lines, amount_local, currency, quote_usd, quote_rate, quote_send_max_usd, quote_expires_at, " +
   "charge_amount, charge_currency, method, status, payer_phone, payer_channel, stripe_payment_intent, settle_tx_hash, delivered_amount, " +
-  "refunded_local, created_at, updated_at";
+  "refunded_local, created_at, updated_at, quote_from, quote_pay, quote_send_max";
 export const REFUND_COLS = "id, payment_id, merchant_id, action_id, amount_local, currency, status, stripe_refund_id, xrpl_tx_hash, created_at";
 export const BANK_COLS = "id, merchant_id, type, bank_name, last4, holder_name, beneficiary_id, status, is_default, created_at";
 export const WITHDRAWAL_COLS =
@@ -145,7 +146,7 @@ export function toMerchant(r: Row): Merchant {
     phone: str(r.phone),
     channel: r.channel as Channel,
     category: strOrNull(r.category),
-    country: "SG",
+    country: str(r.country),
     currency: r.currency as Currency,
     xrplAddress: strOrNull(r.xrpl_address),
     credentialStatus: r.credential_status as CredentialStatus,
@@ -195,10 +196,28 @@ export function toInvoice(r: Row): Invoice {
   };
 }
 
+/** The stored quote, with the payer-currency route (pay + sendMax in quote_from) when it was recorded. */
+function quoteFromRow(r: Row, local: Money): Quote | null {
+  const hasQuote = r.quote_usd != null && r.quote_rate != null && r.quote_send_max_usd != null && r.quote_expires_at != null;
+  if (!hasQuote) return null;
+  const q: Quote = {
+    local,
+    usd: dbMoney(r.quote_usd, "USD"),
+    rate: trimDecimal(r.quote_rate),
+    sendMaxUsd: trimDecimal(r.quote_send_max_usd),
+    expiresAt: iso(r.quote_expires_at),
+  };
+  if (r.quote_from != null && r.quote_pay != null && r.quote_send_max != null) {
+    const from = r.quote_from as Currency;
+    q.pay = dbMoney(r.quote_pay, from);
+    q.sendMax = trimDecimal(r.quote_send_max, DECIMALS[from]);
+  }
+  return q;
+}
+
 export function toPayment(r: Row): Payment {
   const currency = r.currency as Currency;
   const local = dbMoney(r.amount_local, currency);
-  const hasQuote = r.quote_usd != null && r.quote_rate != null && r.quote_send_max_usd != null && r.quote_expires_at != null;
   const p: Payment = {
     id: str(r.id),
     merchantId: str(r.merchant_id),
@@ -206,15 +225,7 @@ export function toPayment(r: Row): Payment {
     invoiceId: strOrNull(r.invoice_id),
     lines: linesFromDb(r.lines),
     local,
-    quote: hasQuote
-      ? {
-          local,
-          usd: dbMoney(r.quote_usd, "USD"),
-          rate: trimDecimal(r.quote_rate),
-          sendMaxUsd: trimDecimal(r.quote_send_max_usd),
-          expiresAt: iso(r.quote_expires_at),
-        }
-      : null,
+    quote: quoteFromRow(r, local),
     method: r.method as Payment["method"],
     status: r.status as Payment["status"],
     payer: recipient(r.payer_phone, r.payer_channel),

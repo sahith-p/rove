@@ -318,10 +318,10 @@ export async function applyPayout(deps: WorkerDeps, s: PartnerPayoutStatus): Pro
     log.error("return transfer sent but the withdrawal had moved on: MANUAL REVIEW (possible double return)", { id: w.id, tx: returned.txHash });
     return;
   }
-  log.warn("payout bounced; XSGD returned to the merchant", { id: w.id, partnerReason: s.failureReason, tx: returned.txHash });
+  log.warn("payout bounced; the stablecoin was returned to the merchant", { id: w.id, partnerReason: s.failureReason, tx: returned.txHash });
 }
 
-/** Treasury → merchant, from the treasury's XSGD float (no swap). Credits what was delivered. Null after 3 failed tries. */
+/** Treasury → merchant, from the treasury's float of the withdrawal currency (no swap). Credits what was delivered. Null after 3 failed tries. */
 async function returnToMerchant(deps: WorkerDeps, w: Withdrawal, merchant: Merchant): Promise<{ txHash: string; delivered: Money } | null> {
   const log = pipelineLog(deps);
   for (const [attempt, delay] of [0, 500, 2000].entries()) {
@@ -338,7 +338,7 @@ async function returnToMerchant(deps: WorkerDeps, w: Withdrawal, merchant: Merch
       log.warn("return transfer failed", { id: w.id, attempt: attempt + 1, err: errText(err) });
     }
   }
-  log.error("payout bounced and the XSGD return failed 3 times: withdrawal stays put; restart (resume) retries it. MANUAL REVIEW if it persists", {
+  log.error("payout bounced and the stablecoin return failed 3 times: withdrawal stays put; restart (resume) retries it. MANUAL REVIEW if it persists", {
     id: w.id,
     merchantId: w.merchantId,
   });

@@ -5,9 +5,9 @@ import type { BankAccount, Withdrawal } from "@rove/shared";
 import type { WithdrawalView } from "../contracts";
 import type { WorkerDeps } from "../deps";
 
-/** "DBS ••••1234"; PayNow proxies have no bank name: "PayNow ••••1234". */
-export function bankLabel(b: Pick<BankAccount, "bankName" | "last4">): string {
-  return `${b.bankName ?? "PayNow"} ••••${b.last4}`;
+/** "DBS ••••1234"; PayNow proxies have no bank name: "PayNow ••••1234"; an IBAN without one: "IBAN ••••3000". */
+export function bankLabel(b: Pick<BankAccount, "bankName" | "last4"> & { type?: BankAccount["type"] }): string {
+  return `${b.bankName ?? (b.type === "iban" ? "IBAN" : "PayNow")} ••••${b.last4}`;
 }
 
 /** "rP4x…9Kd": enough to recognise, short enough for a card line. */

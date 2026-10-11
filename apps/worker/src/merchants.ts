@@ -1,5 +1,7 @@
 // POST /internal/merchants: onboarding's last step. Owner: Nithya · Task: NI-C1.
 // Custodial XRPL account (+ trust lines + Credential, inside settlement.createMerchantAccount) → status live → merchant.live.
+// The account trusts the merchant currency's stablecoin (body.currency: SGD → XSGD, EUR → the euro stand-in) + RLUSD; the
+// merchant row keeps body.country, or the currency's default country from the registry (EUR → DE) when it isn't sent.
 //
 // Idempotent on merchant id:
 //   - already live → return the stored account, no new account, no second merchant.live
@@ -55,13 +57,15 @@ async function provision(deps: WorkerDeps, body: InternalCreateMerchantReq): Pro
     channel: body.channel,
     category: body.category,
     currency: body.currency,
+    country: body.country ?? null, // null → the currency's default country (registry), or the one already stored
   });
 
   let xrplAddress = draft.xrplAddress;
   let credentialStatus: "issued" | "accepted";
   if (!xrplAddress) {
-    log.info("creating custodial XRPL account", { merchantId: body.id });
-    const account = await settlement.createMerchantAccount({ merchantId: body.id });
+    // Trust lines to the merchant currency's stablecoin (XSGD, EUR, …) + RLUSD.
+    log.info("creating custodial XRPL account", { merchantId: body.id, currency: draft.currency });
+    const account = await settlement.createMerchantAccount({ merchantId: body.id, currency: draft.currency });
     xrplAddress = account.xrplAddress;
     credentialStatus = account.credentialStatus;
   } else if (draft.credentialStatus === "none") {

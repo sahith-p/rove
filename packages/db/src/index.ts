@@ -50,6 +50,8 @@ export interface NewDraftMerchant {
   channel: Channel;
   category?: string | null;
   currency?: Currency; // default SGD
+  /** ISO 3166-1 alpha-2. Default: the currency's default country from the registry (SGD → SG, EUR → DE, USD → US). */
+  country?: string | null;
 }
 
 export interface MenuItemInput {

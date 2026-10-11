@@ -7,8 +7,11 @@ import type { z } from "zod";
 import type { Db } from "@rove/db";
 import {
   cmp,
+  fixedQrMaxFor,
+  format,
   fromMinor,
   money,
+  payerCurrencyFor,
   toMinor,
   type CheckoutReq,
   type Currency,
@@ -21,8 +24,9 @@ import { HttpError } from "../_lib/http";
 
 export type CheckoutBody = z.infer<typeof CheckoutReq>;
 
-/** Fixed-QR payments are capped (invoicing-and-qr.md §1): 0 < total ≤ S$500. */
-export const FIXED_QR_MAX: Money = money("500.00", "SGD");
+/** Fixed-QR payments are capped per merchant currency (invoicing-and-qr.md §1, registry `limits.fixedQrMax`):
+ *  S$500, €350, US$400. This is the SGD cap, kept for existing callers. */
+export const FIXED_QR_MAX: Money = fixedQrMaxFor("SGD");
 
 export interface CheckoutTarget {
   merchantId: string;
@@ -97,20 +101,18 @@ export async function resolveTarget(db: Db, body: CheckoutBody, now = Date.now()
   }
 
   if (toMinor(local) <= 0n) throw new HttpError(400, "invalid_amount", "The amount must be more than zero.");
-  if (local.currency !== FIXED_QR_MAX.currency || cmp(local, FIXED_QR_MAX) > 0) {
-    throw new HttpError(400, "amount_over_limit", "Payments by shop QR are limited to S$500.");
-  }
+  const max = fixedQrMaxFor(merchant.currency);
+  if (cmp(local, max) > 0) throw new HttpError(400, "amount_over_limit", `Payments by shop QR are limited to ${format(max)}.`);
 
   return { merchantId: merchant.id, source: "fixed_qr", invoiceId: null, lines, local, payer: payerFromPhone(body.payerPhone, null) };
 }
 
 /**
- * The currency the payer is charged in (§1a): what the page asked for, else the payer's phone country (+65 → SGD,
- * anything else → USD), else USD. The stablecoin lanes are always USD (USDT and AUSD are dollars).
+ * The currency the payer is charged in (§1a, corridors.md §2): what the page asked for (any enabled currency), else the
+ * payer's phone country if Rove settles in that currency (+65 → SGD, +49 → EUR, +1 → USD; +91 → USD while INR is
+ * planned), else USD. The stablecoin lanes are always USD (USDT and AUSD are dollars).
  */
 export function payerCurrency(body: Pick<CheckoutBody, "method" | "payCurrency">, payer: Recipient | null): Currency {
   if (body.method !== "card") return "USD";
-  if (body.payCurrency) return body.payCurrency;
-  if (payer) return payer.phone.startsWith("+65") ? "SGD" : "USD";
-  return "USD";
+  return payerCurrencyFor({ requested: body.payCurrency, phone: payer?.phone });
 }

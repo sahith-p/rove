@@ -28,6 +28,18 @@ export interface StablecoinInfo {
   status: StablecoinStatus;
 }
 
+/** Per-currency demo limits (decimal strings in the currency itself). Every enabled currency has them (currencyLimits()). */
+export interface CurrencyLimits {
+  /** Smallest withdrawal. */
+  withdrawalMin: string;
+  /** Withdrawals above this also need the web step-up (withdrawals.md §3a). */
+  withdrawalStepUpAbove: string;
+  /** Most a merchant can withdraw per day (failed / cancelled withdrawals don't count). */
+  withdrawalDailyMax: string;
+  /** Cap on a fixed shop-QR payment (invoicing-and-qr.md §1). */
+  fixedQrMax: string;
+}
+
 export interface CurrencyInfo {
   /** ISO 4217 */
   code: string;
@@ -47,6 +59,10 @@ export interface CurrencyInfo {
   payerRails: readonly PayerRail[];
   /** Honest one-liner for docs and the agent: what's real, what's missing. */
   note: string;
+  /** Country a merchant in this currency is assumed to be in when onboarding doesn't say (defaultCountryFor()). */
+  defaultCountry?: string;
+  /** Withdrawal + fixed-QR limits. Required for enabled currencies (currencyLimits() throws without them). */
+  limits?: CurrencyLimits;
 }
 
 const EURO_AREA = [
@@ -81,6 +97,9 @@ const REGISTRY = {
     payout: "straitsx",
     payerRails: ["card", "stablecoin"],
     note: "The demo corridor. Bank withdrawals redeem XSGD with StraitsX and pay out over PayNow/FAST (simulated in the demo).",
+    defaultCountry: "SG",
+    // = WITHDRAWAL_LIMITS (domain.ts), which stays for SGD callers
+    limits: { withdrawalMin: "1.00", withdrawalStepUpAbove: "200.00", withdrawalDailyMax: "2000.00", fixedQrMax: "500.00" },
   },
   USD: {
     code: "USD",
@@ -99,6 +118,8 @@ const REGISTRY = {
     payout: null,
     payerRails: ["card", "stablecoin"],
     note: "The hub: every other currency has an AMM pool against RLUSD, so any pair settles in one Payment. Also the fallback payer currency. No USD bank-payout partner chosen yet (merchants can withdraw RLUSD to their own wallet).",
+    defaultCountry: "US",
+    limits: { withdrawalMin: "1.00", withdrawalStepUpAbove: "150.00", withdrawalDailyMax: "1500.00", fixedQrMax: "400.00" },
   },
   EUR: {
     code: "EUR",
@@ -114,9 +135,13 @@ const REGISTRY = {
         "a MiCA-regulated euro e-money token issued on XRPL; e.g. Schuman Financial's EURØP (native XRPL integration announced by Ripple, 22 May 2025). The testnet stand-in uses the plain ISO code, not that token's.",
       status: "live-on-testnet",
     },
-    payout: null,
+    // A SEPA-shaped payout (IBAN beneficiaries, SEPA Instant credit transfers), simulated in the demo like StraitsX.
+    // The production partner (the euro token's issuer or a licensed EMI) isn't chosen yet.
+    payout: "sepa",
     payerRails: ["card", "stablecoin"],
-    note: "Testnet stand-in issued by Rove. Production uses whichever regulated euro stablecoin is issued on XRPL, redeemed by its issuer with a SEPA payout partner (not chosen yet).",
+    note: "Testnet stand-in issued by Rove. Production uses whichever regulated euro stablecoin is issued on XRPL, redeemed by its issuer with a SEPA payout partner (not chosen yet; the demo's SEPA payout is simulated).",
+    defaultCountry: "DE",
+    limits: { withdrawalMin: "1.00", withdrawalStepUpAbove: "150.00", withdrawalDailyMax: "1500.00", fixedQrMax: "350.00" },
   },
   INR: {
     code: "INR",
@@ -129,6 +154,7 @@ const REGISTRY = {
     payout: null,
     payerRails: ["upi"],
     note: "No INR stablecoin on XRPL that we know of. Needs a licensed Indian partner: payers on UPI, merchants paid out to bank/UPI, the float stays in USD.",
+    defaultCountry: "IN",
   },
   AUD: {
     code: "AUD",
@@ -146,6 +172,7 @@ const REGISTRY = {
     payout: null,
     payerRails: ["card", "stablecoin"],
     note: "A stablecoin exists on XRPL; enabling it needs the stand-in issuer + RLUSD pool in the seed and an AUD payout partner.",
+    defaultCountry: "AU",
   },
   BRL: {
     code: "BRL",
@@ -163,6 +190,7 @@ const REGISTRY = {
     payout: null,
     payerRails: ["card", "stablecoin"],
     note: "A stablecoin was announced on XRPL; enabling it needs the stand-in + pool, a BRL payout partner, and Pix as a payer rail later.",
+    defaultCountry: "BR",
   },
 } as const satisfies Record<string, CurrencyInfo>;
 
@@ -252,4 +280,25 @@ export function payerCurrencyFor(input: { requested?: string | null; phone?: str
   const byCountry = input.country ? currencyForCountry(input.country) : null;
   if (byCountry && isCurrency(byCountry.code)) return byCountry.code;
   return DEFAULT_PAYER_CURRENCY;
+}
+
+/** The demo limits of an enabled currency (withdrawal min / step-up / daily max, fixed-QR cap), as decimal strings. */
+export function currencyLimits(code: Currency): CurrencyLimits {
+  const limits = currencyInfo(code).limits;
+  if (!limits) throw new Error(`currency ${code} has no limits in the registry`);
+  return limits;
+}
+
+/**
+ * The country to record for a merchant whose onboarding gave a currency but no country: the registry's
+ * `defaultCountry` (SGD → SG, USD → US, EUR → DE), else its first country. Null for an unknown code.
+ */
+export function defaultCountryFor(code: string): string | null {
+  const c = getCurrency(code);
+  return c ? (c.defaultCountry ?? c.countries[0] ?? null) : null;
+}
+
+/** The payout partner id for bank withdrawals in `code` (registry `payout`: SGD → "straitsx", EUR → "sepa"), or null. */
+export function payoutPartnerIdFor(code: Currency): string | null {
+  return currencyInfo(code).payout;
 }

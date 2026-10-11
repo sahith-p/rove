@@ -1,6 +1,6 @@
 // merchants + shop lookup
 
-import type { Merchant } from "@rove/shared";
+import { defaultCountryFor, getCurrency, type Merchant } from "@rove/shared";
 import { DbConflictError } from "../errors";
 import type { Param, Pool } from "../executor";
 import type { Db, ShopMatch } from "../index";
@@ -23,6 +23,12 @@ type MerchantsRepo = Pick<
 >;
 
 const PHONE_LIKE = /^\+?[\d\s().-]+$/;
+
+/** "de" → "DE"; anything that isn't two letters → null (then the currency's default country is used). */
+function normalizeCountry(cc: string | null | undefined): string | null {
+  const t = cc?.trim().toUpperCase();
+  return t && /^[A-Z]{2}$/.test(t) ? t : null;
+}
 
 /** Digit strings a typed phone could mean: as typed, plus +65 for 8-digit SG numbers and +1 for 10-digit US numbers. */
 function phoneVariants(digits: string): string[] {
@@ -100,17 +106,24 @@ export function merchantsRepo(pool: Pool): MerchantsRepo {
 
     async upsertDraftMerchant(m) {
       // Same id + same phone → update in place (idempotent). Same id, different phone → the slug is someone else's shop.
+      // Country: the one given, else the currency's default country (registry). On update, a currency change without a
+      // country moves the country along with it; otherwise the stored country stays.
+      const country = normalizeCountry(m.country);
+      const derived = defaultCountryFor(m.currency ?? "SGD") ?? "SG";
       const row = await one(
-        `insert into merchants (id, name, phone, channel, category, currency)
-         values ($1, $2, $3, $4, $5, coalesce($6, 'SGD'))
+        `insert into merchants (id, name, phone, channel, category, currency, country)
+         values ($1, $2, $3, $4, $5, coalesce($6, 'SGD'), coalesce($7, $8))
          on conflict (id) do update set
            name = excluded.name,
            channel = excluded.channel,
            category = coalesce(excluded.category, merchants.category),
-           currency = coalesce($6, merchants.currency)
+           currency = coalesce($6, merchants.currency),
+           country = case when $7::text is not null then $7
+                          when $6::text is not null and $6 <> merchants.currency then $8
+                          else merchants.country end
          where merchants.phone = excluded.phone
          returning ${MERCHANT_COLS}`,
-        [m.id, m.name, normalizePhone(m.phone), m.channel, m.category ?? null, m.currency ?? null],
+        [m.id, m.name, normalizePhone(m.phone), m.channel, m.category ?? null, m.currency ?? null, country, derived],
       );
       if (!row) throw new DbConflictError(`merchant id "${m.id}" belongs to another phone`, "merchants_pkey");
       return row;
@@ -121,7 +134,12 @@ export function merchantsRepo(pool: Pool): MerchantsRepo {
       const set = new SetBuilder(params);
       if (patch.name !== undefined) set.add("name", patch.name);
       if ("category" in patch && patch.category !== undefined) set.add("category", patch.category);
-      if (patch.currency !== undefined) set.add("currency", patch.currency);
+      if (patch.currency !== undefined) {
+        set.add("currency", patch.currency);
+        // Keep a country that uses the new currency (DE → AT stays EUR); otherwise move to the currency's default country.
+        params.push(JSON.stringify(getCurrency(patch.currency)?.countries ?? []), defaultCountryFor(patch.currency) ?? "SG");
+        set.raw(`country = case when country in ${inJson(params.length - 1)} then country else $${params.length} end`);
+      }
       if (!set.sets.length) return one(`select ${MERCHANT_COLS} from merchants where id = $1`, params);
       return one(`update merchants set ${set.sql} where id = $1 returning ${MERCHANT_COLS}`, params);
     },

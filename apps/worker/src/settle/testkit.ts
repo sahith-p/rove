@@ -45,11 +45,19 @@ export interface SettleCall {
   local: Money;
   sendMaxUsd: string;
   from: Currency | undefined;
+  /** SendMax in `from` (quote.sendMax), when the worker passed one. */
+  sendMax?: string;
 }
 
 export interface TestEngine {
   engine: SettlementEngine;
-  calls: { quote: number; settle: SettleCall[]; refund: { paymentId: string; merchantAddress: string; local: Money }[] };
+  calls: {
+    quote: number;
+    /** Every quote() input, in order. */
+    quotes: { local: Money; from?: Currency }[];
+    settle: SettleCall[];
+    refund: { paymentId: string; merchantAddress: string; local: Money }[];
+  };
   /** Thrown by the next settle() calls, in order (then settle succeeds). */
   settleErrors: unknown[];
   /** Thrown by the next refund() calls, in order. */
@@ -73,7 +81,7 @@ export function createTestEngine(): TestEngine {
   const active = { all: 0, byAddress: new Map<string, number>() };
   let n = 0;
   const t: TestEngine = {
-    calls: { quote: 0, settle: [], refund: [] },
+    calls: { quote: 0, quotes: [], settle: [], refund: [] },
     settleErrors: [],
     refundErrors: [],
     balances,
@@ -83,6 +91,7 @@ export function createTestEngine(): TestEngine {
       ...base,
       async quote(input) {
         t.calls.quote++;
+        t.calls.quotes.push({ ...input });
         return base.quote(input);
       },
       async settle(input) {
@@ -188,9 +197,9 @@ export const MAYA: Recipient = { phone: DEMO_CUSTOMER.phone, channel: "imessage"
 
 let merchantSeq = 0;
 
-export async function liveMerchant(deps: WorkerDeps, id = "ahseng"): Promise<Merchant> {
+export async function liveMerchant(deps: WorkerDeps, id = "ahseng", currency: Currency = "SGD"): Promise<Merchant> {
   const phone = `+1555556${String(++merchantSeq).padStart(4, "0")}`;
-  await deps.db.upsertDraftMerchant({ id, name: "Ah Seng Chicken Rice", phone, channel: "imessage", category: "hawker", currency: "SGD" });
+  await deps.db.upsertDraftMerchant({ id, name: "Ah Seng Chicken Rice", phone, channel: "imessage", category: "hawker", currency });
   await deps.db.setMerchantXrpl(id, { xrplAddress: `rTEST${id.toUpperCase()}`, xrplSeedEnc: "mock:no-seed", credentialStatus: "accepted" });
   return (await deps.db.setMerchantLive(id)) ?? (await deps.db.getMerchant(id))!;
 }
@@ -198,6 +207,8 @@ export async function liveMerchant(deps: WorkerDeps, id = "ahseng"): Promise<Mer
 export interface PaymentOpts {
   merchantId?: string;
   local?: string;
+  /** The shop's currency (default SGD). */
+  currency?: Currency;
   /** Default: quote.usd (a USD payer). */
   charge?: Money;
   method?: PaymentMethod;
@@ -212,7 +223,7 @@ export interface PaymentOpts {
 
 /** Inserts a payment and moves it created → authorized (what the Stripe webhook / BSC watcher do). */
 export async function authorizedPayment(deps: WorkerDeps, o: PaymentOpts = {}): Promise<Payment> {
-  const local = money(o.local ?? "12.50", "SGD");
+  const local = money(o.local ?? "12.50", o.currency ?? "SGD");
   const quote = o.quote !== undefined ? o.quote : await createMockSettlement().quote({ local });
   const method = o.method ?? "apple_pay";
   const id = newId("pay");
