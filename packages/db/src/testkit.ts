@@ -1,19 +1,43 @@
 // Helpers for this package's own tests (not exported from @rove/db). Other services use createTestDb().
 
+import { randomUUID } from "node:crypto";
 import { money, newId, type Balance, type Merchant, type Money } from "@rove/shared";
 import { seedDemoData } from "./demo";
+import { postgresPool, type Pool } from "./executor";
 import { makeDb, type MakeDbOptions } from "./impl";
 import type { Db, NewPayment } from "./index";
-import { freshPglite, pglitePool } from "./pglite";
+import { freshPglite, pglitePool, schemaSql } from "./pglite";
 
 export const sgd = (a: string): Money => money(a, "SGD");
 export const usd = (a: string): Money => money(a, "USD");
 
-/** A test db plus its raw pool (for asserting on rows the Db interface doesn't expose). */
+/**
+ * A test db plus its raw pool (for asserting on rows the Db interface doesn't expose). PGlite by default.
+ * With ROVE_DB_TEST_URL set (a scratch Postgres, never a real one), the same suite runs through postgres.js, the
+ * production driver, each db in its own throwaway schema: `ROVE_DB_TEST_URL=postgres://… pnpm --filter @rove/db test`.
+ */
 export async function openTestDb(opts: MakeDbOptions & { demo?: boolean } = {}) {
-  const pool = pglitePool(await freshPglite());
+  const url = process.env.ROVE_DB_TEST_URL;
+  const pool = url ? await postgresSchemaPool(url) : pglitePool(await freshPglite());
   if (opts.demo) await seedDemoData(pool);
   return { db: makeDb(pool, opts), pool };
+}
+
+async function postgresSchemaPool(url: string): Promise<Pool> {
+  const schema = `rove_test_${randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  const admin = postgresPool(url, { max: 1 });
+  await admin.query(`create schema ${schema}`);
+  const pool = postgresPool(url, { max: 4, searchPath: schema });
+  await pool.query(schemaSql());
+  return {
+    query: pool.query,
+    tx: pool.tx,
+    async end() {
+      await pool.end();
+      await admin.query(`drop schema ${schema} cascade`);
+      await admin.end();
+    },
+  };
 }
 
 let phoneSeq = 0;

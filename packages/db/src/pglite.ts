@@ -4,13 +4,13 @@
 import { readFileSync } from "node:fs";
 import { PGlite, type PGliteInterface, type Transaction } from "@electric-sql/pglite";
 import { translateError } from "./errors";
-import type { Executor, Param, Pool, Row } from "./executor";
+import { bindable, type Executor, type Param, type Pool, type Row } from "./executor";
 
 export function pglitePool(pg: PGliteInterface): Pool {
   const executor = (s: PGliteInterface | Transaction): Executor => ({
     async query<T extends Row = Row>(text: string, params: readonly Param[] = []): Promise<T[]> {
       try {
-        return (await s.query<T>(text, params as Param[])).rows;
+        return (await s.query<T>(text, bindable(params))).rows;
       } catch (e) {
         throw translateError(e);
       }
