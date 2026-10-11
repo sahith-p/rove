@@ -5,7 +5,7 @@ import { DbConflictError } from "../errors";
 import type { Param, Pool } from "../executor";
 import type { Db, ShopMatch } from "../index";
 import { MERCHANT_COLS, normalizePhone, phoneDigits, toMerchant } from "../map";
-import { matchName } from "../match";
+import { fuzzyBudget, levenshtein, matchName, normalizeName } from "../match";
 import { inJson, SetBuilder } from "./util";
 
 type MerchantsRepo = Pick<
@@ -78,17 +78,24 @@ export function merchantsRepo(pool: Pool): MerchantsRepo {
         return ms.length === 1 ? { merchant: ms[0]!, candidates: [] } : { merchant: null, candidates: ms };
       }
 
-      // 3. name (exact → prefix → word prefix → fuzzy), also fuzzy against shop codes ("ahsen" → ahseng)
+      // 3. name: exact → prefix → word prefix → fuzzy; several hits → candidates
       const live = (await pool.query(`select ${MERCHANT_COLS} from merchants where status = 'live' order by created_at`)).map(toMerchant);
-      const labels = live.flatMap((m) => [
-        { m, label: m.name },
-        { m, label: m.id },
-      ]);
-      const r = matchName(raw, labels, (x) => x.label);
-      if (r.match) return { merchant: r.match.m, candidates: [] };
-      const plausible = uniqueById((r.ambiguous.length ? r.ambiguous : r.suggestions).map((x) => x.m));
-      if (r.ambiguous.length && plausible.length === 1) return { merchant: plausible[0]!, candidates: [] };
-      return { merchant: null, candidates: plausible };
+      const byName = matchName(raw, live, (m) => m.name);
+      if (byName.match) return { merchant: byName.match, candidates: [] };
+      if (byName.ambiguous.length) return { merchant: null, candidates: byName.ambiguous };
+
+      // 4. a typo'd shop code ("ahsen" → ahseng): fuzzy only, the closest unique one wins
+      const q = normalizeName(raw).replace(/\s+/g, "");
+      const budget = fuzzyBudget(q.length);
+      const near = live
+        .map((m) => ({ m, d: levenshtein(q, m.id.replace(/-/g, "")) }))
+        .filter((s) => s.d <= budget)
+        .sort((a, b) => a.d - b.d);
+      if (near.length === 1 || (near.length > 1 && near[0]!.d < near[1]!.d)) return { merchant: near[0]!.m, candidates: [] };
+      if (near.length > 1) return { merchant: null, candidates: near.map((s) => s.m) };
+
+      // nothing confident: the closest names, so the agent can ask "did you mean …?"
+      return { merchant: null, candidates: uniqueById(byName.suggestions) };
     },
 
     async upsertDraftMerchant(m) {

@@ -35,7 +35,7 @@ export function levenshtein(a: string, b: string): number {
 }
 
 /** Edits allowed for a confident fuzzy match: 2, but 1 for 3–4 character queries and none below (too risky). */
-function fuzzyBudget(len: number): number {
+export function fuzzyBudget(len: number): number {
   return len >= 5 ? 2 : len >= 3 ? 1 : 0;
 }
 

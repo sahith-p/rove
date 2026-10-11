@@ -38,7 +38,7 @@ export function paymentsRepo(pool: Pool): PaymentsRepo {
         `insert into payments (id, merchant_id, source, invoice_id, lines, amount_local, currency,
             quote_usd, quote_rate, quote_send_max_usd, quote_expires_at, charge_amount, charge_currency,
             method, payer_phone, payer_channel, stripe_payment_intent, bnb_deposit_address)
-         values ($1, $2, $3, $4, $5::jsonb, $6::numeric, $7, $8::numeric, $9::numeric, $10::numeric, $11::timestamptz,
+         values ($1, $2, $3, $4, $5::text::jsonb, $6::numeric, $7, $8::numeric, $9::numeric, $10::numeric, $11::timestamptz,
                  $12::numeric, $13, $14, $15, $16, $17, $18)
          returning ${PAYMENT_COLS}`,
         [

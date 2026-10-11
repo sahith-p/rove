@@ -32,7 +32,12 @@ const HAS_LIVE_PAYMENT = `exists (select 1 from payments p where p.invoice_id = 
 
 const CODE_ATTEMPTS = 10;
 
-export function invoicesRepo(pool: Pool): InvoicesRepo {
+export interface InvoicesRepoOptions {
+  /** Payment code generator (tests inject collisions). Default newShortCode(). */
+  newCode?: () => string;
+}
+
+export function invoicesRepo(pool: Pool, { newCode = () => newShortCode() }: InvoicesRepoOptions = {}): InvoicesRepo {
   const many = async (sql: string, params: Param[]) => (await pool.query(sql, params)).map(toInvoice);
   const one = async (sql: string, params: Param[]) => (await many(sql, params))[0] ?? null;
 
@@ -55,13 +60,13 @@ export function invoicesRepo(pool: Pool): InvoicesRepo {
       for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt++) {
         const rows = await pool.query(
           `insert into invoices (id, code, merchant_id, kind, contact_id, to_phone, to_channel, lines, total, currency, note, expires_at)
-           values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::numeric, $10, $11,
+           values ($1, $2, $3, $4, $5, $6, $7, $8::text::jsonb, $9::numeric, $10, $11,
                    coalesce($12::timestamptz, now() + make_interval(secs => $13)))
            on conflict (code) do nothing
            returning ${INVOICE_COLS}`,
           [
             newId("inv"),
-            newShortCode(),
+            newCode(),
             i.merchantId,
             i.kind,
             i.contactId ?? null,
