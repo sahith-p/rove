@@ -8,7 +8,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - [~] **H2 (11:30)** Credentials: enabled on testnet (verified in NI-A4). RLUSD testnet issuer: still to ask. · Ripple table: Credentials on testnet? testnet RLUSD issuer? Log answers.
 - [x] **H3 (12:00)** done via the Stripe API: Apple Pay active on rove-topaz.vercel.app · Stripe → Payment method domains → add the Vercel domain (Apple Pay).
 - [~] **H4 (12:30)** G1 passed; flip `USE_MOCK_SETTLEMENT=0` when the worker deploys. · Gate **G1**, then `USE_MOCK_SETTLEMENT=0`.
-- [ ] **H5 (14:00)** Deploy worker to Railway; share `WORKER_URL`.
+- [~] **H5 (14:00)** handed to Sahith (deploys on his Railway); env handoff file prepared by Nithya · Deploy worker to Railway; share `WORKER_URL`.
 
 ## Lane A: XRPL engine (`packages/xrpl`)
 
@@ -129,7 +129,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** One confirmed refund = one Stripe refund + one XRPL tx + one ledger entry.
 
 ### NI-C6 · BNB pay-in · 90 min
-- [ ] status
+- [x] 28cf2c2 … aca2e76 (xpub deposit addresses, watcher with 3 confirmations, own tUSDT + `bsc-setup.ts`; replayed a real BSC testnet transfer through the real watcher → authorized → settled). Live run waits on ~0.05 tBNB for the deployer
 - **Depends:** NI-C2, NI-B2
 - **Paths:** `apps/worker/src/bnb/**`, `apps/worker/scripts/bsc-setup.ts`, `apps/web/app/api/checkout/**` (bnb branch)
 - **Do:** bnb-lane.md: test USDT (faucet or Remix ERC-20), fund the Privy demo wallet, HD deposit addresses, viem watcher, 3 confirmations, `claim("bsc:…")`, authorize → settle.
