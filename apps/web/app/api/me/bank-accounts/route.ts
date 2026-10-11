@@ -1,10 +1,11 @@
-// POST /api/me/bank-accounts (bank scope): partner beneficiary, store id + last4 only → emits bank_account.added
+// POST /api/me/bank-accounts (bank scope): partner beneficiary, store id + last4 only → emits bank_account.added (after())
 // Owner: Nithya · Task: NI-B6 · Spec: docs/specs/withdrawals.md §2 · Schemas: @rove/shared api.ts
 //
 // The raw account number / UEN / mobile lives only in this request: it goes to the payout partner and nowhere else.
 // Not into the DB (we keep beneficiaryId + last4 + the partner's resolved name), not into logs, error messages, the
 // response or the event. Validation errors name the bad fields but never echo what was sent.
 
+import { after } from "next/server";
 import type { z } from "zod";
 import { AddBankAccountReq, type Beneficiary, type BeneficiaryInput } from "@rove/shared";
 import { getWebDeps } from "../../_lib/deps";
@@ -92,7 +93,14 @@ export const POST = route(async (req) => {
   });
 
   // "DBS ••••1234 (AH SENG FOOD PTE LTD)" · "PayNow ••••1234 (AH SENG FOOD PTE LTD)"
-  await emit({ type: "bank_account.added", merchantId, bankAccountId: account.id, label: `${bankLabel(account)} (${account.holderName})` });
+  // emit() retries a down agent for up to ~17s, so it runs after the response (Next's after(), waitUntil on Vercel),
+  // like /api/me/shop. Outside a Next request scope (tests, scripts) after() throws, so it's awaited instead.
+  const send = () => emit({ type: "bank_account.added", merchantId, bankAccountId: account.id, label: `${bankLabel(account)} (${account.holderName})` });
+  try {
+    after(send);
+  } catch {
+    await send(); // never rejects (emit logs its own failures)
+  }
 
   return json(toBankAccountView(account), { status: 201 });
 });
