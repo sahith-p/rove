@@ -14,6 +14,18 @@
   padding-top: 8px;
 }
 
+.paidIn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.paidLabel {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
 .heroStart {
   align-items: flex-start;
   padding-top: 0;

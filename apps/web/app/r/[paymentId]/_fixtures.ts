@@ -4,8 +4,13 @@ import { money } from "@rove/shared";
 import { DEMO_CUSTOMER, DEMO_MERCHANT, demoPayment } from "@rove/shared/mocks";
 import type { PaymentStatus, ReceiptData } from "./_data";
 
-const FIXTURE_STATES = ["settled", "refunded", "partially_refunded", "settling", "failed"] as const satisfies readonly PaymentStatus[];
+const FIXTURE_STATES = ["settled", "settled_usd", "refunded", "partially_refunded", "settling", "failed"] as const;
 export type FixtureState = (typeof FIXTURE_STATES)[number];
+
+/** settled_usd = settled, paid with a US card (charge in USD, merchant receives SGD). */
+function statusOf(state: FixtureState): PaymentStatus {
+  return state === "settled_usd" ? "settled" : state;
+}
 
 const DEMO_TX = "8F3B2C1D9E0A4B5C6D7E8F90A1B2C3D4E5F60718293A4B5C6D7E8F9012ABCDEF";
 
@@ -17,12 +22,13 @@ export function fixtureState(raw: string | string[] | undefined): FixtureState {
 
 /** A valid PaymentStatusRes, plus the optional extras the receipt shows when the API provides them. */
 export function receiptFixture(paymentId: string, state: FixtureState): ReceiptData {
-  const p = demoPayment({ id: paymentId, status: state, createdAt: new Date(Date.now() - 4 * 60_000).toISOString() });
+  const p = demoPayment({ id: paymentId, status: statusOf(state), createdAt: new Date(Date.now() - 4 * 60_000).toISOString() });
   const onLedger = state !== "settling" && state !== "failed";
   return {
     paymentId: p.id,
     status: p.status,
     local: p.local,
+    ...(state === "settled_usd" ? { charge: money("9.72", "USD") } : {}),
     merchantName: DEMO_MERCHANT.name,
     lines: p.lines,
     method: p.method,

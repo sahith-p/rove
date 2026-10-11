@@ -99,6 +99,8 @@ function Receipt({ data, merchant, demo }: { data: ReceiptData; merchant: boolea
   const partial = data.status === "partially_refunded";
   const failed = data.status === "failed";
   const amountText = format(data.local);
+  // Payer charged in their own currency (e.g. a US card): lead with what they paid, show what the shop got below.
+  const foreignCharge = data.charge && data.charge.currency !== data.local.currency ? data.charge : null;
   const when = data.createdAt ? dateTimeFmt.format(new Date(data.createdAt)) : null;
 
   return (
@@ -123,7 +125,18 @@ function Receipt({ data, merchant, demo }: { data: ReceiptData; merchant: boolea
 
       <section className={merchant ? `${styles.hero} ${styles.heroStart}` : styles.hero} aria-label="Status">
         <StatusPill status={data.status} />
-        {merchant ? null : <Amount money={data.local} className={refunded ? styles.struck : undefined} />}
+        {merchant ? null : foreignCharge ? (
+          <div className={styles.paidIn}>
+            <span className={styles.paidLabel}>You paid</span>
+            <Amount
+              money={foreignCharge}
+              sub={`${amountText} to ${data.merchantName} · no card FX fees`}
+              className={refunded ? styles.struck : undefined}
+            />
+          </div>
+        ) : (
+          <Amount money={data.local} className={refunded ? styles.struck : undefined} />
+        )}
       </section>
 
       {refunded ? (
