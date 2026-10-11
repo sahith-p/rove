@@ -4,7 +4,8 @@ import { format, MerchantToolInputs, type Contact, type Invoice } from "@rove/sh
 import { defineTool, ToolError } from "../../agent/tool";
 import type { ToolContext } from "../context";
 import { matchByName } from "../match";
-import { deliverInvoice, describeLines, resolveLines, sgtTime } from "../pricing";
+import { localTime } from "../../time";
+import { deliverInvoice, describeLines, resolveLines } from "../pricing";
 import { personLabel, requireMerchant } from "./util";
 
 const DAY_MS = 24 * 3600 * 1000;
@@ -79,11 +80,11 @@ export function billingTools(ctx: ToolContext) {
           expiresAt: expiresAt.toISOString(),
         });
         const url = links.pay(invoice.code);
-        const caption = `${format(invoice.total)} · single use · expires ${sgtTime(expiresAt)}`;
+        const caption = `${format(invoice.total)} · single use · expires ${localTime(expiresAt)}`;
         const png = await qr.qrPng(url);
         if (png) await outbox.image(from, png, `rove-${invoice.code}.png`, `${caption} · code ${invoice.code}`);
         else await outbox.text(from, `${caption}\nCode ${invoice.code} · ${url}`);
-        return `One-time code ${invoice.code} for ${format(invoice.total)} (${describeLines(invoice.lines)}), expires ${sgtTime(expiresAt)}. ${png ? "QR image" : "Link"} sent. Customers scan it or text ${invoice.code} to Rove.`;
+        return `One-time code ${invoice.code} for ${format(invoice.total)} (${describeLines(invoice.lines)}), expires ${localTime(expiresAt)}. ${png ? "QR image" : "Link"} sent. Customers scan it or text ${invoice.code} to Rove.`;
       },
       calls,
     ),

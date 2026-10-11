@@ -85,12 +85,22 @@ const ROVE_MINI_APP = { appName: "Rove", extensionBundleId: "codes.photon.Spectr
 
 function cardContent(url: string, live: boolean, layout?: CardLayout) {
   if (!layout) return app(url, { live });
-  // A static bubble with only text renders as a small strip; give it the Rove picture so it reads as a card.
-  const picture = live ? {} : { image: cardImageJpeg(layout), imageTitle: layout.caption ?? "Rove" };
-  return customizedMiniApp({ ...ROVE_MINI_APP, url, live, layout: { ...layout, ...picture } });
+  if (live) return customizedMiniApp({ ...ROVE_MINI_APP, url, live, layout: { ...layout } });
+  // Static bubble: just the Rove picture. No caption row under it (iOS font, duplicates the picture); the one line
+  // iMessage requires (imageTitle) is the call to action / status, overlaid on the picture's empty bottom band.
+  const imageTitle = layout.trailingSubcaption ?? (layout.trailingCaption ? "Tap to pay" : "Tap to open");
+  return customizedMiniApp({ ...ROVE_MINI_APP, url, live, layout: { image: cardImageJpeg(layout), imageTitle, ...(layout.summary ? { summary: layout.summary } : {}) } });
 }
 
-export function createSpectrumTransport(spectrum: SpectrumInstance): CardTransport {
+/**
+ * `imessageCards: false` (default; env IMESSAGE_CARDS=1 turns cards on): iMessage gets the link as text instead of an
+ * iMessage App card. Messages renders the page's Open Graph preview, and a tap opens Safari (where Apple Pay works)
+ * instead of the extension popover. Updates then arrive as new messages, like WhatsApp.
+ */
+export function createSpectrumTransport(
+  spectrum: SpectrumInstance,
+  { imessageCards = process.env.IMESSAGE_CARDS === "1" }: { imessageCards?: boolean } = {},
+): CardTransport {
   const spaces = new Map<string, Promise<Space>>();
 
   async function createSpace(to: Recipient): Promise<Space> {
@@ -125,7 +135,7 @@ export function createSpectrumTransport(spectrum: SpectrumInstance): CardTranspo
 
   return {
     supportsCards(channel) {
-      return channel === "imessage";
+      return imessageCards && channel === "imessage";
     },
 
     async sendCard(to, url, live, layout) {
@@ -149,6 +159,14 @@ export function createSpectrumTransport(spectrum: SpectrumInstance): CardTranspo
 
     async sendText(to, body) {
       const space = await spaceFor(to);
+      // iMessage only draws the big link preview for a URL sent on its own: split "text\nhttps://…" into two bubbles.
+      const lines = body.split("\n");
+      const last = lines[lines.length - 1]?.trim() ?? "";
+      if (to.channel === "imessage" && lines.length > 1 && /^https?:\/\/\S+$/.test(last)) {
+        requireMessage(await space.send(lines.slice(0, -1).join("\n")), "text", to);
+        const link = requireMessage(await space.send(last), "link", to);
+        return { messageId: link.id };
+      }
       const m = requireMessage(await space.send(body), "text", to);
       return { messageId: m.id };
     },

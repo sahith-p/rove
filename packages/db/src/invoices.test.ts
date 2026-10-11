@@ -161,7 +161,8 @@ describe("lifecycle", () => {
       assert.deepEqual(await d.invoicesToRemind(new Date(Date.now() - MIN)), []); // not old enough
       const later = new Date(Date.now() + MIN);
       assert.deepEqual((await d.invoicesToRemind(later)).map((i) => i.id), [inv.id]);
-      await d.setInvoiceReminded(inv.id);
+      assert.equal(await d.markInvoiceReminded(inv.id), true); // CAS: the first caller wins
+      assert.equal(await d.markInvoiceReminded(inv.id), false);
       assert.deepEqual(await d.invoicesToRemind(later), []);
     } finally {
       await d.close();

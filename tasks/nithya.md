@@ -4,11 +4,11 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 
 ## Human (you)
 
-- [~] **H1 (pre-G0)** done: Stripe sandbox keys, Supabase project `rove` + schema, `INTERNAL_SECRET`, `WALLET_ENCRYPTION_KEY`. Left: Railway, BNB faucet, `BSC_DEPOSIT_MNEMONIC`. · Stripe test keys · Supabase + run `packages/db/schema.sql` · Railway (worker + agent services) · BNB testnet faucet · `INTERNAL_SECRET`, `WALLET_ENCRYPTION_KEY`, `BSC_DEPOSIT_MNEMONIC` · [docs/09](../docs/09-services-and-keys.md)
+- [x] **H1 (pre-G0)** Stripe sandbox keys, Supabase `rove` + schema, `INTERNAL_SECRET`, `WALLET_ENCRYPTION_KEY`, BSC mnemonic + tBNB (ZalalenA faucet), Railway (Sahith) · Stripe test keys · Supabase + run `packages/db/schema.sql` · Railway (worker + agent services) · BNB testnet faucet · `INTERNAL_SECRET`, `WALLET_ENCRYPTION_KEY`, `BSC_DEPOSIT_MNEMONIC` · [docs/09](../docs/09-services-and-keys.md)
 - [~] **H2 (11:30)** Credentials: enabled on testnet (verified in NI-A4). RLUSD testnet issuer: still to ask. · Ripple table: Credentials on testnet? testnet RLUSD issuer? Log answers.
 - [x] **H3 (12:00)** done via the Stripe API: Apple Pay active on rove-topaz.vercel.app · Stripe → Payment method domains → add the Vercel domain (Apple Pay).
 - [~] **H4 (12:30)** G1 passed; flip `USE_MOCK_SETTLEMENT=0` when the worker deploys. · Gate **G1**, then `USE_MOCK_SETTLEMENT=0`.
-- [~] **H5 (14:00)** handed to Sahith (deploys on his Railway); env handoff file prepared by Nithya · Deploy worker to Railway; share `WORKER_URL`.
+- [x] **H5 (14:00)** Sahith deployed it: `https://worker-production-b037.up.railway.app`, /healthz ok (real XRPL + DB), reconciler ok · Deploy worker to Railway; share `WORKER_URL`.
 
 ## Lane A: XRPL engine (`packages/xrpl`)
 
@@ -129,7 +129,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** One confirmed refund = one Stripe refund + one XRPL tx + one ledger entry.
 
 ### NI-C6 · BNB pay-in · 90 min
-- [x] 28cf2c2 … aca2e76 (xpub deposit addresses, watcher with 3 confirmations, own tUSDT + `bsc-setup.ts`; replayed a real BSC testnet transfer through the real watcher → authorized → settled). Live run waits on ~0.05 tBNB for the deployer
+- [x] 28cf2c2 … aca2e76 (xpub deposit addresses, watcher with 3 confirmations, own tUSDT + `bsc-setup.ts`; replayed a real BSC testnet transfer through the real watcher → authorized → settled). **live on BSC testnet**: tUSDT [deployed](https://testnet.bscscan.com/address/0xcf00d3d4e89e0a2fbe7d64c2e45cf9a18e9b030a); a real 9.69 tUSDT transfer ([tx](https://testnet.bscscan.com/tx/0xe6b1aa0ee04e62b6c4f8972b27f86535adf27c79381c4f3bf65b6a023b672c2b)) authorized by the real watcher after 3 confirmations and settled (demo script: mock XRPL + in-memory DB)
 - **Depends:** NI-C2, NI-B2
 - **Paths:** `apps/worker/src/bnb/**`, `apps/worker/scripts/bsc-setup.ts`, `apps/web/app/api/checkout/**` (bnb branch)
 - **Do:** bnb-lane.md: test USDT (faucet or Remix ERC-20), fund the Privy demo wallet, HD deposit addresses, viem watcher, 3 confirmations, `claim("bsc:…")`, authorize → settle.
@@ -144,7 +144,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 ## Extra: AUSD lane (Agora track)
 
 ### NI-X1 · AUSD gasless pay-in (ERC-3009) + x402 agent payments
-- [x] code done (checkout, `/api/ausd/authorize`, worker relayer, x402 v2); signatures verified against the live AUSD contract. Live run waits on Base Sepolia ETH for the relayer
+- [x] code done (checkout, `/api/ausd/authorize`, worker relayer, x402 v2); **live x402 run passed**: an agent wallet with no gas paid invoice TVXDDR (S$3.00) with 2.33 AUSD, Rove relayed it on Base Sepolia ([tx](https://sepolia.basescan.org/tx/0xbeca45b34b410d3454e4e36838a7f5c3fc85960462919a721e357bcf3448b229)) and settled it to ahseng on XRPL ([tx](https://testnet.xrpl.org/transactions/19678B95D688E9683135C01B22842A7D8A6A3F91D6C59DD926350B413F0B2CDB))
 - **Do:** pay with Agora AUSD on Base Sepolia without gas (payer signs, the worker relays), settle on XRPL like BNB; stretch: an AI agent pays a Rove invoice through x402. Spec: docs/specs/ausd-lane.md
 
 ### NI-X2 · Multi-currency corridors (any currency with a stablecoin)

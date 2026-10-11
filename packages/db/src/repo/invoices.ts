@@ -17,6 +17,7 @@ type InvoicesRepo = Pick<
   | "expireInvoices"
   | "invoicesToRemind"
   | "setInvoiceReminded"
+  | "markInvoiceReminded"
 >;
 
 /** Default lifetime by kind (invoicing-and-qr.md §1). */
@@ -138,6 +139,11 @@ export function invoicesRepo(pool: Pool, { newCode = () => newShortCode() }: Inv
 
     async setInvoiceReminded(id) {
       await pool.query(`update invoices set reminded_at = now() where id = $1`, [id]);
+    },
+
+    async markInvoiceReminded(id) {
+      const rows = await pool.query(`update invoices set reminded_at = now() where id = $1 and reminded_at is null returning id`, [id]);
+      return rows.length === 1;
     },
   };
 }

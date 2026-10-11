@@ -5,7 +5,6 @@
 //   deliverInvoice(deps, invoice, merchant)      → SentMessage (pay card to invoice.to)
 //   describeLines(lines)                          → "2× Chicken rice, 1× Barley drink"
 //   parseAmount(amount, currency)                 → Money | null (null = not a valid amount)
-//   sgtDate(d) / sgtTime(d)                       → "2026-10-11" / "3:42pm" in Asia/Singapore
 
 import { cmp, format, fromMinor, isPositive, money, toMinor, type Invoice, type InvoiceLine, type Merchant, type Money, type SentMessage } from "@rove/shared";
 import type { Deps } from "../ports";
@@ -73,15 +72,3 @@ export async function deliverInvoice(deps: Deps, invoice: Invoice, merchant: Mer
   return deps.outbox.cards.send(invoice.to, deps.builders.invoice({ invoice, merchant }));
 }
 
-const SGT = "Asia/Singapore";
-
-export function sgtDate(d: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: SGT, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
-}
-
-export function sgtTime(d: Date): string {
-  return new Intl.DateTimeFormat("en-US", { timeZone: SGT, hour: "numeric", minute: "2-digit", hour12: true })
-    .format(d)
-    .replace(" ", "")
-    .toLowerCase();
-}

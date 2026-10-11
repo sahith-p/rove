@@ -1,6 +1,7 @@
 // Conversation memory: plain-text turns only, append-only (agent_messages). Tools re-read fresh state every
 // turn, so the model never relies on stale numbers from history.
 
+import { stripLeakedMarkup } from "./text";
 import type { BetaMessageParam } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import type { Merchant, Persona, Recipient } from "@rove/shared";
 import type { Store } from "../ports";
@@ -12,7 +13,7 @@ export async function loadHistory(store: Store, phone: string): Promise<BetaMess
   const rows = await store.recentAgentMessages(phone, HISTORY_LIMIT);
   const out: { role: "user" | "assistant"; content: string }[] = [];
   for (const row of rows) {
-    const text = row.content.trim();
+    const text = row.role === "assistant" ? stripLeakedMarkup(row.content) : row.content.trim();
     if (!text) continue;
     const last = out[out.length - 1];
     if (last && last.role === row.role) last.content += `\n${text}`;
