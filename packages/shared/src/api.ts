@@ -3,9 +3,13 @@
 // `authorization: Bearer ${INTERNAL_SECRET}`. Merchant routes: `x-rove-session: <MerchantSessionToken>`.
 
 import { z } from "zod";
+import { CURRENCY_CODES } from "./currencies";
 
 export const Decimal = z.string().regex(/^\d+(\.\d{1,6})?$/, "decimal string");
-export const CurrencyZ = z.enum(["SGD", "USD"]);
+/** Every enabled currency in the registry (currencies.ts): "SGD" | "USD" | "EUR". */
+export const CurrencyZ = z.enum(CURRENCY_CODES);
+/** Currencies a merchant can hold (= enabled: each has a live stablecoin on XRPL). */
+export const MerchantCurrencyZ = CurrencyZ;
 export const MoneyZ = z.object({ amount: Decimal, currency: CurrencyZ });
 export const E164 = z.string().regex(/^\+[1-9]\d{6,14}$/, "E.164 phone");
 export const ChannelZ = z.enum(["imessage", "whatsapp"]);
@@ -23,7 +27,16 @@ export const WithdrawalStatusZ = z.enum([
   "returned",
   "cancelled",
 ]);
-export const QuoteZ = z.object({ local: MoneyZ, usd: MoneyZ, rate: Decimal, sendMaxUsd: Decimal, expiresAt: z.string() });
+export const QuoteZ = z.object({
+  local: MoneyZ,
+  usd: MoneyZ,
+  rate: Decimal,
+  sendMaxUsd: Decimal,
+  expiresAt: z.string(),
+  /** Payer-currency route (quote({ from })): what that float spends, and its SendMax. */
+  pay: MoneyZ.optional(),
+  sendMax: Decimal.optional(),
+});
 export const InvoiceLineZ = z.object({ menuItemId: z.string().nullable(), name: z.string(), qty: z.number().int().positive(), unit: MoneyZ });
 export const MenuItemViewZ = z.object({ id: z.string(), name: z.string(), price: MoneyZ, active: z.boolean() });
 export const WithdrawalDestinationZ = z.discriminatedUnion("kind", [
@@ -180,7 +193,7 @@ export const MeRes = z.object({
 export const UpdateShopReq = z.object({
   name: z.string().min(2).max(60).optional(),
   category: z.string().max(40).optional(),
-  currency: z.literal("SGD").optional(),
+  currency: MerchantCurrencyZ.optional(),
 });
 
 /** PUT /api/me/menu  Replace the menu (setup card). Emits shop.updated. */
@@ -231,7 +244,7 @@ export const InternalCreateMerchantReq = z.object({
   name: z.string().min(2).max(60),
   phone: E164,
   channel: ChannelZ,
-  currency: z.literal("SGD"),
+  currency: MerchantCurrencyZ,
   category: z.string().nullable(),
 });
 export const InternalCreateMerchantRes = z.object({
