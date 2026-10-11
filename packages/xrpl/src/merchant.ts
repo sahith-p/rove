@@ -41,6 +41,9 @@ export async function createMerchantAccount(ctx: EngineContext, merchantId: stri
   const existing = store.findByMerchant ? await store.findByMerchant(merchantId) : null;
   if (existing) {
     wallet = await ctx.merchantWallet(existing);
+    // Re-put the same ciphertext so the caller's store is guaranteed to hold this account (a no-op if it already does).
+    const enc = await store.get(existing);
+    if (enc) await store.put(merchantId, existing, enc);
   } else {
     wallet = Wallet.generate();
     await store.put(merchantId, wallet.address, encryptSeed(wallet.seed as string, ctx.config.walletEncryptionKey));

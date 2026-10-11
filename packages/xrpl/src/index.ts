@@ -5,19 +5,18 @@
 //   NI-A3 quote() + settle()                         ← gate G1
 //   NI-A4 createMerchantAccount() + isVerifiedMerchant()
 //   NI-A5 refund() + sweepToRedemption() + sendToWallet() + balance()
+//
+// Worker:  createXrplSettlement(xrplConfigFromEnv(), { seedStore })   (seedStore → db.setMerchantXrpl / getMerchantSeedEnc)
+// Web app: createXrplSettlement(xrplConfigFromEnv())                  (read-only: quote, isVerifiedMerchant, balance, explorerUrl)
 
-import type { SettlementEngine } from "@rove/shared";
-
+export { createXrplSettlement, type XrplSettlementEngine } from "./engine";
+export { xrplConfigFromEnv, type XrplConfig } from "./config";
+export { memorySeedStore, envFileSeedStore, type SeedStore } from "./seed-store";
+export { explorerTxUrl, explorerAccountUrl, type EngineOptions } from "./context";
+export * from "./errors";
 export * from "./currency";
 export * from "./crypto";
 export * from "./queue";
 export * from "./client";
-export * from "./config";
-export * from "./errors";
 export * from "./tx";
-export { memorySeedStore, envFileSeedStore, type SeedStore } from "./seed-store";
-export { explorerTxUrl, explorerAccountUrl, type EngineOptions } from "./context";
-
-export function createXrplSettlement(): SettlementEngine {
-  throw new Error("not implemented: see tasks/nithya.md NI-A3..NI-A5");
-}
+export { buildQuote, ammInputForOutput, QUOTE_TTL_MS } from "./quote";
