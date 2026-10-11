@@ -37,6 +37,7 @@ export function startBnbWatcher(deps: WorkerDeps, opts: StartBnbOptions = {}): (
     return () => {};
   }
   checkKeys(cfg, log);
+  if (cfg.rpcReplaced) log.warn(`BSC_RPC_URL ${cfg.rpcReplaced} refuses eth_getLogs; watching through ${cfg.rpcUrl} instead`);
 
   const config = cfg;
   const source = opts.source ?? createRpcSource(config);

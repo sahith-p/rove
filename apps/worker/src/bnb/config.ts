@@ -15,6 +15,8 @@ export const DEFAULT_BSC_RPC_URL = "https://bsc-testnet-rpc.publicnode.com";
 
 export interface BnbConfig {
   rpcUrl: string;
+  /** Set when BSC_RPC_URL pointed at an endpoint known to refuse eth_getLogs, and the default replaced it. */
+  rpcReplaced: string | null;
   token: Address;
   decimals: number;
   confirmations: number;
@@ -43,6 +45,9 @@ const posInt = (v: string | undefined, fallback: number, name: string): number =
   return n;
 };
 
+/** bnbchain.org's public data-seed nodes answer eth_getLogs with "limit exceeded" for any range (checked 2026-10-11). */
+const NO_GETLOGS = /^https?:\/\/data-seed-prebsc-\d+-s\d+\.(bnbchain|binance)\.org/i;
+
 /** null when BSC_TOKEN_ADDRESS isn't set (the lane is off). Throws on malformed values. */
 export function bnbConfigFromEnv(env: Env = process.env): BnbConfig | null {
   const token = env.BSC_TOKEN_ADDRESS?.trim();
@@ -50,8 +55,11 @@ export function bnbConfigFromEnv(env: Env = process.env): BnbConfig | null {
   if (!isAddress(token, { strict: false })) throw new Error("BSC_TOKEN_ADDRESS is not an EVM address");
   const decimals = posInt(env.BSC_TOKEN_DECIMALS, 18, "BSC_TOKEN_DECIMALS");
   if (decimals < 2 || decimals > 36) throw new Error(`BSC_TOKEN_DECIMALS must be 2..36, got ${decimals}`);
+  const configured = env.BSC_RPC_URL?.trim() || DEFAULT_BSC_RPC_URL;
+  const replaced = NO_GETLOGS.test(configured) ? configured : null;
   return {
-    rpcUrl: env.BSC_RPC_URL?.trim() || DEFAULT_BSC_RPC_URL,
+    rpcUrl: replaced ? DEFAULT_BSC_RPC_URL : configured,
+    rpcReplaced: replaced,
     token: getAddress(token),
     decimals,
     confirmations: BNB_CONFIRMATIONS,

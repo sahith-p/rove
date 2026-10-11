@@ -125,7 +125,8 @@ async function checkChain(pub: ReturnType<typeof clients>["pub"]): Promise<void>
 }
 
 function tokenOf(env: EnvFile): Address {
-  const t = need(env, "BSC_TOKEN_ADDRESS");
+  const t = env.get("BSC_TOKEN_ADDRESS") || process.env.BSC_TOKEN_ADDRESS;
+  if (!t) throw new Error("BSC_TOKEN_ADDRESS is missing: run `bsc-setup.ts deploy` (needs tBNB on the deployer), or set it in .env.bsc");
   if (!isAddress(t, { strict: false })) throw new Error("BSC_TOKEN_ADDRESS is not an address");
   return getAddress(t);
 }
@@ -482,6 +483,13 @@ async function liveDemo(amountArg: string | undefined): Promise<void> {
   const token = tokenOf(env);
   const facts = await tokenFacts(pub, token);
   const amount = parseAmount(amountArg ?? "9.69", "live-demo [amount]");
+  const { deployer } = clients(env);
+  if (!deployer) throw new Error("BSC_DEPLOYER_KEY missing: run init");
+  const held = await pub.readContract({ address: token, abi: TUSDT_ABI, functionName: "balanceOf", args: [deployer.address] });
+  if (held < parseUnits(amount, facts.decimals)) {
+    console.log(`Deployer holds ${formatUnits(held, facts.decimals)} ${facts.symbol}; minting ${amount} to it first (stand-in customer)`);
+    await mint(deployer.address, amount);
+  }
   const keys = depositKeyring(need(env, "BSC_DEPOSIT_MNEMONIC"));
   // a fresh index well away from the DB sequence's range, so the demo never reuses a real payment's address
   const index = 1_000_000 + Math.floor(Math.random() * 1_000_000);
