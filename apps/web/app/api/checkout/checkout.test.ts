@@ -306,9 +306,8 @@ describe("POST /api/checkout · reuse", () => {
 });
 
 describe("POST /api/checkout · lanes and failures", () => {
-  test("bnb answers 501 and unconfigured ausd 503 from their own branches, after the target is validated", async () => {
+  test("unconfigured ausd answers 503 from its own branch, after the target is validated (bnb: bnb.test.ts)", async () => {
     const inv = await invoice();
-    await expectError(byCode(inv.code, { method: "bnb" }), 501, "bnb_not_ready");
     // The AUSD lane itself is tested in ../ausd/authorize/authorize.test.ts; without AUSD_PAY_TO it is off.
     const savedPayTo = process.env.AUSD_PAY_TO;
     delete process.env.AUSD_PAY_TO;

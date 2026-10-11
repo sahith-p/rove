@@ -15,6 +15,7 @@ import type { AusdAuthorizeReq } from "@rove/shared";
 import {
   AUSD_MIN_REMAINING_SEC,
   expectedAuthorization,
+  invoicePaidElsewhere,
   paymentStatusResponse,
   rejectionStatus,
   toStoredAuthorization,
@@ -50,8 +51,8 @@ export async function authorizeAusd(deps: WebDeps, ausd: AusdDeps, body: AusdAut
 
   if (payment.invoiceId) {
     const invoice = await deps.db.getInvoice(payment.invoiceId);
-    if (invoice?.status === "paid" && invoice.paymentId !== payment.id) throw new HttpError(409, "invoice_paid", "This has already been paid.");
     if (invoice?.status === "cancelled") throw new HttpError(409, "invoice_cancelled", "The shop cancelled this request.");
+    if (invoice && (await invoicePaidElsewhere(deps.db, invoice, payment.id))) throw new HttpError(409, "invoice_paid", "This has already been paid.");
   }
 
   const expected = expectedAuthorization(payment, from, ausd.config);

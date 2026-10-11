@@ -34,6 +34,9 @@ export type RelayStep =
   | "failed" // payment failed (reason logged + payment.failed emitted)
   | "skipped"; // someone else moved the payment on
 
+/** Another payment for the same invoice in one of these means the invoice is (being) paid. */
+const PAID: ReadonlySet<Payment["status"]> = new Set(["authorized", "settling", "settled", "partially_refunded", "refunded"]);
+
 export interface RelayerState {
   /** Simulation reverts per payment (in memory: a restart gives each payment a fresh budget, bounded by validBefore). */
   reverts: Map<string, number>;
@@ -119,7 +122,10 @@ async function relayOne(deps: WorkerDeps, opts: RelayerOptions, state: RelayerSt
   if (payment.invoiceId) {
     const invoice = await deps.db.getInvoice(payment.invoiceId);
     if (invoice?.status === "cancelled") return fail(deps, job, "invoice_cancelled before the AUSD moved", log);
-    if (invoice?.status === "paid" && invoice.paymentId !== payment.id) return fail(deps, job, "invoice_already_paid before the AUSD moved", log);
+    const paidElsewhere =
+      (invoice?.status === "paid" && invoice.paymentId !== payment.id) ||
+      (await deps.db.listPayments(payment.merchantId, 50)).some((p) => p.invoiceId === payment.invoiceId && p.id !== payment.id && PAID.has(p.status));
+    if (paidElsewhere) return fail(deps, job, "invoice_already_paid before the AUSD moved", log);
   }
 
   let signed: { hash: Hex; serialized: Hex };

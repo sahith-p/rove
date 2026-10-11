@@ -28,8 +28,8 @@ import {
   type Hex,
 } from "viem";
 import { baseSepolia } from "viem/chains";
-import type { AusdAuthorization } from "@rove/db";
-import { DECIMALS, fromMinor, fromUnits, PaymentStatusRes, toUnits, type CheckoutRes, type Money, type Payment } from "@rove/shared";
+import type { AusdAuthorization, Db } from "@rove/db";
+import { DECIMALS, fromMinor, fromUnits, PaymentStatusRes, toUnits, type CheckoutRes, type Invoice, type Money, type Payment } from "@rove/shared";
 import { merchantVerified, respond } from "../shops/_shared";
 import type { WebDeps } from "./deps";
 import { HttpError } from "./http";
@@ -318,6 +318,23 @@ export function rejectionStatus(reason: AusdRejection): number {
     default:
       return 422;
   }
+}
+
+/** Payment statuses that mean the money for an invoice already arrived (or is arriving). */
+const PAID_STATUSES: ReadonlySet<Payment["status"]> = new Set(["authorized", "settling", "settled", "partially_refunded", "refunded"]);
+
+/**
+ * The invoice is paid, or another payment for it got past `created` (a card authorized but not settled yet leaves the
+ * invoice `open`). Checked before an AUSD authorization is accepted, so AUSD doesn't move for an invoice that's done.
+ */
+export async function invoicePaidElsewhere(
+  db: Pick<Db, "getInvoice" | "listPayments">,
+  invoice: Pick<Invoice, "id" | "merchantId" | "status" | "paymentId">,
+  exceptPaymentId?: string,
+): Promise<boolean> {
+  if (invoice.status === "paid" && invoice.paymentId !== exceptPaymentId) return true;
+  const payments = await db.listPayments(invoice.merchantId, 50);
+  return payments.some((p) => p.invoiceId === invoice.id && p.id !== exceptPaymentId && PAID_STATUSES.has(p.status));
 }
 
 // ------------------------------------------------------------------ responses

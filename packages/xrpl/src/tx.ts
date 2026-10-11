@@ -2,7 +2,7 @@
 // so the unit tests cover exactly what goes on the ledger. Sequence/Fee/LastLedgerSequence come from autofill.
 
 import { createHash } from "node:crypto";
-import type { AccountSet, AMMCreate, Path, Payment, TrustSet } from "xrpl";
+import type { AccountSet, AMMCreate, AMMDeposit, Path, Payment, TrustSet } from "xrpl";
 import { credentialTypeHex, type IssuedAmount } from "./currency";
 
 /** asfDefaultRipple: issuers need it before any trust line exists, or tokens can't ripple through them / the AMM. */
@@ -24,8 +24,9 @@ export function invoiceIdFor(id: string): string {
 }
 
 /**
- * Cross-currency settlement (from = "USD"): deliver exactly `amount` XSGD, spend at most `sendMax` RLUSD.
- * No tfPartialPayment, so it either delivers the full amount or fails (tecPATH_PARTIAL).
+ * Cross-currency settlement (from ≠ local): deliver exactly `amount` (e.g. XSGD), spend at most `sendMax` of the payer
+ * currency's token (e.g. RLUSD, or EUR with hub `paths`). No tfPartialPayment, so it either delivers the full amount or
+ * fails (tecPATH_PARTIAL).
  */
 export function buildCrossCurrencyPayment(input: {
   account: string;
@@ -49,7 +50,7 @@ export function buildCrossCurrencyPayment(input: {
   };
 }
 
-/** Same-currency token payment (XSGD → XSGD): settle from the SGD float, refund, sweep, send to wallet. */
+/** Same-currency token payment (XSGD → XSGD, EUR → EUR, …): settle from that float, refund, sweep, send to wallet. */
 export function buildIouPayment(input: { account: string; destination: string; amount: IssuedAmount; invoiceId?: string }): Payment {
   if (input.account === input.destination) throw new Error("buildIouPayment: account and destination are the same");
   return {
@@ -77,6 +78,34 @@ export function buildTrustSet(input: { account: string; currency: string; issuer
 
 export function buildDefaultRipple(account: string): AccountSet {
   return { TransactionType: "AccountSet", Account: account, SetFlag: ASF_DEFAULT_RIPPLE };
+}
+
+/**
+ * Explicit Paths for a 2-hop cross-currency Payment through the hub (e.g. EUR → RLUSD → XSGD): one path whose steps
+ * are the hub token, then the destination token. The engine walks SendMax-currency → hub (EUR/RLUSD AMM) → destination
+ * (RLUSD/XSGD AMM). Used when ripple_path_find returns nothing; its paths_computed have the same shape.
+ */
+export function hubPaths(hub: { currency: string; issuer: string }, destination: { currency: string; issuer: string }): Path[] {
+  if (hub.currency === destination.currency && hub.issuer === destination.issuer) {
+    throw new Error("hubPaths: destination is the hub itself; a single-hop payment needs no explicit path");
+  }
+  return [[{ currency: hub.currency, issuer: hub.issuer }, { currency: destination.currency, issuer: destination.issuer }]];
+}
+
+/** AMMDeposit tfTwoAsset: deposit both assets in the pool's current ratio, at most Amount / Amount2 (price unchanged). */
+export const TF_TWO_ASSET = 0x00100000;
+
+/** Deepen an existing pool without moving its price: both assets, proportional, capped by `amount` / `amount2`. */
+export function buildAmmDepositTwoAsset(input: { account: string; amount: IssuedAmount; amount2: IssuedAmount }): AMMDeposit {
+  return {
+    TransactionType: "AMMDeposit",
+    Account: input.account,
+    Asset: { currency: input.amount.currency, issuer: input.amount.issuer },
+    Asset2: { currency: input.amount2.currency, issuer: input.amount2.issuer },
+    Amount: { ...input.amount },
+    Amount2: { ...input.amount2 },
+    Flags: TF_TWO_ASSET,
+  };
 }
 
 /** AMMCreate from the LP. TradingFee is in 1/100,000 (30 = 0.03%). autofill sets the special AMMCreate fee. */
