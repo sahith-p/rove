@@ -2,6 +2,7 @@
 // Small USD/SGD switch: the payer is charged in their own currency so the card leg never converts
 // (docs/specs/payments-stripe.md §1a). The default comes from the browser locale; never from IP.
 import type { Currency } from "@rove/shared";
+import { CurrencyFlag } from "../../../components/icons";
 import styles from "./pay.module.css";
 
 const OPTIONS: Currency[] = ["SGD", "USD"];
@@ -28,8 +29,10 @@ export interface CurrencyToggleProps {
 export function CurrencyToggle({ value, onChange, disabled, busy }: CurrencyToggleProps) {
   return (
     <div className={styles.currencyRow}>
-      <span className={styles.currencyLabel}>Pay in</span>
-      <div className={styles.segmented} role="radiogroup" aria-label="Pay in currency" aria-busy={busy || undefined}>
+      <span className="eyebrow" id="pay-in-label">
+        Pay in
+      </span>
+      <div className={styles.segmented} role="radiogroup" aria-labelledby="pay-in-label" aria-busy={busy || undefined}>
         {OPTIONS.map((c) => (
           <button
             key={c}
@@ -40,6 +43,7 @@ export function CurrencyToggle({ value, onChange, disabled, busy }: CurrencyTogg
             disabled={disabled}
             onClick={() => value !== c && onChange(c)}
           >
+            <CurrencyFlag currency={c} size={16} />
             {c}
           </button>
         ))}

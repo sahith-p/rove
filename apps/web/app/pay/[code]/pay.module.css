@@ -1,9 +1,9 @@
-/* /pay/[code]. Page-local styles on top of the shared tokens in app/globals.css. */
+/* /pay/[code] (also reused by /m). Page-local layout on top of the tokens in app/globals.css. */
 
 .page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   min-width: 0;
 }
 
@@ -12,88 +12,111 @@
 .hero {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 12px 0 4px;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.hero[aria-busy="true"] {
+  opacity: 0.5;
+  transition: opacity 150ms ease;
 }
 
 .meta {
   color: var(--muted);
-  font-size: 15px;
-  text-align: center;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
-.code {
-  font-family: var(--mono);
-  font-size: 14px;
-  letter-spacing: 0.08em;
-  color: var(--text);
+.codeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.codeHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+.expiry {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   font-size: 15px;
   white-space: pre-wrap;
 }
 
-.noteLabel {
-  display: block;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .inlineError {
-  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--error-soft);
   color: var(--error);
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
-/* ---------------------------------------------------------------- pay options */
+.inlineError svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ---------------------------------------------------------------- pay block (currency + buttons) */
+
+.payBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+}
 
 .payOptions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 8px;
 }
 
 .applePay {
-  min-height: 54px;
   font-size: 18px;
-}
-
-.tertiary {
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font-size: 16px;
   font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: var(--border-strong);
-  text-underline-offset: 4px;
-  cursor: pointer;
+  letter-spacing: -0.02em;
 }
 
-.tertiary:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.applePay svg {
+  margin-top: -3px;
 }
 
-.tertiary[aria-busy="true"] {
-  opacity: 0.85;
-  cursor: progress;
+.altMethods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .safari {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   align-self: center;
+  min-height: 36px;
   padding: 4px 8px;
   color: var(--muted);
   font-size: 13px;
@@ -101,28 +124,25 @@
 }
 
 .safari:hover {
-  text-decoration: underline;
+  color: var(--text);
 }
 
 /* ---------------------------------------------------------------- currency toggle */
 
 .currencyRow {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
-}
-
-.currencyLabel {
-  color: var(--muted);
+  gap: 12px;
+  padding: 0 2px;
 }
 
 .segmented {
   display: inline-flex;
+  gap: 2px;
   padding: 3px;
-  border-radius: 999px;
-  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
 }
 
 .segmented[aria-busy="true"] {
@@ -131,22 +151,27 @@
 
 .seg,
 .segOn {
-  min-width: 56px;
-  min-height: 32px;
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 8px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 9px;
   background: transparent;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
 .segOn {
-  background: var(--bg);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: var(--text);
+  color: var(--bg);
 }
 
 .seg:disabled,
@@ -158,101 +183,34 @@
 
 .hintCenter {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   text-align: center;
 }
 
 .paidHero {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding-top: 12px;
-}
-
-.check {
-  display: grid;
-  place-items: center;
-  width: 76px;
-  height: 76px;
-  margin-bottom: 8px;
-  border-radius: 50%;
-  background: var(--success);
-  color: var(--bg);
-  animation: pop 420ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  align-items: flex-start;
+  gap: 20px;
+  padding-top: 16px;
 }
 
 .paidTitle {
-  color: var(--success);
-  font-size: 20px;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+/* The status Card's live line, above the stepper. */
+.statusLine {
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .actions {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-@keyframes pop {
-  from {
-    transform: scale(0.4);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* ---------------------------------------------------------------- one-line states */
-
-.state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 40px 8px 8px;
-  text-align: center;
-}
-
-.stateIcon {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  margin-bottom: 10px;
-  border-radius: 50%;
-  background: var(--card);
-  color: var(--muted);
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.state[data-tone="success"] .stateIcon {
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.state[data-tone="error"] .stateIcon {
-  background: var(--error-soft);
-  color: var(--error);
-}
-
-.stateTitle {
-  font-size: 24px;
-}
-
-.stateLine {
-  color: var(--muted);
-}
-
-.codeLine {
-  margin-top: 6px;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  text-align: center;
+  gap: 8px;
 }
 
 /* ---------------------------------------------------------------- loading */
@@ -260,61 +218,60 @@
 .loading {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .skeleton {
-  border-radius: var(--radius);
-  background: var(--card);
-  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+  background: var(--wash);
+  animation: rove-pulse 1.4s ease-in-out infinite;
 }
 
-.skHeader {
-  width: 60%;
-  height: 44px;
+.skRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skName {
+  width: 55%;
+  height: 20px;
 }
 
 .skAmount {
-  align-self: center;
-  width: 50%;
-  height: 56px;
-  margin-top: 12px;
+  width: 60%;
+  height: 60px;
+  margin-top: 8px;
 }
 
 .skCard {
-  height: 120px;
-  border-radius: var(--radius-lg);
+  height: 128px;
+  border-radius: var(--radius);
 }
 
-@keyframes shimmer {
-  50% {
-    opacity: 0.5;
-  }
+.loading > :nth-child(3) {
+  opacity: 0.5;
+}
+
+/* ---------------------------------------------------------------- card mode */
+
+.cardShield {
+  color: var(--success);
 }
 
 /* ---------------------------------------------------------------- footer */
 
 .footer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.demo {
-  padding: 1px 8px;
-  border: 1px dashed var(--accent);
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
+  margin-top: 8px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .check,
   .skeleton {
     animation: none;
   }

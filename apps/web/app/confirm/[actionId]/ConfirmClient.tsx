@@ -4,8 +4,22 @@
 import { useEffect, useRef, useState } from "react";
 import { ConfirmActionRes, ROUTES, type PendingActionViewZ } from "@rove/shared";
 import type { z } from "zod";
-import { Button, Card, Notice, StatusStepper, type Step } from "../../../components";
-import { ClockIcon, ExpiredView } from "./ExpiredView";
+import { Check, Clock, ShieldCheck, X } from "lucide-react";
+import {
+  Button,
+  Card,
+  CardFrame,
+  CardLine,
+  CardTitle,
+  IconBadge,
+  Notice,
+  Row,
+  Rows,
+  StatusPill,
+  StatusStepper,
+  type Step,
+} from "../../../components";
+import { ExpiredView } from "./ExpiredView";
 import styles from "./confirm.module.css";
 
 export type InitialState = "proposed" | "done";
@@ -23,6 +37,8 @@ export interface ConfirmClientProps {
   fixtures: boolean;
   /** Fixture mode rendered without a valid token. */
   unverified: boolean;
+  /** Card mode (`?card=1`): compact in-card layout; Confirm / Cancel still work in place. */
+  card?: boolean;
 }
 
 const SIMULATED_EXEC_MS = 1500;
@@ -38,7 +54,7 @@ function mmss(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function ConfirmClient({ actionId, token, summary, expiresAt, initial, fixtures, unverified }: ConfirmClientProps) {
+export function ConfirmClient({ actionId, token, summary, expiresAt, initial, fixtures, unverified, card = false }: ConfirmClientProps) {
   const [status, setStatus] = useState<Status>(initial);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,41 +118,99 @@ export function ConfirmClient({ actionId, token, summary, expiresAt, initial, fi
     setError("Couldn't reach Rove. Try again, or reply 👍 to the message in chat.");
   }
 
-  if (status === "expired") return <ExpiredView />;
+  if (status === "expired") return <ExpiredView card={card} />;
 
   const open = status === "proposed";
+
+  if (card) {
+    const result =
+      status === "done"
+        ? { title: "Done", sub: "Rove will message you the details.", icon: <Check size={22} strokeWidth={2.25} />, tone: "success" as const }
+        : status === "cancelled"
+          ? { title: "Cancelled", sub: "Nothing happened.", icon: <X size={20} strokeWidth={1.5} />, tone: "neutral" as const }
+          : status === "failed"
+            ? { title: "Didn't go through", sub: "Rove will message you.", icon: <X size={20} strokeWidth={1.75} />, tone: "error" as const }
+            : { title: "Working on it…", sub: "Confirmed by you.", icon: <span className={styles.bigSpinner} />, tone: "neutral" as const };
+    return (
+      <CardFrame
+        eyebrow={open ? "Rove needs your OK" : "Your request"}
+        status={
+          open ? (
+            <StatusPill tone="pending" icon={<Clock size={13} strokeWidth={1.75} />}>
+              <span className="mono" suppressHydrationWarning>
+                {mmss(left)}
+              </span>
+            </StatusPill>
+          ) : undefined
+        }
+        demo={fixtures && (unverified || simulated)}
+        label="Confirm request"
+        action={
+          open ? (
+            <>
+              <Button fullWidth onClick={onConfirm} loading={submitting} icon={<Check size={18} strokeWidth={2} />}>
+                {submitting ? "Confirming…" : error ? "Try again" : "Confirm"}
+              </Button>
+              <Button fullWidth variant="secondary" disabled={submitting} onClick={() => setStatus("cancelled")}>
+                Cancel
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        {open ? (
+          <>
+            <CardTitle>{summary ?? "Confirm this request"}</CardTitle>
+            <CardLine>{error ?? "Nothing happens until you confirm."}</CardLine>
+          </>
+        ) : (
+          <div role="status" aria-live="polite" className={styles.cardResult}>
+            <IconBadge tone={result.tone}>{result.icon}</IconBadge>
+            <CardTitle sub={result.sub}>{result.title}</CardTitle>
+          </div>
+        )}
+      </CardFrame>
+    );
+  }
 
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <p className={styles.eyebrow}>{open ? "Rove needs your OK" : "Your request"}</p>
-        <h1 className={styles.headline}>
-          {summary ?? "Confirm this request"}
+        <span className="eyebrow">{open ? "Rove needs your OK" : "Your request"}</span>
+        <h1 className={`twoTone ${styles.headline}`}>
+          <span>{summary ?? "Confirm this request"}</span>
           {open ? <span className={styles.headlineSub}>Nothing happens until you confirm.</span> : null}
         </h1>
       </header>
 
       {open ? (
         <>
-          <Card className={styles.timerCard}>
-            <span className={styles.timerIcon} aria-hidden="true">
-              <ClockIcon />
-            </span>
-            <span className={styles.timerText}>
-              Expires in{" "}
-              <strong className={styles.timer} suppressHydrationWarning aria-live="off">
-                {mmss(left)}
-              </strong>
-            </span>
-          </Card>
+          <Rows>
+            <Row
+              label="Expires in"
+              icon={<Clock size={15} strokeWidth={1.5} />}
+              mono
+              value={
+                <strong className={styles.timer} suppressHydrationWarning aria-live="off">
+                  {mmss(left)}
+                </strong>
+              }
+            />
+          </Rows>
 
           {error ? <Notice variant="error">{error}</Notice> : null}
 
           <div className={styles.actions}>
-            <Button fullWidth onClick={onConfirm} loading={submitting}>
+            <Button fullWidth onClick={onConfirm} loading={submitting} icon={<Check size={18} strokeWidth={2} />}>
               {submitting ? "Confirming…" : error ? "Try again" : "Confirm"}
             </Button>
-            <Button fullWidth variant="secondary" disabled={submitting} onClick={() => setStatus("cancelled")}>
+            <Button
+              fullWidth
+              variant="secondary"
+              disabled={submitting}
+              onClick={() => setStatus("cancelled")}
+              icon={<X size={18} strokeWidth={1.75} />}
+            >
               Cancel
             </Button>
           </div>
@@ -148,7 +222,7 @@ export function ConfirmClient({ actionId, token, summary, expiresAt, initial, fi
       )}
 
       <p className={styles.security}>
-        <LockIcon />
+        <ShieldCheck size={15} strokeWidth={1.5} aria-hidden="true" />
         <span>Only confirm requests you asked for.</span>
       </p>
 
@@ -166,10 +240,10 @@ function Result({ status }: { status: Exclude<Status, "proposed" | "expired"> })
   if (status === "cancelled") {
     return (
       <div className={styles.result} role="status">
-        <span className={`${styles.badge} ${styles.badgeMuted}`} aria-hidden="true">
-          <XIcon />
-        </span>
-        <h2>Cancelled — nothing happened</h2>
+        <IconBadge>
+          <X size={22} strokeWidth={1.5} />
+        </IconBadge>
+        <h2>Cancelled. Nothing happened.</h2>
         <p className="muted">You can close this. Ask Rove again any time.</p>
       </div>
     );
@@ -189,58 +263,33 @@ function Result({ status }: { status: Exclude<Status, "proposed" | "expired"> })
       <div className={styles.result} role="status" aria-live="polite">
         {status === "executing" ? (
           <>
-            <span className={`${styles.badge} ${styles.badgeBusy}`} aria-hidden="true">
+            <IconBadge>
               <span className={styles.bigSpinner} />
-            </span>
+            </IconBadge>
             <h2>Confirmed. Working on it…</h2>
             <p className="muted">Rove will message you when it&apos;s done.</p>
           </>
         ) : status === "done" ? (
           <>
-            <span className={`${styles.badge} ${styles.badgeSuccess}`} aria-hidden="true">
-              <CheckIcon />
-            </span>
+            <IconBadge tone="success">
+              <Check size={24} strokeWidth={2.25} />
+            </IconBadge>
             <h2>Done</h2>
             <p className="muted">Rove will message you the details in chat.</p>
           </>
         ) : (
           <>
-            <span className={`${styles.badge} ${styles.badgeError}`} aria-hidden="true">
-              <XIcon />
-            </span>
+            <IconBadge tone="error">
+              <X size={22} strokeWidth={1.75} />
+            </IconBadge>
             <h2>That didn&apos;t go through</h2>
             <p className="muted">Rove will message you with what happened. You can ask again in chat.</p>
           </>
         )}
       </div>
-      <Card>
+      <Card label="Status">
         <StatusStepper steps={steps} />
       </Card>
     </div>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12.5l4.5 4.5L19 7.5" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-      <path d="M7 7l10 10M17 7L7 17" />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="5" y="11" width="14" height="10" rx="2" />
-      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-    </svg>
   );
 }

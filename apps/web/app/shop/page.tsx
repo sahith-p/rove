@@ -6,7 +6,21 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { MeRes, isPositive } from "@rove/shared";
-import { Amount, Card, Notice } from "../../components";
+import { ChevronRight, Clock, Landmark, MessageSquare, QrCode, ReceiptText, Send, ShieldCheck, Store, Wallet } from "lucide-react";
+import {
+  Amount,
+  CardAmount,
+  CardFrame,
+  CardLine,
+  CardLink,
+  CardTitle,
+  IconTile,
+  Notice,
+  PageFooter,
+  Row,
+  Rows,
+} from "../../components";
+import { fullPageHref, isCardMode } from "../../lib/ui/card";
 import { previewMetadata } from "../../lib/og/metadata";
 import { format, relativeTime } from "../../lib/ui/format";
 import { readSession, sessionHeaders } from "../../lib/ui/session";
@@ -58,16 +72,29 @@ function withT(path: string, t: string | undefined): string {
   return `${path}${path.includes("?") ? "&" : "?"}t=${encodeURIComponent(t)}`;
 }
 
-function Pill({ tone, children }: { tone: Tone; children: string }) {
-  return <span className={`${styles.pill} ${styles[tone]}`}>{children}</span>;
+const SOURCE_ICON: Record<MeData["recentPayments"][number]["source"], ReactNode> = {
+  invoice: <ReceiptText size={16} strokeWidth={1.5} />,
+  one_time_qr: <QrCode size={16} strokeWidth={1.5} />,
+  fixed_qr: <Store size={16} strokeWidth={1.5} />,
+  pay_request: <Send size={16} strokeWidth={1.5} />,
+};
+
+/** Status as a meaning-colored dot + label, no fill. */
+function Status({ tone, children }: { tone: Tone; children: string }) {
+  return (
+    <span className={styles.status} data-tone={tone}>
+      <span className={styles.statusDot} aria-hidden="true" />
+      {children}
+    </span>
+  );
 }
 
 function Section({ title, aside, children }: { title: string; aside?: string; children: ReactNode }) {
   return (
     <section className={styles.section}>
       <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>{title}</h2>
-        {aside ? <span className={styles.aside}>{aside}</span> : null}
+        <h2 className="eyebrow">{title}</h2>
+        {aside ? <span className={`eyebrow ${styles.aside}`}>{aside}</span> : null}
       </div>
       {children}
     </section>
@@ -81,6 +108,7 @@ function Empty({ children }: { children: string }) {
 export default async function Page({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const t = Array.isArray(sp.t) ? sp.t[0] : sp.t;
+  const card = isCardMode(sp);
 
   let session: ReturnType<typeof readSession> = null;
   try {
@@ -90,6 +118,13 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   }
 
   if (!session && !FIXTURES) {
+    if (card) {
+      return (
+        <CardFrame eyebrow="My shop">
+          <CardTitle sub="Text Rove ‘my shop’ for a new one.">This link expired.</CardTitle>
+        </CardFrame>
+      );
+    }
     return (
       <main className={styles.page}>
         <Notice title="This link expired.">Text Rove &lsquo;my shop&rsquo; for a new one.</Notice>
@@ -102,6 +137,14 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   if (!loaded && FIXTURES) loaded = { data: shopFixture(), reconciled: true };
 
   if (!loaded) {
+    if (card) {
+      return (
+        <CardFrame eyebrow="My shop" action={<CardLink href={fullPageHref("/shop", sp)}>Open my shop</CardLink>}>
+          <AutoRefresh ms={10_000} />
+          <CardTitle sub="We’ll keep trying.">Couldn&rsquo;t load your shop.</CardTitle>
+        </CardFrame>
+      );
+    }
     return (
       <main className={styles.page}>
         <AutoRefresh ms={10_000} />
@@ -118,39 +161,76 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
   const payments = data.recentPayments.slice(0, 10);
   const now = Date.now();
 
+  if (card) {
+    return (
+      <CardFrame
+        eyebrow={<span>{merchant.name}</span>}
+        demo={FIXTURES && !token}
+        action={
+          <CardLink href={fullPageHref("/shop", sp)} icon={<Store size={18} strokeWidth={1.5} />}>
+            Open my shop
+          </CardLink>
+        }
+      >
+        <AutoRefresh ms={10_000} />
+        <span className="eyebrow">Available</span>
+        <CardAmount money={balance.available} />
+        {reconciled === true ? (
+          <CardLine icon={<ShieldCheck size={14} strokeWidth={1.75} className={styles.ok} />}>
+            Ledger matches XRPL{isPositive(balance.held) ? ` · ${format(balance.held)} held` : ""}
+          </CardLine>
+        ) : isPositive(balance.held) ? (
+          <CardLine>{format(balance.held)} in withdrawals</CardLine>
+        ) : null}
+      </CardFrame>
+    );
+  }
+
   return (
     <main className={styles.page}>
       <AutoRefresh ms={10_000} />
 
-      {/* 1 · Header */}
+      {/* 1 · Header: two-tone (ink name, muted meta) */}
       <header className={styles.header}>
+        <span className="eyebrow">My shop</span>
         <h1 className={styles.name}>{merchant.name}</h1>
         <div className={styles.meta}>
-          {merchant.verified ? <span className={styles.badge}>✓ Verified on XRPL</span> : null}
+          {merchant.verified ? (
+            <span className={styles.badge}>
+              <ShieldCheck size={14} strokeWidth={1.75} aria-hidden="true" />
+              Verified on XRPL
+            </span>
+          ) : null}
           {category ? <span>{category}</span> : null}
           {merchant.status === "draft" ? <span>Draft</span> : null}
         </div>
       </header>
 
-      {/* 2 · Balance */}
-      <Card className={styles.balance}>
-        <div className={styles.balanceLabel}>Available</div>
-        <Amount money={balance.available} className={styles.amount} />
-        {isPositive(balance.held) ? <div className={styles.held}>{format(balance.held)} in withdrawals</div> : null}
-        {reconciled === true ? (
-          <div className={`${styles.ledger} ${styles.ledgerOk}`}>Ledger ✓ matches XRPL</div>
-        ) : reconciled === false ? (
-          <div className={`${styles.ledger} ${styles.ledgerBad}`}>Ledger is reconciling with XRPL…</div>
-        ) : null}
-        {merchant.autoWithdraw === "daily" ? <div className={styles.auto}>Auto-withdraw daily at 9pm</div> : null}
-      </Card>
+      {/* 2 · Balance: the hero, then hairline rows */}
+      <section className={styles.balance}>
+        <Amount label="Available" money={balance.available} />
+        <Rows>
+          {isPositive(balance.held) ? <Row label="In withdrawals" value={format(balance.held)} /> : null}
+          {reconciled === true ? (
+            <Row label="Ledger" value="Matches XRPL" tone="success" icon={<ShieldCheck size={15} strokeWidth={1.75} />} />
+          ) : reconciled === false ? (
+            <Row label="Ledger" value="Reconciling with XRPL…" tone="muted" />
+          ) : null}
+          {merchant.autoWithdraw === "daily" ? (
+            <Row label="Auto-withdraw" value="Daily at 9pm" icon={<Clock size={15} strokeWidth={1.5} />} />
+          ) : null}
+        </Rows>
+      </section>
 
-      {/* 3 · Hints */}
+      {/* 3 · Hints (non-interactive) */}
       <div className={styles.hints} aria-label="Things you can text Rove">
-        <span className={styles.hintLead}>Text Rove</span>
-        <span className={styles.chip}>&lsquo;withdraw everything&rsquo;</span>
-        <span className={styles.chip}>&lsquo;invoice Maya 10&rsquo;</span>
-        <span className={styles.chip}>&lsquo;QR for 6.50&rsquo;</span>
+        <span className={styles.hintLead}>
+          <MessageSquare size={14} strokeWidth={1.5} aria-hidden="true" />
+          Text Rove
+        </span>
+        <span className={styles.chip}>withdraw everything</span>
+        <span className={styles.chip}>invoice Maya 10</span>
+        <span className={styles.chip}>QR for 6.50</span>
       </div>
 
       {/* 4 · Recent payments */}
@@ -162,15 +242,16 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
               return (
                 <li key={p.id}>
                   <a className={styles.row} href={withT(`/r/${encodeURIComponent(p.id)}?view=merchant`, token)}>
+                    <IconTile>{SOURCE_ICON[p.source]}</IconTile>
                     <div className={styles.main}>
                       <div className={styles.title}>{SOURCE_LABEL[p.source]}</div>
                       <div className={styles.sub}>{relativeTime(p.createdAt, now)}</div>
                     </div>
                     <div className={styles.end}>
                       <div className={styles.money}>{format(p.local)}</div>
-                      <Pill tone={st.tone}>{st.label}</Pill>
+                      <Status tone={st.tone}>{st.label}</Status>
                     </div>
-                    <span className={styles.chev} aria-hidden="true">›</span>
+                    <ChevronRight size={16} strokeWidth={1.5} className={styles.chev} aria-hidden="true" />
                   </a>
                 </li>
               );
@@ -187,9 +268,10 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
           <ul className={styles.list}>
             {data.openInvoices.map((inv) => (
               <li key={inv.code} className={styles.row}>
+                <span className={styles.code}>{inv.code}</span>
                 <div className={styles.main}>
                   <div className={styles.title}>
-                    <span className={styles.code}>{inv.code}</span> {inv.to ? (inv.to.startsWith("+") ? maskPhone(inv.to) : inv.to) : "Anyone with the code"}
+                    {inv.to ? (inv.to.startsWith("+") ? maskPhone(inv.to) : inv.to) : "Anyone with the code"}
                   </div>
                   <div className={styles.sub}>Sent {relativeTime(inv.createdAt, now)}</div>
                 </div>
@@ -213,15 +295,21 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
               return (
                 <li key={w.id}>
                   <a className={styles.row} href={withT(`/w/${encodeURIComponent(w.id)}`, token)}>
+                    <IconTile>
+                      {w.destination.kind === "bank" ? <Landmark size={16} strokeWidth={1.5} /> : <Wallet size={16} strokeWidth={1.5} />}
+                    </IconTile>
                     <div className={styles.main}>
-                      <div className={styles.title}>{w.destination.kind === "bank" ? "To " : "To wallet "}{w.destination.label}</div>
+                      <div className={styles.title}>
+                        {w.destination.kind === "bank" ? "To " : "To wallet "}
+                        {w.destination.label}
+                      </div>
                       <div className={styles.sub}>{relativeTime(w.updatedAt, now)}</div>
                     </div>
                     <div className={styles.end}>
                       <div className={styles.money}>{format(w.amount)}</div>
-                      <Pill tone={st.tone}>{st.label}</Pill>
+                      <Status tone={st.tone}>{st.label}</Status>
                     </div>
-                    <span className={styles.chev} aria-hidden="true">›</span>
+                    <ChevronRight size={16} strokeWidth={1.5} className={styles.chev} aria-hidden="true" />
                   </a>
                 </li>
               );
@@ -233,7 +321,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
       </Section>
 
       {/* 7 · Menu */}
-      <Section title="Menu">
+      <Section title="Menu" aside={data.menu.length ? String(data.menu.length) : undefined}>
         {data.menu.length ? (
           <ul className={styles.list}>
             {data.menu.map((m) => (
@@ -260,6 +348,9 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
           <ul className={styles.list}>
             {data.contacts.map((c) => (
               <li key={c.id} className={`${styles.row} ${styles.compact}`}>
+                <span className={styles.initial} aria-hidden="true">
+                  {Array.from(c.name.trim())[0]?.toUpperCase() ?? "?"}
+                </span>
                 <div className={styles.main}>
                   <div className={styles.title}>{c.name}</div>
                 </div>
@@ -272,7 +363,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
         )}
       </Section>
 
-      {FIXTURES && !token ? <p className={styles.demo}>Demo data</p> : null}
+      <PageFooter demo={FIXTURES && !token}>Read-only · change things by text</PageFooter>
     </main>
   );
 }

@@ -3,7 +3,11 @@
 // Owner: Sahith · Task: SH-B2. Demo fixtures kick in only when NEXT_PUBLIC_DEMO_FIXTURES=1 and the API fails / is 501.
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { MeRes, UpdateMenuReq, UpdateShopReq } from "@rove/shared";
+import { Check, ChevronDown, ChevronUp, Clock, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { IconBadge } from "../../components/Bits";
+import { CardFrame, CardLine, CardLink, CardTitle } from "../../components/CardFrame";
 import { Button } from "../../components/Button";
+import { FlagSG } from "../../components/icons";
 import { Notice } from "../../components/Notice";
 import { sessionHeaders } from "../../lib/ui/headers";
 import {
@@ -98,7 +102,7 @@ async function api(path: string, t: string, init?: RequestInit): Promise<unknown
 
 const isAuthError = (e: unknown) => e instanceof ApiError && (e.status === 401 || e.status === 403);
 
-export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null }) {
+export function SetupApp({ t, fixture, cardHref = null }: { t: string; fixture: SetupData | null; cardHref?: string | null }) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [form, setForm] = useState<FormState>({ name: "", category: null, custom: "", rows: [] });
   const [baseline, setBaseline] = useState("");
@@ -321,6 +325,43 @@ export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null 
   };
 
   // ---------------------------------------------------------------- render
+  // Card mode (`?card=1`): shop name + item count + "Edit shop" → the full editor in Safari.
+  if (cardHref) {
+    const items = form.rows.length;
+    const category = CATEGORIES.find((c) => c.value === form.category)?.label ?? (form.category === "other" ? form.custom.trim() : "");
+    return (
+      <CardFrame
+        eyebrow="Shop setup"
+        demo={phase.kind === "ready" && phase.demo}
+        label="Shop setup"
+        action={
+          phase.kind === "expired" ? undefined : (
+            <CardLink href={cardHref} icon={<Pencil size={17} strokeWidth={1.5} />}>
+              Edit shop
+            </CardLink>
+          )
+        }
+      >
+        {phase.kind === "loading" ? (
+          <CardTitle sub="Loading your shop…">Your shop</CardTitle>
+        ) : phase.kind === "expired" ? (
+          <CardTitle sub="Text Rove “edit my shop” for a new one.">This link expired.</CardTitle>
+        ) : phase.kind === "error" ? (
+          <CardTitle sub="Couldn’t load it here. Open it to try again.">Your shop</CardTitle>
+        ) : (
+          <>
+            <CardTitle>{form.name.trim() || "Name your shop"}</CardTitle>
+            <CardLine icon={<UtensilsCrossed size={14} strokeWidth={1.5} />}>
+              {items === 0 ? "No menu items yet" : `${items} item${items === 1 ? "" : "s"}`}
+              {activeCount < items ? ` · ${activeCount} showing` : ""}
+              {category ? ` · ${category}` : ""}
+            </CardLine>
+          </>
+        )}
+      </CardFrame>
+    );
+  }
+
   if (phase.kind === "loading") return <Skeleton />;
 
   if (phase.kind === "expired") {
@@ -423,8 +464,9 @@ export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null 
         <div className={styles.currency}>
           <span className={styles.label}>Currency</span>
           <span className={styles.currencyValue}>
+            <FlagSG size={16} />
             <span className={styles.currencyCode}>SGD</span>
-            <span className="muted">S$ · fixed</span>
+            <span className={styles.currencyFixed}>Fixed</span>
           </span>
         </div>
       </section>
@@ -432,8 +474,10 @@ export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null 
       {/* -------- Menu -------- */}
       <section className={styles.section} aria-labelledby="menu-h">
         <div className={styles.sectionHead}>
-          <h2 id="menu-h">Menu</h2>
-          <span className="muted">
+          <h2 id="menu-h" className={styles.sectionTitle}>
+            Menu
+          </h2>
+          <span className={styles.count}>
             {form.rows.length === 0
               ? "No items yet"
               : `${form.rows.length} item${form.rows.length === 1 ? "" : "s"}${
@@ -465,6 +509,7 @@ export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null 
               onKeyDown={onQuickKey}
             />
             <button type="button" className={styles.quickBtn} onClick={quickAdd} disabled={!quick.trim() || atMax}>
+              <Plus size={16} strokeWidth={2} aria-hidden="true" />
               Add
             </button>
           </div>
@@ -481,13 +526,13 @@ export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null 
 
         {form.rows.length === 0 ? (
           <div className={styles.empty}>
-            <div className={styles.emptyIcon} aria-hidden="true">
-              🍽
-            </div>
+            <span className={styles.emptyIcon} aria-hidden="true">
+              <UtensilsCrossed size={20} strokeWidth={1.5} />
+            </span>
             <p className={styles.emptyTitle}>Add your first item</p>
             <p className="muted">Customers pick from your menu when they scan your QR.</p>
-            <Button variant="secondary" onClick={addRow}>
-              + Add item
+            <Button variant="secondary" onClick={addRow} icon={<Plus size={18} strokeWidth={1.75} />}>
+              Add item
             </Button>
           </div>
         ) : (
@@ -589,7 +634,8 @@ export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null 
 
         {form.rows.length > 0 ? (
           <button type="button" className={styles.addRow} onClick={addRow} disabled={atMax}>
-            {atMax ? `Menu is full (${MAX_ITEMS} items)` : "+ Add item"}
+            {atMax ? null : <Plus size={16} strokeWidth={1.75} aria-hidden="true" />}
+            {atMax ? `Menu is full (${MAX_ITEMS} items)` : "Add item"}
           </button>
         ) : null}
       </section>
@@ -613,8 +659,14 @@ export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null 
             Saved ✓ — Rove will update your card
           </Notice>
         ) : null}
-        <Button fullWidth disabled={!dirty} loading={saving} onClick={() => void save()}>
-          {saving ? "Saving…" : saved && !dirty ? "Saved ✓" : "Save"}
+        <Button
+          fullWidth
+          disabled={!dirty}
+          loading={saving}
+          onClick={() => void save()}
+          icon={saved && !dirty ? <Check size={18} strokeWidth={2} /> : undefined}
+        >
+          {saving ? "Saving…" : saved && !dirty ? "Saved" : "Save"}
         </Button>
       </div>
     </main>
@@ -625,10 +677,10 @@ export function SetupApp({ t, fixture }: { t: string; fixture: SetupData | null 
 export function Expired() {
   return (
     <main className={styles.expired}>
-      <div className={styles.expiredIcon} aria-hidden="true">
-        ⏱
-      </div>
-      <h1>This link expired.</h1>
+      <IconBadge>
+        <Clock size={22} strokeWidth={1.5} />
+      </IconBadge>
+      <h1 className={styles.expiredTitle}>This link expired.</h1>
       <p className="muted">Text Rove &ldquo;edit my shop&rdquo; for a new one.</p>
     </main>
   );
@@ -637,9 +689,10 @@ export function Expired() {
 function Header() {
   return (
     <header className={styles.header}>
-      <h1>
-        Your shop
-        <span className={styles.subhead}>Name, category and menu.</span>
+      <span className="eyebrow">Shop setup</span>
+      <h1 className="twoTone">
+        <span>Your shop</span>
+        <span>Name, category and menu.</span>
       </h1>
     </header>
   );
@@ -658,29 +711,9 @@ function Skeleton() {
 }
 
 function Chevron({ dir }: { dir: "up" | "down" }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d={dir === "up" ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"}
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return dir === "up" ? <ChevronUp size={18} strokeWidth={1.5} aria-hidden="true" /> : <ChevronDown size={18} strokeWidth={1.5} aria-hidden="true" />;
 }
 
 function TrashIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <Trash2 size={17} strokeWidth={1.5} aria-hidden="true" />;
 }

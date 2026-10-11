@@ -17,6 +17,8 @@
     "@rove/xrpl": "workspace:*",
     "@stripe/react-stripe-js": "^3.0.0",
     "@stripe/stripe-js": "^5.0.0",
+    "geist": "^1.7.2",
+    "lucide-react": "^1.55.0",
     "next": "^15.3.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",

@@ -4,8 +4,11 @@
 // The shop is loaded server-side (so the menu is in the HTML and the card preview has a title); paying is client-side.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Button } from "../../../components";
+import { CircleAlert, RotateCw, ShieldCheck, ShoppingBag } from "lucide-react";
+import { Button, CardFrame, CardLine, CardLink, CardTitle, StateBlock } from "../../../components";
+import { fullPageHref, isCardMode, type SearchRecord } from "../../../lib/ui/card";
 import payStyles from "../../pay/[code]/pay.module.css";
+import styles from "./shop.module.css";
 import { loadShop, normalizeShopCode } from "./_data";
 import { ShopClient } from "./ShopClient";
 
@@ -23,25 +26,62 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title, description: DESCRIPTION, openGraph: { title, description: DESCRIPTION } };
 }
 
-export default async function Page({ params }: { params: Params }) {
-  const { merchantId: raw } = await params;
+export default async function Page({ params, searchParams }: { params: Params; searchParams: Promise<SearchRecord> }) {
+  const [{ merchantId: raw }, sp] = await Promise.all([params, searchParams]);
+  const card = isCardMode(sp);
   const merchantId = normalizeShopCode(raw);
   const res = await loadShop(merchantId);
 
   if (res.kind === "not_found") notFound();
 
+  // Inside an iMessage App card: shop name + menu size + "Order & pay" → the full page in Safari.
+  if (card) {
+    const href = fullPageHref(`/m/${encodeURIComponent(merchantId)}`, sp);
+    if (res.kind === "error") {
+      return (
+        <CardFrame eyebrow="Shop" action={<CardLink href={href}>Open shop</CardLink>}>
+          <CardTitle sub="Check your connection and try again.">Couldn&apos;t load this shop</CardTitle>
+        </CardFrame>
+      );
+    }
+    const items = res.shop.menu.filter((m) => m.active).length;
+    return (
+      <CardFrame
+        eyebrow={
+          res.shop.verified ? (
+            <>
+              <ShieldCheck size={14} strokeWidth={1.75} className={styles.shield} aria-hidden="true" />
+              <span>Verified on XRPL</span>
+            </>
+          ) : (
+            "Shop"
+          )
+        }
+        demo={res.demo}
+        label={res.shop.name}
+        action={
+          <CardLink href={href} icon={<ShoppingBag size={17} strokeWidth={1.5} />}>
+            Order &amp; pay
+          </CardLink>
+        }
+      >
+        <CardTitle>{res.shop.name}</CardTitle>
+        <CardLine>{items > 0 ? `${items} on the menu · Apple Pay, card or BNB` : "Apple Pay, card or a BNB Chain wallet"}</CardLine>
+      </CardFrame>
+    );
+  }
+
   if (res.kind === "error") {
     return (
       <main className={payStyles.page}>
-        <section className={payStyles.state} data-tone="error">
-          <div className={payStyles.stateIcon} aria-hidden="true">
-            !
-          </div>
-          <h1 className={payStyles.stateTitle}>Couldn&apos;t load this shop</h1>
-          <p className={payStyles.stateLine}>Check your connection and try again.</p>
-          <p className={payStyles.codeLine}>Shop {merchantId}</p>
-        </section>
-        <Button fullWidth variant="secondary" href={`/m/${encodeURIComponent(merchantId)}`}>
+        <StateBlock
+          tone="error"
+          icon={<CircleAlert size={22} strokeWidth={1.5} />}
+          title="Couldn't load this shop"
+          line="Check your connection and try again."
+          facts={[["Shop", merchantId, true]]}
+        />
+        <Button fullWidth variant="secondary" href={`/m/${encodeURIComponent(merchantId)}`} icon={<RotateCw size={18} strokeWidth={1.75} />}>
           Try again
         </Button>
       </main>

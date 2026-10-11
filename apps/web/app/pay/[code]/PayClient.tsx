@@ -2,9 +2,22 @@
 // /pay/[code] state machine: loading → open → (checkout) → processing (poll) → paid, plus closed / not found / failed.
 // Amounts only ever come from the API (or fixtures in demo mode), never from the URL.
 // The payer is charged in their own currency (`charge`, payments-stripe.md §1a): SGD total until checkout quotes it.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { PAYMENT_CODE_RE, type Currency, type Money, type PaymentStatus } from "@rove/shared";
-import { Amount, Button, Card, LineItems, MerchantHeader, StatusStepper, type Step } from "../../../components";
+import { ArrowUpRight, Check, CircleAlert, Clock, Receipt, RotateCw, SearchX, X } from "lucide-react";
+import {
+  Amount,
+  Button,
+  Card,
+  CodeCells,
+  IconBadge,
+  LineItems,
+  MerchantHeader,
+  PageFooter,
+  StateBlock,
+  StatusStepper,
+  type Step,
+} from "../../../components";
 import { format, shortHash } from "../../../lib/ui/format";
 import { contractMethod, getInvoice, getPayment, startCheckout, type PayMethod } from "./_api";
 import {
@@ -136,16 +149,26 @@ function steps(status: PaymentStatus | undefined, payment: PaymentView | null): 
  * The big amount. Before checkout: the invoice total (SGD). After: `charge` in the payer's currency, with
  * "S$12.50 to Ah Seng · rate 1.2860 · no card FX fees" under it.
  */
-function ChargeAmount({ invoice, checkout, payment }: { invoice: InvoiceView; checkout: CheckoutView | null; payment?: PaymentView | null }) {
+function ChargeAmount({
+  invoice,
+  checkout,
+  payment,
+  label,
+}: {
+  invoice: InvoiceView;
+  checkout: CheckoutView | null;
+  payment?: PaymentView | null;
+  label?: string;
+}) {
   const charge = payment?.charge ?? checkout?.charge;
-  if (!charge) return <Amount money={payment?.local ?? invoice.total} />;
+  if (!charge) return <Amount money={payment?.local ?? invoice.total} label={label} />;
   const local = payment?.local ?? checkout?.local ?? invoice.total;
   const merchant = payment?.merchantName || invoice.merchant.name;
   const converted = charge.currency !== local.currency;
   const sub = converted
     ? `${format(local)} to ${merchant}${checkout ? ` · rate ${checkout.quote.rate}` : ""} · no card FX fees`
     : `To ${merchant} · no conversion · no card FX fees`;
-  return <Amount money={charge} sub={sub} />;
+  return <Amount money={charge} sub={sub} label={label} />;
 }
 
 export interface PayClientProps {
@@ -327,10 +350,9 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
           else void load();
         }}
       />
-      <footer className={styles.footer}>
-        {usingFixtures ? <span className={styles.demo}>Demo data</span> : null}
-        <span>Rove · settles on XRPL</span>
-      </footer>
+      <PageFooter demo={usingFixtures} className={styles.footer}>
+        Settles on XRPL
+      </PageFooter>
     </main>
   );
 }
@@ -354,10 +376,13 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
     case "loading":
       return (
         <div className={styles.loading} aria-busy="true">
-          <div className={`${styles.skeleton} ${styles.skHeader}`} />
+          <div className={styles.skRow}>
+            <div className={`${styles.skeleton} ${styles.skAvatar}`} />
+            <div className={`${styles.skeleton} ${styles.skName}`} />
+          </div>
           <div className={`${styles.skeleton} ${styles.skAmount}`} />
+          <CodeCells code={code.length === 6 ? code : "······"} />
           <div className={`${styles.skeleton} ${styles.skCard}`} />
-          <p className={styles.codeLine}>Code {code}</p>
           <span className="sr-only">Loading payment…</span>
         </div>
       );
@@ -369,21 +394,26 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
         <>
           <MerchantHeader name={invoice.merchant.name} verified={invoice.merchant.verified} />
           <section className={styles.hero} aria-busy={quoting || undefined}>
-            <ChargeAmount invoice={invoice} checkout={held} />
-            <p className={styles.meta}>
-              {hint ? <span suppressHydrationWarning>{hint}</span> : null}
-              {hint ? <span aria-hidden="true"> · </span> : null}
-              <span>
-                Code <span className={styles.code}>{invoice.code}</span>
-              </span>
-            </p>
+            <ChargeAmount invoice={invoice} checkout={held} label="Amount due" />
+          </section>
+          <section className={styles.codeBlock} aria-label="Payment code">
+            <div className={styles.codeHead}>
+              <span className="eyebrow">Payment code</span>
+              {hint ? (
+                <span className={styles.expiry} suppressHydrationWarning>
+                  <Clock size={12} strokeWidth={1.75} aria-hidden="true" />
+                  {hint}
+                </span>
+              ) : null}
+            </div>
+            <CodeCells code={invoice.code} />
           </section>
           {invoice.lines.length > 0 || invoice.note ? (
-            <Card>
+            <Card label="Order">
               {invoice.lines.length > 0 ? <LineItems lines={invoice.lines} total={invoice.total} /> : null}
               {invoice.note ? (
                 <p className={styles.note}>
-                  <span className={styles.noteLabel}>Note</span>
+                  <span className="eyebrow">Note</span>
                   {invoice.note}
                 </p>
               ) : null}
@@ -391,11 +421,14 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
           ) : null}
           {checkoutError ? (
             <p className={styles.inlineError} role="alert">
+              <CircleAlert size={16} strokeWidth={1.75} aria-hidden="true" />
               {checkoutError}
             </p>
           ) : null}
-          {payCurrency ? <CurrencyToggle value={payCurrency} onChange={onCurrency} disabled={busy !== null || quoting} busy={quoting} /> : null}
-          <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+          <div className={styles.payBlock}>
+            {payCurrency ? <CurrencyToggle value={payCurrency} onChange={onCurrency} disabled={busy !== null || quoting} busy={quoting} /> : null}
+            <PayOptions onPay={onPay} busy={busy} disabled={quoting} />
+          </div>
         </>
       );
     }
@@ -406,12 +439,12 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
         <>
           <MerchantHeader name={invoice.merchant.name} verified={invoice.merchant.verified} />
           <section className={styles.hero}>
-            <ChargeAmount invoice={invoice} checkout={checkout} payment={payment} />
-            <p className={styles.meta} aria-live="polite">
+            <ChargeAmount invoice={invoice} checkout={checkout} payment={payment} label="Paying" />
+          </section>
+          <Card label="Status">
+            <p className={styles.statusLine} aria-live="polite">
               {payment && payment.status !== "created" ? "Payment received. Settling…" : "Processing your payment…"}
             </p>
-          </section>
-          <Card>
             <StatusStepper steps={steps(payment?.status, payment)} />
           </Card>
           <p className={styles.hintCenter}>You can keep this open. It updates by itself.</p>
@@ -424,25 +457,32 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
       return (
         <>
           <section className={styles.paidHero}>
-            <div className={styles.check} aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12.5l4.5 4.5L19 7.5" />
-              </svg>
-            </div>
-            <h1 className={styles.paidTitle}>Paid</h1>
-            <ChargeAmount invoice={invoice} checkout={checkout} payment={payment} />
-            {payment.charge ? null : <p className={styles.meta}>to {payment.merchantName || invoice.merchant.name}</p>}
+            <IconBadge tone="success" size="lg">
+              <Check size={30} strokeWidth={2.25} />
+            </IconBadge>
+            <h1 className={`twoTone ${styles.paidTitle}`}>
+              <span>Paid</span>
+              <span>{payment.merchantName || invoice.merchant.name}</span>
+            </h1>
           </section>
-          <Card>
+          <ChargeAmount invoice={invoice} checkout={checkout} payment={payment} />
+          <Card label="Status">
             <StatusStepper steps={steps(payment.status, payment)} />
           </Card>
           <div className={styles.actions}>
-            <Button fullWidth href={`/r/${encodeURIComponent(payment.paymentId)}`}>
+            <Button fullWidth href={`/r/${encodeURIComponent(payment.paymentId)}`} icon={<Receipt size={18} strokeWidth={1.75} />}>
               Receipt
             </Button>
             {payment.explorerUrl ? (
-              <Button fullWidth variant="secondary" href={payment.explorerUrl} target="_blank" rel="noopener noreferrer">
-                View on XRPL ↗
+              <Button
+                fullWidth
+                variant="secondary"
+                href={payment.explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                trailingIcon={<ArrowUpRight size={16} strokeWidth={1.75} />}
+              >
+                View on XRPL
               </Button>
             ) : null}
           </div>
@@ -454,8 +494,14 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
       return (
         <>
           <MerchantHeader name={phase.invoice.merchant.name} verified={phase.invoice.merchant.verified} />
-          <StateBlock tone="error" title="Payment failed" line="You weren't charged. Try again or use another method." code={code} />
-          <Button fullWidth onClick={onRetry}>
+          <StateBlock
+            tone="error"
+            icon={<X size={22} strokeWidth={1.75} />}
+            title="Payment failed"
+            line="You weren't charged. Try again or use another method."
+            facts={[["Code", code, true]]}
+          />
+          <Button fullWidth onClick={onRetry} icon={<RotateCw size={18} strokeWidth={1.75} />}>
             Try again
           </Button>
         </>
@@ -464,28 +510,66 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
     case "closed": {
       const { invoice, reason } = phase;
       const what = invoice.kind === "invoice" ? "invoice" : "code";
-      const copy: Record<ClosedReason, { title: string; line: string; tone: "muted" | "success" }> = {
-        expired: { title: "This code has expired", line: `Ask ${invoice.merchant.name} for a new one.`, tone: "muted" },
-        already_paid: { title: "Already paid", line: `This ${what} has been paid. Nothing more to do.`, tone: "success" },
-        cancelled: { title: "Cancelled", line: `${invoice.merchant.name} cancelled this ${what}.`, tone: "muted" },
+      const copy: Record<ClosedReason, { title: string; line: string; tone: "muted" | "success"; icon: ReactNode }> = {
+        expired: {
+          title: "This code has expired",
+          line: `Ask ${invoice.merchant.name} for a new one.`,
+          tone: "muted",
+          icon: <Clock size={22} strokeWidth={1.5} />,
+        },
+        already_paid: {
+          title: "Already paid",
+          line: `This ${what} has been paid. Nothing more to do.`,
+          tone: "success",
+          icon: <Check size={24} strokeWidth={2.25} />,
+        },
+        cancelled: {
+          title: "Cancelled",
+          line: `${invoice.merchant.name} cancelled this ${what}.`,
+          tone: "muted",
+          icon: <X size={22} strokeWidth={1.5} />,
+        },
       };
       const c = copy[reason];
       return (
         <>
           <MerchantHeader name={invoice.merchant.name} verified={invoice.merchant.verified} />
-          <StateBlock tone={c.tone} title={c.title} line={c.line} code={invoice.code} amount={format(invoice.total)} />
+          <StateBlock
+            tone={c.tone}
+            icon={c.icon}
+            title={c.title}
+            line={c.line}
+            facts={[
+              ["Amount", format(invoice.total)],
+              ["Code", invoice.code, true],
+            ]}
+          />
         </>
       );
     }
 
     case "not_found":
-      return <StateBlock tone="muted" title="Code not found" line="Check the code, or ask the shop for a new one." code={code} />;
+      return (
+        <StateBlock
+          tone="muted"
+          icon={<SearchX size={22} strokeWidth={1.5} />}
+          title="Code not found"
+          line="Check the code, or ask the shop for a new one."
+          facts={[["Code", code, true]]}
+        />
+      );
 
     case "error":
       return (
         <>
-          <StateBlock tone="error" title="Couldn't load this payment" line="Check your connection and try again." code={code} />
-          <Button fullWidth variant="secondary" onClick={onRetry}>
+          <StateBlock
+            tone="error"
+            icon={<CircleAlert size={22} strokeWidth={1.5} />}
+            title="Couldn't load this payment"
+            line="Check your connection and try again."
+            facts={[["Code", code, true]]}
+          />
+          <Button fullWidth variant="secondary" onClick={onRetry} icon={<RotateCw size={18} strokeWidth={1.75} />}>
             Try again
           </Button>
         </>
@@ -493,18 +577,3 @@ function Body({ phase, code, now, busy, checkoutError, held, payCurrency, quotin
   }
 }
 
-function StateBlock({ tone, title, line, code, amount }: { tone: "muted" | "success" | "error"; title: string; line: string; code: string; amount?: string }) {
-  const icon = tone === "success" ? "✓" : tone === "error" ? "!" : "–";
-  return (
-    <section className={styles.state} data-tone={tone}>
-      <div className={styles.stateIcon} aria-hidden="true">
-        {icon}
-      </div>
-      <h1 className={styles.stateTitle}>{title}</h1>
-      <p className={styles.stateLine}>{line}</p>
-      <p className={styles.codeLine}>
-        {amount ? `${amount} · ` : null}Code {code}
-      </p>
-    </section>
-  );
-}

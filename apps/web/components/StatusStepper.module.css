@@ -15,74 +15,88 @@
   padding-bottom: 0;
 }
 
-/* Connector line down to the next marker. */
+/* The rail: a 1px line from this node down to the next. Ink once the step is done. */
 .step:not(:last-child)::before {
   content: "";
   position: absolute;
-  left: 11px;
-  top: 28px;
-  bottom: 4px;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--border);
+  left: 8.5px;
+  top: 22px;
+  bottom: 2px;
+  width: 1px;
+  background: var(--line);
+  transition: background-color 0.45s ease;
 }
 
 .done:not(:last-child)::before {
-  background: var(--success);
+  background: var(--text);
 }
 
-.marker {
+.node {
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1.5px solid var(--line);
   border-radius: 50%;
-  border: 2px solid var(--border-strong);
   background: var(--bg);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.done .marker {
-  border-color: var(--success);
-  background: var(--success);
   color: var(--bg);
+  transition:
+    background-color 0.45s ease,
+    border-color 0.45s ease;
 }
 
-.current .marker {
-  border-color: var(--accent);
+.done .node {
+  border-color: var(--text);
+  background: var(--text);
+  animation: nodePop 0.45s cubic-bezier(0.2, 1.5, 0.4, 1);
 }
 
-.current .marker::after {
+.current .node {
+  border-color: var(--text);
+}
+
+.current .node::after {
   content: "";
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--accent);
-  animation: pulse 1.4s ease-in-out infinite;
+  background: var(--text);
+  animation: rove-pulse 1.4s ease-in-out infinite;
 }
 
-.failed .marker {
+/* A soft halo ring around the current node. */
+.current .node::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.failed .node {
   border-color: var(--error);
   background: var(--error);
-  color: var(--bg);
+  animation: nodePop 0.45s cubic-bezier(0.2, 1.5, 0.4, 1);
 }
 
 .body {
   min-width: 0;
-  padding-top: 1px;
 }
 
 .label {
-  font-weight: 600;
-  line-height: 22px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: -0.011em;
+  transition: color 0.45s ease;
 }
 
 .todo .label {
   color: var(--muted);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .failed .label {
@@ -92,22 +106,57 @@
 .detail {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 18px;
   overflow-wrap: anywhere;
+  animation: fadeUp 0.4s ease both;
 }
 
-.detail a {
+.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
 }
 
-@keyframes pulse {
-  50% {
-    opacity: 0.35;
+@keyframes nodePop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .current .marker::after {
-    animation: none;
+  .node,
+  .detail,
+  .current .node::after,
+  .step::before {
+    animation: none !important;
+    transition: none !important;
   }
 }
