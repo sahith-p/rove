@@ -36,10 +36,12 @@ Scanning any Rove QR leads to the same pay page. **One agent, two roles:** the s
 ## Money path
 
 ```
-Customer: Apple Pay / card (Stripe)        or   USDT from a BNB Chain wallet (Privy)
+Customer: Apple Pay / card (Stripe), charged in      or   USDT from a BNB Chain wallet (Privy)
+          THEIR OWN currency (US$ for a US card)
               │                                         │
-              └──────── Rove treasury (RLUSD float on XRPL) ──────────┘
-                                    │  one cross-currency XRPL Payment through the RLUSD/XSGD AMM
+              └──── Rove treasury float on XRPL in the payer's currency (RLUSD / XSGD) ────┘
+                                    │  one XRPL Payment: RLUSD → XSGD at market rate through the AMM
+                                    │  (SGD payers: XSGD → XSGD, no swap)
                                     ▼
                     Merchant's custodial XRPL account: balance in XSGD  ← ledger in Postgres tracks holds
                                     │  "withdraw" (human-confirmed)
