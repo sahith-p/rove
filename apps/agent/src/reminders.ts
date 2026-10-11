@@ -29,7 +29,7 @@ export function startReminders(deps: Deps, m: { voice: Voice }): { stop(): void;
         if (!(await store.markInvoiceReminded(invoice.id))) continue; // someone else got it
         const merchant = await store.getMerchant(invoice.merchantId);
         if (!merchant) continue;
-        await outbox.text(invoice.to, `${merchant.name}: friendly reminder, ${format(invoice.total)}`);
+        await outbox.text(invoice.to, `Hi! Friendly reminder from ${merchant.name}: ${format(invoice.total)} is still open. Tap the card whenever you're ready.`);
         await outbox.cards.send(invoice.to, builders.invoice({ invoice, merchant }));
       } catch (err) {
         log("reminders: nudge failed", invoice.code, err);

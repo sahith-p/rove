@@ -10,5 +10,5 @@ export async function addContactFromCard(deps: Deps, merchant: Merchant, card: E
   if (!phone) return "That card has no phone number.";
   const name = card.name?.replace(/\s+/g, " ").trim().slice(0, 60) || "Unknown";
   const contact = await deps.store.addContact(merchant.id, { name, phone, channel: null });
-  return `Saved ${contact.name} (${contact.phone}) ✓`;
+  return `Saved ${contact.name} (${contact.phone}) to your contacts ✓`;
 }

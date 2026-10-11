@@ -55,11 +55,11 @@ async function sendPayCard(ctx: Ctx, to: Recipient, invoice: Invoice, merchant?:
 /** Payment-code fast path (no Claude): send the pay card for a typed code, or a one-line answer. */
 export async function payCodeFastPath(ctx: Ctx, from: Recipient, code: string): Promise<string> {
   const invoice = await ctx.deps.store.getInvoiceByCode(code.trim().toUpperCase());
-  if (!invoice) return "I don't recognise that code.";
-  if (invoice.status === "paid") return "That code is already paid ✓";
-  if (invoice.status !== "open" || isExpired(invoice, ctx.deps.now())) return "That code has expired. Ask the shop for a new one.";
+  if (!invoice) return "Hmm, I don't recognise that code. Could you double-check it with the shop?";
+  if (invoice.status === "paid") return "Good news, that one's already paid ✓ You're all set.";
+  if (invoice.status !== "open" || isExpired(invoice, ctx.deps.now())) return "That code has expired. Ask the shop for a fresh one and I'll sort you out.";
   const shop = await sendPayCard(ctx, from, invoice);
-  return `Here's your payment for ${format(invoice.total)} to ${shop.name}. Tap to pay.`;
+  return `Here you go! ${format(invoice.total)} to ${shop.name}. Tap the card to pay.`;
 }
 
 export function customerTools(ctx: ToolContext): BetaRunnableTool[] {
