@@ -10,6 +10,7 @@ import { closeConnections } from "./client";
 import { xrplConfigFromEnv, type XrplConfig } from "./config";
 import { createContext, explorerTxUrl, type EngineContext, type EngineOptions } from "./context";
 import type { SeedStore } from "./seed-store";
+import { createMerchantAccount, isVerifiedMerchant } from "./merchant";
 import { quote } from "./quote";
 import { settle } from "./settle";
 
@@ -22,7 +23,7 @@ export interface XrplSettlementEngine extends SettlementEngine {
 }
 
 const notYet = (name: string) => async (): Promise<never> => {
-  throw new Error(`${name}: not implemented yet (tasks/nithya.md NI-A4/NI-A5)`);
+  throw new Error(`${name}: not implemented yet (tasks/nithya.md NI-A5)`);
 };
 
 function isSeedStore(x: unknown): x is SeedStore {
@@ -38,12 +39,12 @@ export function createXrplSettlement(config: XrplConfig = xrplConfigFromEnv(), s
     context: ctx,
     quote: ({ local }) => quote(ctx, local),
     settle: (input) => settle(ctx, input),
-    createMerchantAccount: notYet("createMerchantAccount"),
+    createMerchantAccount: ({ merchantId }) => createMerchantAccount(ctx, merchantId),
     refund: notYet("refund"),
     sweepToRedemption: notYet("sweepToRedemption"),
     sendToWallet: notYet("sendToWallet"),
     balance: notYet("balance"),
-    isVerifiedMerchant: notYet("isVerifiedMerchant"),
+    isVerifiedMerchant: (address) => isVerifiedMerchant(ctx, address),
     explorerUrl: (txHash) => explorerTxUrl(txHash, config.explorerBase),
     close: async () => {
       if (opts.connection) await opts.connection.close();
