@@ -1,23 +1,30 @@
 // Create a withdrawal (status `requested`; no money moves). Owner: Nithya · Task: NI-C3.
-// Spec: docs/specs/withdrawals.md §3a. POST /internal/withdrawals, called by the agent's propose_withdrawal tool.
-// amount null = everything available; destination null = default bank account. Checks, in order: shop live → amount
-// (≥ S$1.00, ≤ available, today's total ≤ S$2,000) → destination (bank on file / wallet address) → fee S$0.00 →
-// needsStepUp (first withdrawal, bank account < 24h old, amount > S$200) → db.insertWithdrawal → toWithdrawalView.
+// Spec: docs/specs/withdrawals.md §3a, docs/specs/corridors.md. POST /internal/withdrawals, called by the agent's
+// propose_withdrawal tool. amount null = everything available; destination null = default bank account. Checks, in
+// order: shop live → amount (≥ min, ≤ available, today's total ≤ daily max) → destination (bank on file that can
+// receive the shop's currency / wallet address) → fee 0 → needsStepUp (first withdrawal, bank account < 24h old, amount
+// > step-up) → db.insertWithdrawal → toWithdrawalView.
+// Limits are per currency from the registry (SGD S$1 / S$200 / S$2,000 = WITHDRAWAL_LIMITS; EUR €1 / €150 / €1,500), and
+// bank payouts go to the currency's partner (registry `payout`: SGD → StraitsX/PayNow, EUR → SEPA; USD has none yet,
+// so USD shops withdraw to a wallet). Messages are in the shop's currency via format().
 // Every refusal is a UserFacingError whose message the agent says as is ("You have S$42.10 available to withdraw.").
 //
 // Wallet destinations: when the engine has the real engine's read-only `checkWalletDestination` (activated account,
-// XSGD trust line with room; not on the SettlementEngine interface or the mock, so it's feature-detected), refuse here
+// trust line for the shop currency's stablecoin with room; not on the SettlementEngine interface or the mock, so it's feature-detected), refuse here
 // with its merchant-readable message. Otherwise (mock, or the pre-check itself errors) sendToWallet checks again at
 // execute time and the withdrawal fails cleanly with the hold released.
 
 import {
   add,
+  BANK_ACCOUNT_PARTNER,
+  bankAccountTypesFor,
   cmp,
   format,
   isPositive,
   money,
+  payoutPartnerIdFor,
   sub,
-  WITHDRAWAL_LIMITS,
+  withdrawalLimitsFor,
   zero,
   type BankAccount,
   type Currency,
@@ -37,13 +44,14 @@ const XRPL_ADDRESS = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/;
 
 export const NO_BANK_ACCOUNT_MESSAGE = "Add your bank first: say 'add my bank'.";
 
-/** The demo limits in the merchant's currency (SG only for now, so SGD). */
+/** The demo limits in the merchant's currency, from the registry (SGD: S$1 / S$200 / S$2,000; EUR: €1 / €150 / €1,500). */
 export function withdrawalLimits(currency: Currency): { min: Money; stepUpAbove: Money; dailyMax: Money } {
-  return {
-    min: money(WITHDRAWAL_LIMITS.minSgd, currency),
-    stepUpAbove: money(WITHDRAWAL_LIMITS.stepUpAboveSgd, currency),
-    dailyMax: money(WITHDRAWAL_LIMITS.dailyMaxSgd, currency),
-  };
+  return withdrawalLimitsFor(currency);
+}
+
+/** What a shop in `currency` can add as a bank account, for the agent to say. */
+function bankKindFor(currency: Currency): string {
+  return bankAccountTypesFor(currency).includes("iban") ? "your IBAN" : "your PayNow or bank account";
 }
 
 export async function createWithdrawal(deps: WorkerDeps, body: InternalCreateWithdrawalReq): Promise<WithdrawalView> {
@@ -56,7 +64,7 @@ export async function createWithdrawal(deps: WorkerDeps, body: InternalCreateWit
   const w = await deps.db.insertWithdrawal({
     merchantId: merchant.id,
     amount,
-    fee: zero(merchant.currency), // FAST/PayNow payouts are free; the card still shows "Fee S$0.00"
+    fee: zero(merchant.currency), // FAST/PayNow and SEPA Instant payouts are free; the card still shows "Fee S$0.00" / "Fee €0.00"
     destination,
     needsStepUp,
   });
@@ -132,6 +140,15 @@ async function checkDestination(
     return { destination: { kind: "xrpl_wallet", address }, bank: null };
   }
 
+  // Bank payouts need a payout partner for the shop's currency (registry `payout`).
+  const partner = payoutPartnerIdFor(merchant.currency);
+  if (!partner) {
+    throw new UserFacingError(
+      "no_bank_payout",
+      `Bank withdrawals in ${merchant.currency} aren't available yet. I can send it to your own XRPL wallet instead: say 'send 20 to my wallet r…'.`,
+    );
+  }
+
   const bank = requested ? await deps.db.getBankAccount(requested.bankAccountId) : await deps.db.getDefaultBankAccount(merchant.id);
   if (!bank || bank.merchantId !== merchant.id) {
     if (!requested) throw new UserFacingError("no_bank_account", NO_BANK_ACCOUNT_MESSAGE);
@@ -139,6 +156,13 @@ async function checkDestination(
   }
   if (bank.status === "failed") {
     throw new UserFacingError("bank_account_failed", "That bank account didn't pass the bank's check. Say 'add my bank' to add it again.");
+  }
+  if (BANK_ACCOUNT_PARTNER[bank.type] !== partner) {
+    // e.g. a PayNow account on a shop that now takes EUR: its partner can't pay that currency out.
+    throw new UserFacingError(
+      "bank_account_wrong_currency",
+      `That bank account can't receive ${merchant.currency}. Say 'add my bank' to add ${bankKindFor(merchant.currency)}.`,
+    );
   }
   return { destination: { kind: "bank", bankAccountId: bank.id }, bank };
 }
@@ -157,7 +181,7 @@ function walletPreCheck(engine: SettlementEngine): WalletPreCheck | null {
 
 const isDestinationProblem = (err: unknown): err is Error & DestinationProblem => err instanceof Error && err.name === "XrplDestinationError";
 
-/** withdrawals.md §3a / settlement-xrpl.md §7: the wallet must be able to receive XSGD (when the engine can tell). */
+/** withdrawals.md §3a / settlement-xrpl.md §7: the wallet must be able to receive the shop currency's stablecoin (when the engine can tell). */
 async function checkWalletCanReceive(deps: WorkerDeps, merchant: Merchant, address: string, amount: Money): Promise<void> {
   const check = walletPreCheck(deps.settlement);
   if (!check) return; // mock engine: sendToWallet decides at execute time

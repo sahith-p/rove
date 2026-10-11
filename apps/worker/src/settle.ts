@@ -308,7 +308,7 @@ async function failPayment(deps: WorkerDeps, payment: Payment, reason: string, t
     return;
   }
   const ctx = { paymentId: payment.id, merchantId: payment.merchantId };
-  log.error("payment failed", { ...ctx, reason, ...(txHash ? { txHash, note: "XSGD moved but was not credited: reconcile by hand" } : {}) });
+  log.error("payment failed", { ...ctx, reason, ...(txHash ? { txHash, note: "the stablecoin moved but was not credited: reconcile by hand" } : {}) });
   await refundPayer(deps, failed, log);
   await deps.emit({ type: "payment.failed", paymentId: payment.id, merchantId: payment.merchantId, reason });
 }

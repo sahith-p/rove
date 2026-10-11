@@ -135,7 +135,7 @@ describe("withdrawal pipeline (NI-C4)", { skip }, () => {
     assert.equal((await fx.deps.db.getWithdrawal(v.id))?.status, "payout_pending");
     assert.equal(fx.fast.calls.settle, 3);
     assert.deepEqual(await balance(fx), { available: "20.00", held: "0.00" });
-    assert.ok(fx.logs.some((l) => l.level === "error" && l.line.includes("XSGD return failed")));
+    assert.ok(fx.logs.some((l) => l.level === "error" && l.line.includes("stablecoin return failed")));
 
     fx.fast.fail.settle = null;
     await resumeWithdrawals(fx.deps);
