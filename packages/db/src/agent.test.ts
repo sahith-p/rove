@@ -70,6 +70,19 @@ describe("pending actions", () => {
     assert.deepEqual((await db.expireActions(new Date(Date.now() + 10 * MIN))).map((x) => x.id), [fresh.id]);
     assert.equal(await db.claimAction(fresh.id), null);
   });
+
+  it("findActionByMessageId finds any status; findActionByRef maps a withdrawal or payment to its action", async () => {
+    const wd = await db.insertAction({ merchantId: "act", args: { kind: "withdrawal", withdrawalId: "wd_ref" }, confirmMessageIds: ["msg_ref"] });
+    const rf = await db.insertAction({ merchantId: "act", args: { kind: "refund", paymentId: "pay_ref", amount: sgd("1.00"), reason: "x" } });
+    await db.claimAction(wd.id);
+    await db.setActionStatus(wd.id, "done");
+    assert.equal(await db.findOpenActionByMessageId("msg_ref"), null); // not open any more
+    assert.equal((await db.findActionByMessageId("msg_ref"))?.id, wd.id); // but still found, so a late 👍 can be answered
+    assert.equal(await db.findActionByMessageId("msg_nobody"), null);
+    assert.equal((await db.findActionByRef("wd_ref"))?.id, wd.id);
+    assert.equal((await db.findActionByRef("pay_ref"))?.id, rf.id);
+    assert.equal(await db.findActionByRef("wd_nobody"), null);
+  });
 });
 
 describe("agent memory + onboarding", () => {
