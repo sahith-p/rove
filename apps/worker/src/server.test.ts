@@ -164,3 +164,44 @@ describe("POST /internal/merchants over HTTP", () => {
     );
   });
 });
+
+describe("GET /healthz (NI-C7)", () => {
+  test("ok + engine mode + db reachability, no auth needed", async () => {
+    const { server } = await app();
+    const res = await server.request("/healthz");
+    assert.equal(res.status, 200);
+    assert.deepEqual({ ...(await read(res)), dbMs: 0 }, { ok: true, engine: "mock", settlement: "mock", payouts: "mock", db: "ok", dbMs: 0 });
+  });
+
+  test("real engine is reported as real", async () => {
+    const { server } = await app({ config: { ...TEST_CONFIG, useMockSettlement: false } });
+    const json = await read(await server.request("/healthz"));
+    assert.equal(json.engine, "real");
+    assert.equal(json.settlement, "xrpl");
+  });
+
+  test("database unreachable → 503 ok:false, logged, no error details in the body; probes are cached for a few seconds", async () => {
+    const lines: string[] = [];
+    const log = createLogger("test", { level: "warn", sink: (_l, line) => lines.push(line) });
+    const fake = createFakeDb();
+    let probes = 0;
+    const db = {
+      ...fake.db,
+      getMerchant: async () => {
+        probes++;
+        throw new Error("connect ECONNREFUSED db.internal.example:6543");
+      },
+    };
+    const deps = await createTestDeps({ db, settlement: createFastSettlement().engine, log });
+    const server = createServer(deps);
+    const res = await server.request("/healthz");
+    assert.equal(res.status, 503);
+    const json = await read(res);
+    assert.equal(json.ok, false);
+    assert.equal(json.db, "unreachable");
+    assert.ok(!JSON.stringify(json).includes("db.internal.example"));
+    assert.ok(lines.some((l) => l.includes("healthz: database unreachable")));
+    await server.request("/healthz");
+    assert.equal(probes, 1, "second call answered from the cached probe");
+  });
+});
