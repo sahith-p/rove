@@ -1,5 +1,6 @@
 // Reconciler. Owner: Nithya · Task: NI-C7. Spec: docs/specs/withdrawals.md §1.
-// Invariant: ledger available + held == XSGD balance on the merchant's XRPL account (settlement.balance).
+// Invariant: ledger available + held == the merchant's stablecoin balance on their XRPL account (settlement.balance in
+// the merchant's currency: XSGD for SGD shops).
 //
 // Every config.intervals.reconcile ms, for each live merchant with an XRPL account: read the ledger balance, read
 // XRPL, compare exactly (money.ts, minor units). One readable line per merchant for the demo laptop:
@@ -8,9 +9,9 @@
 // A mismatch is re-read once after a short pause before it's called drift: a settlement or withdrawal step that lands
 // between the two reads (XRPL validated, ledger row a moment later) isn't drift. The last result per merchant stays in
 // memory and is served read-only at GET /internal/reconcile (server.ts). Drift is reported, never "fixed": a human
-// decides which side is wrong (settle.ts and refunds.ts log the tx hash whenever XSGD moved without a ledger entry).
+// decides which side is wrong (settle.ts and refunds.ts log the tx hash whenever funds moved without a ledger entry).
 
-import { add, cmp, DECIMALS, format, fromUnits, sub, toMinor, type Balance, type MerchantId, type Money } from "@rove/shared";
+import { add, cmp, DECIMALS, format, fromUnits, sub, toMinor, zero, type Balance, type Currency, type MerchantId, type Money } from "@rove/shared";
 import type { WorkerDeps } from "./deps";
 import type { Logger } from "./log";
 
@@ -23,13 +24,13 @@ export interface ReconcileResult {
   merchantId: MerchantId;
   xrplAddress: string | null;
   status: ReconcileStatus;
-  /** status === "ok": ledger available + held equals the XSGD on XRPL, to the cent. */
+  /** status === "ok": ledger available + held equals the stablecoin on XRPL, to the minor unit. */
   ok: boolean;
   /** Ledger available + held. */
   ledger: Money;
   available: Money;
   held: Money;
-  /** XSGD on the merchant's XRPL account; null when it couldn't be read (status "error"). */
+  /** The merchant's stablecoin (their currency) on their XRPL account; null when it couldn't be read (status "error"). */
   onchain: Money | null;
   /**
    * onchain − ledger as a signed decimal string in the ledger's currency ("0.00", "-5.00"). Positive: XRPL holds more
@@ -109,7 +110,7 @@ async function check(deps: WorkerDeps, merchantId: MerchantId, confirmDelayMs: n
 
   let onchain: Money;
   try {
-    onchain = await deps.settlement.balance({ merchantAddress: address });
+    onchain = await deps.settlement.balance({ merchantAddress: address, currency: merchant.currency });
   } catch (err) {
     return errorResult(merchantId, address, balance, `couldn't read XRPL: ${errText(err)}`, checkedAt());
   }
@@ -119,7 +120,7 @@ async function check(deps: WorkerDeps, merchantId: MerchantId, confirmDelayMs: n
     if (confirmDelayMs > 0) await sleep(confirmDelayMs);
     try {
       balance = await deps.db.getBalance(merchantId);
-      onchain = await deps.settlement.balance({ merchantAddress: address });
+      onchain = await deps.settlement.balance({ merchantAddress: address, currency: merchant.currency });
     } catch (err) {
       return errorResult(merchantId, address, balance, `re-check failed: ${errText(err)}`, checkedAt());
     }
@@ -146,16 +147,23 @@ async function check(deps: WorkerDeps, merchantId: MerchantId, confirmDelayMs: n
   return result;
 }
 
-function errorResult(merchantId: MerchantId, address: string | null, balance: Balance | null, error: string, checkedAt: string): ReconcileResult {
-  const zero: Money = { amount: "0.00", currency: "SGD" };
+function errorResult(
+  merchantId: MerchantId,
+  address: string | null,
+  balance: Balance | null,
+  error: string,
+  checkedAt: string,
+  currency: Currency = "SGD",
+): ReconcileResult {
+  const none = zero(balance?.available.currency ?? currency);
   return {
     merchantId,
     xrplAddress: address,
     status: "error",
     ok: false,
-    ledger: balance ? total(balance) : zero,
-    available: balance?.available ?? zero,
-    held: balance?.held ?? zero,
+    ledger: balance ? total(balance) : none,
+    available: balance?.available ?? none,
+    held: balance?.held ?? none,
     onchain: null,
     diff: null,
     error,

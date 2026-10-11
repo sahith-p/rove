@@ -7,7 +7,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createDb, type Db } from "@rove/db";
-import type { EventEnvelope, RoveEvent } from "@rove/shared";
+import type { Currency, EventEnvelope, RoveEvent } from "@rove/shared";
 import { createMockPayoutPartner } from "@rove/shared/mocks";
 import { createXrplSettlement, xrplConfigFromEnv, type XrplSettlementEngine } from "@rove/xrpl";
 import { postgresPool, type Pool } from "../../../packages/db/src/executor";
@@ -93,10 +93,10 @@ export function liveWorker(opts: { db?: Db; scope?: string } = {}): LiveWorker {
   };
 }
 
-/** The exact XSGD trust-line balance of `address` as XRPL reports it (no rounding), "0" if there is no line. */
-export async function rawXsgd(engine: XrplSettlementEngine, address: string): Promise<string> {
-  const sgd = engine.context.sgd();
-  const line = findLine(await getTrustLines(engine.context.conn, address, sgd.issuer), sgd.currency, sgd.issuer);
+/** The exact trust-line balance of `currency`'s stablecoin (XSGD for SGD) at `address` as XRPL reports it (no rounding), "0" if there is no line. */
+export async function rawBalance(engine: XrplSettlementEngine, address: string, currency: Currency = "SGD"): Promise<string> {
+  const asset = engine.context.asset(currency);
+  const line = findLine(await getTrustLines(engine.context.conn, address, asset.issuer), asset.currency, asset.issuer);
   return line?.balance ?? "0";
 }
 
