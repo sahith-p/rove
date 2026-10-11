@@ -14,7 +14,7 @@ Every open gate (G2b, G3, G3b, G4) waits on items 1 to 3 below. Details are in t
 - [ ] 1. Deploy the worker to Railway with `USE_MOCK_SETTLEMENT=0`, `AGENT_URL`, `DATABASE_URL`, `INTERNAL_SECRET`, XRPL seeds. Share `WORKER_URL`. Without it Stripe payments stop at `authorized`: no settle, no sale or receipt card.
 - [ ] 2. Add the 6 missing `@rove/db` helpers. Needed for 👍 confirms: `setActionMessageIds`, `findActionByMessageId`, `finishAction`, `findActionByRef`. Can wait: `invoicesDueForReminder`, `markInvoiceReminded`.
 - [ ] 3. Stripe: card-only payment methods (no redirect methods) + the checkout-reuse question (15:15 row). Add `rove-topaz.vercel.app` as an Apple Pay domain (15:05 row).
-- [ ] 4. Send Sahith `NEXT_PUBLIC_PRIVY_APP_ID` (15:05 row) so SH-A4 (AUSD/BNB button) can start.
+- [x] 4. Send Sahith `NEXT_PUBLIC_PRIVY_APP_ID` (got it, set on Vercel) (15:05 row) so SH-A4 (AUSD/BNB button) can start.
 
 **Sahith: web + cards**
 - [ ] 1. Merge + deploy the redesign: minimal, no-scroll `card=1` layouts on every page.
