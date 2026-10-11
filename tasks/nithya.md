@@ -50,7 +50,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 ## Lane B: Database + web API (`packages/db`, `apps/web/app/api/*`)
 
 ### NI-B1 · DB helpers · 60 min
-- [~] nithya/NI-B1-db: every Db method + createDb/createTestDb merged; test suite in progress
+- [x] every Db method, createDb (postgres.js) + createTestDb (PGlite), migrate + seed:demo; 50 tests incl. the payment + withdrawal balance walk
 - **Depends:** G0 (schema applied)
 - **Paths:** `packages/db/src/**`
 - **Do:** Everything listed in `packages/db/src/index.ts`: row ↔ domain mapping, CAS transitions, `claim`, ledger append (unique kind+ref) + `getBalance` (view), menu/contact name matching (`findMenuItems`, `getContactByName`), `findShop` (shop code → phone → fuzzy name), invoices (all three kinds incl. `pay_request`, 1-hour expiry), onboarding state.
@@ -85,7 +85,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** The setup page can save and the agent receives `shop.updated`.
 
 ### NI-B6 · Bank accounts + withdrawal read API · 45 min
-- [~] nithya/NI-B6-bank
+- [x] 420eaff, 6433918 (bank form stores beneficiary id + last4 only, tested for leaks; withdrawal read by ref or owning shop)
 - **Depends:** NI-B1, NI-C1 (partner selection)
 - **Paths:** `apps/web/app/api/me/bank-accounts/**`, `apps/web/app/api/withdrawals/**`
 - **Do:** withdrawals.md §2: `AddBankAccountReq` → `createBeneficiary` → store id + last4 + resolved name only → emit `bank_account.added`. `GET /api/withdrawals/:id` → `WithdrawalRes` with explorer URL.
