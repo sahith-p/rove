@@ -101,7 +101,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** Onboarding (mock engine) gets a live merchant and the event reaches the agent.
 
 ### NI-C2 · Settle job + invoice expiry · 60 min
-- [~] nithya/NI-C2-C5-settle-refunds
+- [x] 893ef3c (settle poller, re-quote on path errors, final failure → Stripe refund + payment.failed; stuck `settling` logged, never re-sent)
 - **Depends:** NI-C1, NI-B1
 - **Paths:** `apps/worker/src/{settle,expiry}.ts`
 - **Do:** `/internal/settle` + 3s poller: CAS authorized → settling → settled, ledger `payment_credit`, invoice paid, contact auto-add, `payment.settled` (with `firstSale`); retries + auto-refund on final failure; expire invoices/QRs.
@@ -122,7 +122,7 @@ Specs: [withdrawals](../docs/specs/withdrawals.md) · [settlement-xrpl](../docs/
 - **Done when:** `withdraw-smoke` walks to `completed` and the ledger + XRPL balance agree; failure flags behave (docs/06 §3).
 
 ### NI-C5 · Refunds · 45 min
-- [~] nithya/NI-C2-C5-settle-refunds
+- [x] b4120c1 (XRPL exact XSGD → ledger → Stripe in the charge currency; idempotent on actionId; the XRPL refund can't repeat)
 - **Depends:** NI-C2, NI-A5
 - **Paths:** `apps/worker/src/refunds.ts`
 - **Do:** `/internal/refunds` (idempotent on actionId): available check, XRPL merchant → treasury, Stripe refund, ledger `refund_debit`, `refund.completed/failed` (with payer for the customer message).
