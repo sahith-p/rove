@@ -36,6 +36,10 @@ export function countryName(cc: string): string {
 
 /** The currency a new shop on this phone gets paid in: the phone country's currency if Rove supports it, else SGD. */
 export function shopCurrencyForPhone(phone: string): Currency {
+  // Demo override: SHOP_CURRENCY=SGD makes every new shop an XSGD shop, whatever the phone's country (our demo
+  // phones are +1, which would otherwise give USD shops).
+  const forced = process.env.SHOP_CURRENCY?.trim().toUpperCase();
+  if (isMerchantCurrency(forced)) return forced;
   const code = currencyForPhone(phone)?.code;
   return isMerchantCurrency(code) ? code : DEFAULT_SHOP_CURRENCY;
 }
