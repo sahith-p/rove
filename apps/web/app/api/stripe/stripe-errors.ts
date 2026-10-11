@@ -21,11 +21,14 @@ export function redact(text: string): string {
   return text.replace(KEYISH, "$1_$2_[redacted]");
 }
 
+/** First line only: some SDK messages (signature failures) append paragraphs of docs. */
+const firstLine = (s: string) => redact(s.split("\n", 1)[0]!.trim());
+
 /** One log line for a Stripe failure: type, code, status, request id, redacted message. */
 export function describeStripeError(err: unknown): string {
   if (isStripeError(err)) {
     const parts = [err.type, err.code, err.statusCode, err.requestId].filter((v) => v !== undefined && v !== null && v !== "");
-    return `${parts.join(" ")}: ${redact(err.message)}`;
+    return `${parts.join(" ")}: ${firstLine(err.message)}`;
   }
-  return err instanceof Error ? redact(err.message) : redact(String(err));
+  return firstLine(err instanceof Error ? err.message : String(err));
 }
