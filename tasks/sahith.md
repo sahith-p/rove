@@ -27,21 +27,21 @@ Specs: [web-app](../docs/specs/web-app.md) · [imessage-apps](../docs/specs/imes
 - **Done when:** All states render from fixtures at 375px.
 
 ### SH-A3 · Apple Pay (Stripe Express Checkout) · 60 min
-- [ ] status
+- [x] merged
 - **Depends:** SH-A2, NI-B2 merged
 - **Paths:** `apps/web/app/pay/**`, `apps/web/components/checkout/**`
 - **Do:** `POST /api/checkout {target:{source:"invoice",code}, method:"card"}` → Elements + `ExpressCheckoutElement` → `confirmPayment({ redirect: "if_required" })` → poll `GET /api/payments/:id` → "Paid ✓" + "View on XRPL". "Open in Safari to pay" fallback if Apple Pay isn't offered inside Messages.
 - **Done when:** On phone C, an invoice card → Apple Pay → "Paid ✓" (test card 4242 also works).
 
 ### SH-A4 · "Pay with a BNB Chain wallet" (Privy) · 60 min
-- [ ] status
+- [~] agent (in progress)
 - **Depends:** SH-A3, NI-C6 merged
 - **Paths:** `apps/web/components/privy/**`, `apps/web/app/pay/**`, `apps/web/app/m/**`
 - **Do:** `PrivyProvider` (embedded wallets, BSC testnet 97). Button → `POST /api/checkout {method:"bnb"}` → `transfer(depositAddress, units)` from the embedded wallet (viem `encodeFunctionData`); fallback: address + amount + EIP-681 QR. Poll status.
 - **Done when:** Gate **G3b**.
 
 ### SH-A5 · `/m/[merchantId]` fixed-QR page · 45 min
-- [~] agent (in progress)
+- [x] merged
 - **Depends:** SH-A3
 - **Paths:** `apps/web/app/m/**`
 - **Do:** `ShopPublicRes` → menu grid with +/- and a "pay another amount" field → total → same pay buttons (`target.source = "fixed_qr"`); optional "Text me a receipt" phone field.
@@ -71,7 +71,7 @@ Specs: [web-app](../docs/specs/web-app.md) · [imessage-apps](../docs/specs/imes
 - **Done when:** Saving inside Messages updates the DB and the agent edits the setup card ("4 items ✓").
 
 ### SH-B3 · Preview images · 30 min
-- [~] agent (in progress)
+- [x] merged
 - **Depends:** SH-A2, SH-B2
 - **Paths:** `apps/web/app/**/opengraph-image.tsx`, `generateMetadata` in each page
 - **Do:** `next/og` image per page + state: "S$12.50 · Paid ✓", "Withdrawal · In your bank ✓", "Ah Seng Chicken Rice · 4 items".
