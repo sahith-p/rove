@@ -9,20 +9,10 @@ import { customerTools } from "../tools/customer";
 import { merchantTools } from "../tools/merchant";
 import { loadHistory, saveTurn } from "./history";
 import { clockLine } from "../time";
+import { plainText } from "./text";
 import { customerPrompt, merchantPrompt } from "./prompts";
 
 /** Text messages, not documents: drop markdown the model might still emit. */
-export function plainText(s: string): string {
-  return s
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/__(.+?)__/g, "$1")
-    .replace(/`+/g, "")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/^\s*[-*•]\s+/gm, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 export function createTurnRunner(deps: Deps, m: { actions: ActionsService; onboarding: OnboardingFlow }): TurnRunner {
   const client = deps.config.anthropicApiKey ? new Anthropic({ apiKey: deps.config.anthropicApiKey, defaultHeaders: deps.config.anthropicWorkspaceId ? { "anthropic-workspace-id": deps.config.anthropicWorkspaceId } : undefined }) : null;
 
