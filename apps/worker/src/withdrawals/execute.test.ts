@@ -384,6 +384,30 @@ describe("withdrawal pipeline (NI-C4)", { skip }, () => {
       assert.ok((await fx.reconciled()).ok);
     });
 
+    test("payout_pending after a restart with the mock partner (it forgot the payout) → re-submitted, completes", async () => {
+      const silent = createSilentPartner();
+      const fx = await withdrawalFixture({ balance: "70", payouts: silent.partner });
+      const v = await requested(fx, "20");
+      await executeWithdrawal(fx.deps, v.id, { actionId: "act_1" });
+      const before = await waitForStatus(fx.deps, v.id, ["payout_pending"]);
+      await idle(v.id);
+
+      // New process: a fresh mock partner that has never heard of this payout.
+      const fresh = createCountingPartner();
+      const restarted = { ...fx.deps, payouts: fresh.partner };
+      const stop = startPartnerCallbacks(restarted);
+      try {
+        await resumeWithdrawals(restarted);
+        const w = await waitForStatus(fx.deps, v.id, ["completed"]);
+        assert.equal(fresh.calls.createPayout, 1);
+        assert.notEqual(w.partnerPayoutId, before.partnerPayoutId, "now tracks the new payout");
+        assert.match(w.bankRef ?? "", /^FAST-/);
+        assert.deepEqual(await balance(fx), { available: "50.00", held: "0.00" });
+      } finally {
+        stop();
+      }
+    });
+
     test("onchain_pending without a tx hash → logged for manual review, never re-sent", async () => {
       const fx = await withdrawalFixture({ balance: "70" });
       const v = await requested(fx, "20");

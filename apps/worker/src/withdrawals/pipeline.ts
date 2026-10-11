@@ -218,24 +218,9 @@ async function afterOnchain(deps: WorkerDeps, w: Withdrawal): Promise<boolean> {
     return false;
   }
 
-  const bank = await deps.db.getBankAccount(w.destination.bankAccountId);
-  if (!bank) {
-    log.error("bank account for withdrawal is gone; payout needs MANUAL REVIEW", { id: w.id, bankAccountId: w.destination.bankAccountId });
-    return false;
-  }
-
-  let payout: PartnerPayoutStatus | null = null;
-  for (const [attempt, delay] of [0, 250, 1000].entries()) {
-    if (delay) await sleep(delay);
-    try {
-      payout = await deps.payouts.createPayout({ withdrawalId: w.id, beneficiaryId: bank.beneficiaryId, amount: w.amount, idempotencyKey: w.id });
-      break;
-    } catch (err) {
-      log.warn("createPayout failed", { id: w.id, attempt: attempt + 1, err: errText(err) });
-    }
-  }
+  const payout = await submitPayout(deps, w);
   if (!payout) {
-    log.error("payout partner unreachable; withdrawal waits in onchain_settled (re-execute or restart resumes it)", { id: w.id });
+    log.error("payout not created; withdrawal waits in onchain_settled (re-execute or restart resumes it)", { id: w.id });
     return false;
   }
 
@@ -244,18 +229,47 @@ async function afterOnchain(deps: WorkerDeps, w: Withdrawal): Promise<boolean> {
   return false;
 }
 
+/** createPayout with a few retries. The partner dedupes on idempotencyKey = withdrawal id, so repeating it can't pay twice. */
+async function submitPayout(deps: WorkerDeps, w: Withdrawal): Promise<PartnerPayoutStatus | null> {
+  const log = pipelineLog(deps);
+  if (w.destination.kind !== "bank") return null;
+  const bank = await deps.db.getBankAccount(w.destination.bankAccountId);
+  if (!bank) {
+    log.error("bank account for withdrawal is gone; payout needs MANUAL REVIEW", { id: w.id, bankAccountId: w.destination.bankAccountId });
+    return null;
+  }
+  for (const [attempt, delay] of [0, 250, 1000].entries()) {
+    if (delay) await sleep(delay);
+    try {
+      return await deps.payouts.createPayout({ withdrawalId: w.id, beneficiaryId: bank.beneficiaryId, amount: w.amount, idempotencyKey: w.id });
+    } catch (err) {
+      log.warn("createPayout failed", { id: w.id, attempt: attempt + 1, err: errText(err) });
+    }
+  }
+  return null;
+}
+
 /** payout_pending on resume / re-execute: ask the partner instead of waiting for a callback we may have missed. */
 async function pollPayout(deps: WorkerDeps, w: Withdrawal): Promise<void> {
-  if (!w.partnerPayoutId) {
-    pipelineLog(deps).error("payout_pending without a partner payout id: MANUAL REVIEW", { id: w.id });
-    return;
+  const log = pipelineLog(deps);
+  let s: PartnerPayoutStatus | null = null;
+  if (w.partnerPayoutId) {
+    try {
+      s = await deps.payouts.getPayout(w.partnerPayoutId);
+    } catch (err) {
+      log.warn("getPayout failed; re-submitting the payout (deduped on the withdrawal id)", { id: w.id, err: errText(err) });
+    }
   }
-  try {
-    const s = await deps.payouts.getPayout(w.partnerPayoutId);
-    if (s.status !== "pending") await applyPayout(deps, s);
-  } catch (err) {
-    pipelineLog(deps).warn("getPayout failed; waiting for the partner callback", { id: w.id, err: errText(err) });
+  if (!s) {
+    // The partner doesn't know the payout: the mock forgets everything when the worker restarts (tsx watch in dev).
+    // A real partner returns the existing payout for the same idempotency key, so this can't pay twice.
+    s = await submitPayout(deps, w);
+    if (!s) return;
+    if (s.partnerPayoutId !== w.partnerPayoutId) {
+      await deps.db.transitionWithdrawal(w.id, ["payout_pending"], "payout_pending", { partnerPayoutId: s.partnerPayoutId });
+    }
   }
+  if (s.status !== "pending") await applyPayout(deps, s);
 }
 
 /**
