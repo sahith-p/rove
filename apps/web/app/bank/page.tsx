@@ -81,7 +81,7 @@ function Expired() {
           <LockIcon size={20} />
         </span>
         <h1 className={styles.expiredTitle}>Link expired</h1>
-        <p className="muted">This link expired (links last 15 minutes). Text Rove &lsquo;add my bank&rsquo; for a new one.</p>
+        <p className="muted">This link expired (links last 24 hours). Text Rove &lsquo;add my bank&rsquo; for a new one.</p>
       </div>
     </main>
   );

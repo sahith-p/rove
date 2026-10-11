@@ -43,4 +43,4 @@ export interface ConfirmTokenPayload {
   exp: number;
 }
 
-export const TOKEN_TTL_SEC = { setup: 24 * 3600, bank: 15 * 60, shop: 7 * 24 * 3600, withdrawal: 7 * 24 * 3600, sale: 7 * 24 * 3600, confirm: 5 * 60 } as const;
+export const TOKEN_TTL_SEC = { setup: 24 * 3600, bank: 24 * 3600, shop: 7 * 24 * 3600, withdrawal: 7 * 24 * 3600, sale: 7 * 24 * 3600, confirm: 30 * 60 } as const; // demo: bank 24 h, confirm 30 min (were 15 min / 5 min; cards sent at go-live expired before the tap)

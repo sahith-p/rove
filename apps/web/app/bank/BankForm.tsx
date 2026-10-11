@@ -189,7 +189,7 @@ export function BankForm({ token, demo, unverifiedSession }: BankFormProps) {
 
     setSubmitting(false);
     if (res?.status === 401 || res?.status === 403) {
-      setFormError("This link expired (links last 15 minutes). Text Rove 'add my bank' for a new one.");
+      setFormError("This link expired (links last 24 hours). Text Rove 'add my bank' for a new one.");
     } else {
       const reason = errorText(json);
       setFormError(
