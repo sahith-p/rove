@@ -325,6 +325,16 @@ export function PayClient({ code, preview, fixtureKind }: PayClientProps) {
     [phase, busy, checkout],
   );
 
+  // First quote: when the locale picks a currency other than the invoice's, quote it once so the big amount is
+  // what the payer will actually be charged (the toggle re-quotes on every change).
+  const autoQuoted = useRef(false);
+  useEffect(() => {
+    if (autoQuoted.current || phase.name !== "open" || !payCurrency || busy || quoting) return;
+    if (payCurrency === phase.invoice.total.currency) return;
+    autoQuoted.current = true;
+    void onCurrency(payCurrency);
+  }, [phase, payCurrency, busy, quoting, onCurrency]);
+
   const onPay = useCallback(
     async (method: PayMethod) => {
       if (phase.name !== "open" || busy || quoting) return;
