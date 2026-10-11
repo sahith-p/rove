@@ -201,7 +201,7 @@ test("withdrawal: updateText only on completed / failed / returned", () => {
     cards.withdrawal({ withdrawal: withdrawal(o), merchant: DEMO_MERCHANT, destinationLabel: "DBS ••••1234", sessionToken: T });
 
   assert.equal(build({ status: "completed", bankRef: "FAST-881245" }).updateText, "In your bank ✓ S$50.00 · FAST-881245");
-  assert.equal(build({ status: "completed" }).updateText, "In your bank ✓ S$50.00 ·");
+  assert.equal(build({ status: "completed" }).updateText, "In your bank ✓ S$50.00");
   assert.equal(build({ status: "failed", failureReason: "name mismatch" }).updateText,
     "Withdrawal failed: name mismatch. Money is back in your balance.");
   assert.equal(build({ status: "failed" }).updateText, "Withdrawal failed: unknown. Money is back in your balance.");

@@ -126,7 +126,7 @@ export function createCardBuilders({ baseUrl }: { baseUrl: string }): CardBuilde
           updateText =
             withdrawal.destination.kind === "xrpl_wallet"
               ? `Sent ${amount} to your wallet ✓`
-              : `In your bank ✓ ${amount} · ${withdrawal.bankRef ?? ""}`.trim();
+              : (withdrawal.bankRef ? `In your bank ✓ ${amount} · ${withdrawal.bankRef}` : `In your bank ✓ ${amount}`);
           break;
         case "failed":
           updateText = `Withdrawal failed: ${withdrawal.failureReason ?? "unknown"}. Money is back in your balance.`;
