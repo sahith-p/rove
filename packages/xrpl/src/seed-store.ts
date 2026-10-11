@@ -36,16 +36,21 @@ export function memorySeedStore(): SeedStore & { size(): number } {
 
 const envKeyFor = (merchantId: string) => merchantId.toUpperCase().replace(/[^A-Z0-9]/g, "_");
 
+/** .env.seed keys for a merchant's custodial account: DEMO_MERCHANT_* for the demo merchant, else
+ *  XRPL_MERCHANT_<ID>_ADDRESS / _SEED_ENC (e.g. XRPL_MERCHANT_CAFE_BERLIN_ADDRESS). */
+export function merchantEnvKeys(merchantId: string, demoMerchantId = "ahseng"): { address: string; seed: string } {
+  return merchantId === demoMerchantId
+    ? { address: "DEMO_MERCHANT_XRPL_ADDRESS", seed: "DEMO_MERCHANT_SEED_ENC" }
+    : { address: `XRPL_MERCHANT_${envKeyFor(merchantId)}_ADDRESS`, seed: `XRPL_MERCHANT_${envKeyFor(merchantId)}_SEED_ENC` };
+}
+
 /**
  * File-backed store on top of .env.seed. The demo merchant uses DEMO_MERCHANT_XRPL_ADDRESS / DEMO_MERCHANT_SEED_ENC
  * (the DB seed copies them into the merchants row); any other merchant gets XRPL_MERCHANT_<ID>_ADDRESS / _SEED_ENC.
  */
 export function envFileSeedStore(path: string, opts: { demoMerchantId?: string } = {}): SeedStore {
   const demo = opts.demoMerchantId ?? "ahseng";
-  const keys = (merchantId: string) =>
-    merchantId === demo
-      ? { address: "DEMO_MERCHANT_XRPL_ADDRESS", seed: "DEMO_MERCHANT_SEED_ENC" }
-      : { address: `XRPL_MERCHANT_${envKeyFor(merchantId)}_ADDRESS`, seed: `XRPL_MERCHANT_${envKeyFor(merchantId)}_SEED_ENC` };
+  const keys = (merchantId: string) => merchantEnvKeys(merchantId, demo);
   return {
     async put(merchantId, xrplAddress, seedEnc) {
       const k = keys(merchantId);

@@ -2,6 +2,7 @@
 // Every step checks the ledger first, so calling createMerchantAccount again for the same merchant resumes
 // where it stopped (or does nothing) instead of creating a second account.
 
+import { isCurrency, type Currency } from "@rove/shared";
 import { isValidClassicAddress, Wallet } from "xrpl";
 import type { EngineContext } from "./context";
 import { encryptSeed } from "./crypto";
@@ -26,13 +27,15 @@ export interface CreateMerchantResult {
   credentialStatus: "issued" | "accepted";
 }
 
-export async function createMerchantAccount(ctx: EngineContext, merchantId: string): Promise<CreateMerchantResult> {
+/** `currency` = the merchant's currency (default SGD): the account trusts its stablecoin + RLUSD. */
+export async function createMerchantAccount(ctx: EngineContext, merchantId: string, currency: Currency = "SGD"): Promise<CreateMerchantResult> {
   if (!merchantId) throw new Error("createMerchantAccount: merchantId is required");
+  if (!isCurrency(currency)) throw new Error(`createMerchantAccount: unsupported currency ${String(currency)}`);
   const store = ctx.seedStore;
   if (!store) throw new Error("createMerchantAccount needs a SeedStore (the worker wires it to the DB)");
   if (!ctx.config.walletEncryptionKey) throw new Error("createMerchantAccount needs WALLET_ENCRYPTION_KEY to encrypt the seed");
-  const sgd = ctx.sgd();
-  const usd = ctx.usd();
+  const lineCurrencies: Currency[] = currency === "USD" ? ["USD"] : [currency, "USD"];
+  const assets = lineCurrencies.map((c) => ({ c, asset: ctx.asset(c) }));
   const treasury = ctx.treasuryWallet();
   const credIssuer = ctx.credentialIssuerAddress();
 
@@ -58,12 +61,12 @@ export async function createMerchantAccount(ctx: EngineContext, merchantId: stri
     });
   }
 
-  // 3. Trust lines to the XSGD and RLUSD issuers.
+  // 3. Trust lines to the merchant currency's stablecoin (XSGD for SGD shops) and RLUSD.
   const lines = await getTrustLines(ctx.conn, address);
-  for (const asset of [sgd, usd]) {
+  for (const { c, asset } of assets) {
     if (findLine(lines, asset.currency, asset.issuer)) continue;
     await submitTx(ctx, wallet, buildTrustSet({ account: address, currency: asset.currency, issuer: asset.issuer }), {
-      label: `trust line ${merchantId} → ${asset.issuer === sgd.issuer ? "XSGD" : "RLUSD"}`,
+      label: `trust line ${merchantId} → ${ctx.tokenName(c)}`,
     });
   }
 
